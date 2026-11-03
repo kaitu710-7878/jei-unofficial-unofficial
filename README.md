@@ -12,6 +12,12 @@
 
 Fabric等の他ローダー向けコードを完全に除外して構成をスリム化しつつ、JEIUが誇る先進的な利便性向上機能（レシピツリー生成、チェーンブックマーク、高速クラフト等）をForge 1.20.1環境で安定して提供します。
 
+### バージョニング規則
+将来的に上流のJEI / JEIUを追従更新した際にもベース元を明確に識別できるよう、以下のバージョニング体系を採用しています：
+- **表記形式**: `<上流JEIバージョン>-jeiuu.<JEIUUリビジョン>` (例: `15.59.0.212-jeiuu.2`)
+- **上流JEIバージョン**: ベース元のJEI/JEIUバージョン（例: `15.59.0.212`）をそのまま保持。
+- **JEIUUリビジョン**: 本フォーク独自で行われたバグ修正や最適化の更新番号。
+
 ### 特徴
 - **Minecraft 1.20.1 Forge 専用設計**: 不要なマルチローダー依存性を排除し、ビルド構成および実行環境を軽量化。
 - **JEI前提要求達成ロジックの内蔵**:
@@ -46,6 +52,12 @@ Fabric等の他ローダー向けコードを完全に除外して構成をス�
 **JEI Unofficial Unofficial (JEIUU)** is an unofficial fork of "JEI unofficial (JEIU)" by StardustMINUS, dedicated, updated, and optimized exclusively for **Minecraft 1.20.1 Minecraft Forge**.
 
 By removing Fabric and multi-loader dependencies, the project is streamlined for maximum stability and performance on Forge 1.20.1, while preserving all the powerful features of JEIU (recipe tree generation, bookmark chaining, fast crafting, etc.).
+
+### Versioning Scheme
+To clearly preserve the upstream JEI base mark across future updates, this project uses:
+- **Format**: `<Upstream JEI Version>-jeiuu.<JEIUU Revision>` (e.g. `15.59.0.212-jeiuu.2`)
+- **Upstream JEI Version**: Intact base version from upstream JEI / JEIU (e.g. `15.59.0.212`).
+- **JEIUU Revision**: Incremented for fork-specific fixes and optimizations.
 
 ### Features
 - **1.20.1 Forge Dedicated**: Cleaned from multi-loader toolchains and optimized strictly for Forge 1.20.1.

@@ -63,15 +63,12 @@ val modJavaVersion: String by extra
 val modName: String by extra
 val specificationVersion: String by extra
 val homepageUrl: String by extra
+val upstreamJeiVersion: String by extra
+val jeiuuRevision: String by extra
 
 subprojects {
-    //adds the build number to the end of the version string if on a build server
-    var buildNumber = project.findProperty("BUILD_NUMBER")
-    if (buildNumber == null) {
-        buildNumber = "214"
-    }
-
-    version = "${specificationVersion}.${buildNumber}"
+    val revision = project.findProperty("JEIUU_REVISION")?.toString() ?: jeiuuRevision
+    version = "${upstreamJeiVersion}-jeiuu.${revision}"
     group = modGroup
 
     tasks.withType<Javadoc> {
