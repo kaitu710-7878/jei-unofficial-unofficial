@@ -7,6 +7,15 @@
 <a name="japanese"></a>
 ## 日本語 (Japanese)
 
+### [15.59.0.214] - 2026-11-03
+#### 修正 (Fixed)
+- **砥石（Grindstone）レシピ画面のクラッシュバグを修正**:
+  - エンチャント除去など下段スロットが空（`ItemStack.EMPTY`）になる砥石レシピにおいて、無効なアイテムがスロットから除外された結果、スロット間の具材数不一致により `createFocusLink` で `IllegalArgumentException` がスローされ「このレシピはクラッシュしました」と表示される不具合を修正。
+  - `GrindstoneRecipeCategory` にて空スロットの存在を判定し、適切なスロットのみをフォーカスリンクするように改善。
+  - `RecipeLayoutBuilder` においてスロット具材数が不一致の場合に例外でレシピ全体をクラッシュさせず、安全にリンクのみをスキップする防護策を追加。
+
+---
+
 ### [15.59.0.213] - 2026-11-03
 #### 追加 (Added)
 - **JEI Unofficial Unofficial (JEIUU)** としての初期フォークリリース。
@@ -26,6 +35,15 @@
 
 <a name="english"></a>
 ## English
+
+### [15.59.0.214] - 2026-11-03
+#### Fixed
+- **Fixed Grindstone Recipe Crash**:
+  - Fixed an issue where grindstone disenchantment recipes with an empty bottom slot caused `createFocusLink` to throw an `IllegalArgumentException` due to ingredient count mismatch, triggering the "This recipe crashed" error screen.
+  - Improved `GrindstoneRecipeCategory` to inspect valid ingredients and only link active slots.
+  - Added safety guard in `RecipeLayoutBuilder.createFocusLink` to gracefully skip invalid focus links without crashing the entire recipe layout.
+
+---
 
 ### [15.59.0.213] - 2026-11-03
 #### Added

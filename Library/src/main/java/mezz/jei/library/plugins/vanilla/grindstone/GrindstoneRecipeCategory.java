@@ -36,9 +36,9 @@ public class GrindstoneRecipeCategory extends AbstractRecipeCategory<IJeiGrindst
 
 	@Override
 	public void setRecipe(IRecipeLayoutBuilder builder, IJeiGrindstoneRecipe recipe, IFocusGroup focuses) {
-		List<ItemStack> topInputs = recipe.getTopInputs();
-		List<ItemStack> bottomInputs = recipe.getBottomInputs();
-		List<ItemStack> outputs = recipe.getOutputs();
+		List<ItemStack> topInputs = recipe.getTopInputs().stream().filter(s -> !s.isEmpty()).toList();
+		List<ItemStack> bottomInputs = recipe.getBottomInputs().stream().filter(s -> !s.isEmpty()).toList();
+		List<ItemStack> outputs = recipe.getOutputs().stream().filter(s -> !s.isEmpty()).toList();
 
 		IRecipeSlotBuilder topInputSlot = builder.addInputSlot(1, 1)
 			.addItemStacks(topInputs)
@@ -60,14 +60,25 @@ public class GrindstoneRecipeCategory extends AbstractRecipeCategory<IJeiGrindst
 		}
 		outputSlot.setOutputSlotBackground().addItemStacks(outputs);
 
-		if (topInputs.size() == bottomInputs.size()) {
-			if (topInputs.size() == outputs.size()) {
+		boolean hasTop = !topInputs.isEmpty();
+		boolean hasBottom = !bottomInputs.isEmpty();
+
+		if (hasTop && hasBottom) {
+			if (topInputs.size() == bottomInputs.size() && topInputs.size() == outputs.size()) {
 				builder.createFocusLink(topInputSlot, bottomInputSlot, outputSlot);
+			} else if (topInputs.size() == outputs.size() && bottomInputs.size() == 1) {
+				builder.createFocusLink(topInputSlot, outputSlot);
+			} else if (bottomInputs.size() == outputs.size() && topInputs.size() == 1) {
+				builder.createFocusLink(bottomInputSlot, outputSlot);
 			}
-		} else if (topInputs.size() == outputs.size() && bottomInputs.size() == 1) {
-			builder.createFocusLink(topInputSlot, outputSlot);
-		} else if (bottomInputs.size() == outputs.size() && topInputs.size() == 1) {
-			builder.createFocusLink(bottomInputSlot, outputSlot);
+		} else if (hasTop) {
+			if (topInputs.size() == outputs.size()) {
+				builder.createFocusLink(topInputSlot, outputSlot);
+			}
+		} else if (hasBottom) {
+			if (bottomInputs.size() == outputs.size()) {
+				builder.createFocusLink(bottomInputSlot, outputSlot);
+			}
 		}
 	}
 

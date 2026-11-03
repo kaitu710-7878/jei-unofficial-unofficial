@@ -27,6 +27,8 @@ import mezz.jei.library.gui.recipes.ShapelessIcon;
 import mezz.jei.library.ingredients.DisplayIngredientAcceptor;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +42,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 public class RecipeLayoutBuilder<T> implements IRecipeLayoutBuilder {
+	private static final Logger LOGGER = LogManager.getLogger();
 	private final List<RecipeSlotBuilder> visibleSlots = new ArrayList<>();
 	private final List<List<RecipeSlotBuilder>> focusLinkedSlots = new ArrayList<>();
 
@@ -141,10 +144,11 @@ public class RecipeLayoutBuilder<T> implements IRecipeLayoutBuilder {
 					.map(DisplayIngredientAcceptor::getAllIngredients)
 					.mapToInt(Collection::size)
 					.summaryStatistics();
-				throw new IllegalArgumentException(
-					"All slots must have the same number of ingredients in order to create a focus link. " +
-						String.format("slot stats: %s", stats)
+				LOGGER.error(
+					"All slots must have the same number of ingredients in order to create a focus link. Skipping invalid focus link. slot stats: {}",
+					stats
 				);
+				return;
 			}
 		}
 
