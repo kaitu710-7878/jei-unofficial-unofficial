@@ -1,0 +1,79 @@
+package mezz.jei.gui.recipes;
+
+import mezz.jei.api.gui.builder.IIngredientAcceptor;
+import mezz.jei.api.recipe.IFocusGroup;
+import mezz.jei.api.recipe.RecipeType;
+import mezz.jei.api.recipe.category.IRecipeCategory;
+import mezz.jei.gui.recipes.filtering.RecipeFilterMode;
+import mezz.jei.gui.recipes.lookups.IFocusedRecipes;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
+
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+
+public interface IRecipeGuiLogic {
+
+	String getPageString();
+
+	boolean hasMultipleCategories();
+
+	boolean hasAllCategories();
+
+	default void applyRecipeResultFilter(RecipeFilterMode mode, String query) {
+	}
+
+	default void clearRecipeResultSnapshot() {
+	}
+
+	default boolean hasRecipeResults() {
+		return true;
+	}
+
+	void previousRecipeCategory();
+
+	int getRecipesPerPage();
+
+	void nextRecipeCategory();
+
+	void setRecipeCategory(IRecipeCategory<?> category);
+
+	boolean hasMultiplePages();
+
+	void goToFirstPage();
+
+	void previousPage();
+
+	void nextPage();
+
+	void tick(@Nullable AbstractContainerMenu container);
+
+	boolean showFocus(IFocusGroup focuses);
+
+	boolean showRecipes(IFocusedRecipes<?> recipes, IFocusGroup focuses);
+
+	boolean back();
+
+	boolean forward();
+
+	void clearHistory();
+
+	boolean showAllRecipes();
+
+	boolean showCategories(List<RecipeType<?>> recipeTypes);
+
+	IRecipeCategory<?> getSelectedRecipeCategory();
+
+	@Unmodifiable
+	List<IRecipeCategory<?>> getRecipeCategories();
+
+	Stream<Consumer<IIngredientAcceptor<?>>> getRecipeCatalystGroups();
+
+	List<IRecipeLayoutWithButtons<?>> getVisibleRecipeLayoutsWithButtons(
+		int availableHeight,
+		int minRecipePadding,
+		@Nullable AbstractContainerMenu container
+	);
+}

@@ -1,0 +1,60 @@
+package mezz.jei.api.recipe;
+
+import org.jetbrains.annotations.ApiStatus;
+
+import mezz.jei.api.constants.VanillaTypes;
+import mezz.jei.api.gui.builder.IIngredientAcceptor;
+import mezz.jei.api.ingredients.IIngredientType;
+import mezz.jei.api.ingredients.ITypedIngredient;
+import net.minecraft.world.item.ItemStack;
+
+import java.util.stream.Stream;
+import java.util.function.Consumer;
+
+/**
+ * This is a helper class for looking up recipe catalysts.
+ * Create one with {@link IRecipeManager#createRecipeCatalystLookup(RecipeType)},
+ * then set its properties and call {@link #get()} to get the results.
+ *
+ * @since 9.5.0
+ */
+@ApiStatus.NonExtendable
+public interface IRecipeCatalystLookup {
+	/**
+	 * By default, hidden results are not returned.
+	 * Calling this will make this lookup include hidden recipe catalysts.
+	 *
+	 * @since 9.5.0
+	 */
+	IRecipeCatalystLookup includeHidden();
+
+	/**
+	 * Get the recipe catalyst results for this lookup.
+	 *
+	 * @since 9.5.0
+	 */
+	Stream<ITypedIngredient<?>> get();
+
+	/**
+	 * Get the recipe catalysts as the groups used to render each rotating catalyst slot.
+	 *
+	 * @since 15.59.0
+	 */
+	Stream<Consumer<IIngredientAcceptor<?>>> getGroups();
+
+	/**
+	 * Get the recipe catalyst results of the given type for this lookup.
+	 *
+	 * @since 9.5.0
+	 */
+	<S> Stream<S> get(IIngredientType<S> ingredientType);
+
+	/**
+	 * Get the ItemStack recipe catalyst results for this lookup.
+	 *
+	 * @since 11.1.1
+	 */
+	default Stream<ItemStack> getItemStack() {
+		return get(VanillaTypes.ITEM_STACK);
+	}
+}

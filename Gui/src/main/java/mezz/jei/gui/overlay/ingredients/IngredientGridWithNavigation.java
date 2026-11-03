@@ -1,0 +1,430 @@
+package mezz.jei.gui.overlay.ingredients;
+
+import mezz.jei.api.ingredients.IIngredientType;
+import mezz.jei.api.ingredients.ITypedIngredient;
+import mezz.jei.api.runtime.IIngredientManager;
+import mezz.jei.api.runtime.IScreenHelper;
+import mezz.jei.common.config.IClientConfig;
+import mezz.jei.common.config.IClientToggleState;
+import mezz.jei.common.config.IIngredientGridConfig;
+import mezz.jei.common.gui.elements.DrawableNineSliceTexture;
+import mezz.jei.common.network.IConnectionToServer;
+import mezz.jei.common.util.ImmutablePoint2i;
+import mezz.jei.common.util.ImmutableRect2i;
+import mezz.jei.gui.PageNavigation;
+import mezz.jei.gui.ghost.GhostIngredientDragManager;
+import mezz.jei.gui.ghost.GhostIngredientQuickMoveManager;
+import mezz.jei.gui.input.IClickableIngredientInternal;
+import mezz.jei.gui.input.IDragHandler;
+import mezz.jei.gui.input.IDraggableIngredientInternal;
+import mezz.jei.gui.input.IPaged;
+import mezz.jei.gui.input.IUserInputHandler;
+import mezz.jei.gui.input.IRecipeFocusSource;
+import mezz.jei.gui.input.handlers.CombinedInputHandler;
+import mezz.jei.gui.overlay.IngredientListSlotContext;
+import mezz.jei.gui.overlay.bookmarks.BookmarkSlotVisuals;
+import mezz.jei.gui.overlay.elements.IElement;
+import mezz.jei.gui.util.CommandUtil;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+/**
+ * Displays a list of ingredients with navigation at the top.
+ */
+public class IngredientGridWithNavigation implements IRecipeFocusSource {
+	private final IngredientGridWithNavigationController controller;
+	private final PageNavigation navigation;
+	private final IngredientGridScrollbar scrollbar;
+	private final IIngredientGridConfig gridConfig;
+	private final IngredientGrid ingredientGrid;
+	private final IIngredientGridSource ingredientSource;
+	private final DrawableNineSliceTexture background;
+	private final DrawableNineSliceTexture slotBackground;
+	private final DrawableNineSliceTexture exclusionAreaShadow;
+	private final CommandUtil commandUtil;
+	private final GhostIngredientDragManager ghostIngredientDragManager;
+
+	public void setNavigationButton(mezz.jei.gui.elements.IconButton button) {
+		this.navigation.setExtraButton(button);
+	}
+
+	public void setExtraHoveredIngredientSource(Supplier<Optional<ITypedIngredient<?>>> source) {
+		this.ghostIngredientDragManager.setExtraHoveredIngredientSource(source);
+	}
+	private final IUserInputHandler inputHandler;
+
+	private ImmutableRect2i backgroundArea = ImmutableRect2i.EMPTY;
+	private ImmutableRect2i slotBackgroundArea = ImmutableRect2i.EMPTY;
+	@Nullable
+	private ImmutableRect2i availableArea;
+	private Set<ImmutableRect2i> guiExclusionAreas = Set.of();
+	@Nullable
+	private ImmutablePoint2i mouseExclusionPoint;
+	private boolean active;
+	private boolean layoutDirty;
+
+	public IngredientGridWithNavigation(
+		String debugName,
+		IIngredientGridSource ingredientSource,
+		IngredientGrid ingredientGrid,
+		IClientToggleState toggleState,
+		IClientConfig clientConfig,
+		IConnectionToServer serverConnection,
+		IIngredientGridConfig gridConfig,
+		DrawableNineSliceTexture background,
+		DrawableNineSliceTexture slotBackground,
+		DrawableNineSliceTexture exclusionAreaShadow,
+		IScreenHelper screenHelper,
+		IIngredientManager ingredientManager
+	) {
+		this.ingredientGrid = ingredientGrid;
+		this.ingredientSource = ingredientSource;
+		this.gridConfig = gridConfig;
+		this.background = background;
+		this.slotBackground = slotBackground;
+		this.exclusionAreaShadow = exclusionAreaShadow;
+		this.commandUtil = new CommandUtil(clientConfig, serverConnection);
+		this.ghostIngredientDragManager = new GhostIngredientDragManager(this.ingredientGrid, screenHelper, ingredientManager, toggleState);
+		GhostIngredientQuickMoveManager ghostIngredientQuickMoveManager = new GhostIngredientQuickMoveManager(this.ingredientGrid, screenHelper);
+		this.controller = new IngredientGridWithNavigationController(
+			ingredientSource,
+			this.ingredientGrid,
+			gridConfig,
+			toggleState,
+			clientConfig,
+			this.commandUtil,
+			ingredientManager,
+			this::isMouseOver,
+			ghostIngredientQuickMoveManager
+		);
+		this.navigation = new PageNavigation(this.controller, false);
+		this.scrollbar = new IngredientGridScrollbar(this.controller.getScrollController(), this.controller::updateLayoutKeepingPageNumber);
+		this.controller.setOnLayoutChanged(this.navigation::updatePageNumber);
+		this.inputHandler = new CombinedInputHandler(
+			debugName,
+			this.scrollbar,
+			this.controller,
+			this.ingredientGrid.getInputHandler(),
+			this.navigation.createInputHandler()
+		);
+
+		this.ingredientSource.addSourceListChangedListener(this::markLayoutDirty);
+		addGridConfigListeners(gridConfig);
+	}
+
+	private void addGridConfigListeners(IIngredientGridConfig gridConfig) {
+		gridConfig.addLayoutListener(this::markLayoutDirty);
+	}
+
+	private void markLayoutDirty() {
+		this.layoutDirty = true;
+	}
+
+	private void updateLayoutIfDirty() {
+		if (this.layoutDirty && this.availableArea != null) {
+			updateBounds(this.availableArea, this.guiExclusionAreas, this.mouseExclusionPoint);
+			this.controller.updateLayoutKeepingPageNumber();
+		}
+	}
+
+	public boolean hasRoom() {
+		updateLayoutIfDirty();
+		return this.active;
+	}
+
+	public void updateLayoutToFirstPage() {
+		this.controller.updateLayoutToFirstPage();
+	}
+
+	public void updateLayout(boolean resetToFirstPage) {
+		if (resetToFirstPage) {
+			updateLayoutToFirstPage();
+		} else {
+			this.controller.updateLayoutKeepingPageNumber();
+		}
+	}
+
+	public void updateLayoutKeepingPageAnchorVisible(@Nullable IElement<?> pageAnchorElement) {
+		this.controller.updateLayoutKeepingPageAnchorVisible(pageAnchorElement);
+	}
+
+	public @Nullable IElement<?> getPageAnchorElement() {
+		return this.controller.getPageAnchorElement();
+	}
+
+	public void updateBounds(final ImmutableRect2i availableArea, Set<ImmutableRect2i> guiExclusionAreas, @Nullable ImmutablePoint2i mouseExclusionPoint) {
+		this.availableArea = availableArea;
+		this.guiExclusionAreas = guiExclusionAreas;
+		this.mouseExclusionPoint = mouseExclusionPoint;
+		this.layoutDirty = false;
+		IngredientGridWithNavigationLayout layout = calculateLayout(
+			availableArea,
+			guiExclusionAreas,
+			mouseExclusionPoint,
+			this.ingredientSource.getElements().size()
+		);
+		applyLayout(layout, guiExclusionAreas, mouseExclusionPoint);
+	}
+
+	public void updateBounds(
+		final ImmutableRect2i availableArea,
+		OptionalInt bottomLimit,
+		Set<ImmutableRect2i> guiExclusionAreas,
+		@Nullable ImmutablePoint2i mouseExclusionPoint
+	) {
+		ImmutableRect2i limitedArea = availableArea;
+		if (bottomLimit.isPresent()) {
+			int bottom = Math.min(availableArea.getY() + availableArea.getHeight(), bottomLimit.getAsInt());
+			limitedArea = new ImmutableRect2i(
+				availableArea.getX(),
+				availableArea.getY(),
+				availableArea.getWidth(),
+				Math.max(0, bottom - availableArea.getY())
+			);
+		}
+		updateBounds(limitedArea, guiExclusionAreas, mouseExclusionPoint);
+	}
+
+	private IngredientGridWithNavigationLayout calculateLayout(
+		final ImmutableRect2i availableArea,
+		Set<ImmutableRect2i> guiExclusionAreas,
+		@Nullable ImmutablePoint2i mouseExclusionPoint,
+		int ingredientCount
+	) {
+		if (this.gridConfig.getNavigationMode().usesScrollbar()) {
+			return IngredientGridScrollbarLayout.calculate(
+				this.gridConfig,
+				availableArea,
+				guiExclusionAreas,
+				mouseExclusionPoint,
+				ingredientCount
+			);
+		}
+
+		return IngredientGridButtonNavigationLayout.calculate(
+			this.gridConfig,
+			availableArea,
+			guiExclusionAreas,
+			mouseExclusionPoint,
+			ingredientCount
+		);
+	}
+
+	private void applyLayout(
+		IngredientGridWithNavigationLayout layout,
+		Set<ImmutableRect2i> guiExclusionAreas,
+		@Nullable ImmutablePoint2i mouseExclusionPoint
+	) {
+		this.guiExclusionAreas = guiExclusionAreas;
+		if (!layout.hasRoom()) {
+			clearLayout();
+			return;
+		}
+
+		this.ingredientGrid.updateBounds(layout.ingredientGridArea(), guiExclusionAreas, mouseExclusionPoint);
+		this.slotBackgroundArea = layout.slotBackgroundArea();
+		this.navigation.updateBounds(layout.navigationArea());
+		this.scrollbar.updateBounds(layout.scrollbarArea());
+		this.backgroundArea = layout.backgroundArea();
+		this.active = true;
+	}
+
+	private void clearLayout() {
+		this.ingredientGrid.updateBounds(ImmutableRect2i.EMPTY, Set.of(), null);
+		this.slotBackgroundArea = ImmutableRect2i.EMPTY;
+		this.navigation.updateBounds(ImmutableRect2i.EMPTY);
+		this.scrollbar.updateBounds(ImmutableRect2i.EMPTY);
+		this.backgroundArea = ImmutableRect2i.EMPTY;
+		this.active = false;
+	}
+
+	public ImmutableRect2i getBackgroundArea() {
+		updateLayoutIfDirty();
+		return this.backgroundArea;
+	}
+
+	public ImmutableRect2i getIngredientGridArea() {
+		updateLayoutIfDirty();
+		return this.ingredientGrid.getArea();
+	}
+
+	public ImmutableRect2i getSlotBackgroundArea() {
+		updateLayoutIfDirty();
+		return this.slotBackgroundArea;
+	}
+
+	public ImmutableRect2i getNextPageButtonArea() {
+		updateLayoutIfDirty();
+		return this.navigation.getNextButtonArea();
+	}
+
+	public ImmutableRect2i getBackButtonArea() {
+		updateLayoutIfDirty();
+		return this.navigation.getBackButtonArea();
+	}
+
+	public IPaged getPageDelegate() {
+		return controller;
+	}
+
+	// Ported from 1.21.1 fork (commit 29334012f): expose the first item index of
+	// the current page so cross-page features (e.g. GroupPanelDrag.globalRow) can
+	// resolve the visible-slot Y to a global row index that spans page boundaries.
+	public int getFirstItemIndex() {
+		return this.controller.getFirstItemIndex();
+	}
+
+	public void draw(Minecraft minecraft, GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+		drawBackground(guiGraphics);
+		drawForeground(minecraft, guiGraphics, mouseX, mouseY, partialTicks);
+	}
+
+	public void drawBackground(GuiGraphics guiGraphics) {
+		updateLayoutIfDirty();
+		if (!this.active) {
+			return;
+		}
+		if (this.gridConfig.drawBackground()) {
+			this.background.draw(guiGraphics, this.backgroundArea);
+			this.slotBackground.draw(guiGraphics, this.slotBackgroundArea);
+			GuiExclusionAreaShadow.draw(guiGraphics, this.exclusionAreaShadow, this.backgroundArea, this.guiExclusionAreas);
+		}
+	}
+
+	public void drawForeground(Minecraft minecraft, GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+		updateLayoutIfDirty();
+		if (!this.active) {
+			return;
+		}
+		this.ingredientGrid.draw(minecraft, guiGraphics, mouseX, mouseY);
+		this.scrollbar.draw(guiGraphics, mouseX, mouseY);
+		this.navigation.draw(minecraft, guiGraphics, mouseX, mouseY, partialTicks);
+	}
+
+	public void drawTooltips(Minecraft minecraft, GuiGraphics guiGraphics, int mouseX, int mouseY) {
+		updateLayoutIfDirty();
+		if (!this.active) {
+			return;
+		}
+		this.ghostIngredientDragManager.drawTooltips(minecraft, guiGraphics, mouseX, mouseY);
+		this.ingredientGrid.drawTooltips(minecraft, guiGraphics, mouseX, mouseY);
+		this.navigation.drawTooltips(guiGraphics, mouseX, mouseY);
+	}
+
+	public void tick() {
+		if (!this.active) {
+			return;
+		}
+		this.ingredientGrid.tick();
+	}
+
+	public boolean isMouseOver(double mouseX, double mouseY) {
+		updateLayoutIfDirty();
+		return this.active &&
+			this.backgroundArea.contains(mouseX, mouseY) &&
+			this.guiExclusionAreas.stream()
+				.noneMatch(area -> area.contains(mouseX, mouseY));
+	}
+
+	public IUserInputHandler createDeleteItemInputHandler() {
+		return this.ingredientGrid.getInputHandler();
+	}
+
+	public IUserInputHandler createInputHandler() {
+		return this.inputHandler;
+	}
+
+	@Override
+	public Stream<IClickableIngredientInternal<?>> getIngredientUnderMouse(double mouseX, double mouseY) {
+		updateLayoutIfDirty();
+		if (!this.active) {
+			return Stream.empty();
+		}
+		return this.ingredientGrid.getIngredientUnderMouse(mouseX, mouseY)
+			.map(this.controller::createPageAnchorIngredient);
+	}
+
+	@Override
+	public Stream<IDraggableIngredientInternal<?>> getDraggableIngredientUnderMouse(double mouseX, double mouseY) {
+		updateLayoutIfDirty();
+		if (!this.active) {
+			return Stream.empty();
+		}
+		return this.ingredientGrid.getDraggableIngredientUnderMouse(mouseX, mouseY);
+	}
+
+	public <T> Stream<T> getVisibleIngredients(IIngredientType<T> ingredientType) {
+		updateLayoutIfDirty();
+		if (!this.active) {
+			return Stream.empty();
+		}
+		return this.ingredientGrid.getVisibleIngredients(ingredientType);
+	}
+
+	public boolean isEmpty() {
+		return this.ingredientSource.getElements().isEmpty();
+	}
+
+	public void close() {
+		clearLayout();
+		this.ghostIngredientDragManager.stopDrag();
+	}
+
+	public void drawOnForeground(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+		updateLayoutIfDirty();
+		if (!this.active) {
+			return;
+		}
+		this.ghostIngredientDragManager.drawOnForeground(guiGraphics, mouseX, mouseY);
+	}
+
+	public IDragHandler createDragHandler() {
+		return this.ghostIngredientDragManager.createDragHandler();
+	}
+
+	public int size() {
+		updateLayoutIfDirty();
+		if (!this.active) {
+			return 0;
+		}
+		return this.ingredientGrid.size();
+	}
+
+	public Stream<IngredientListSlot> getSlots() {
+		updateLayoutIfDirty();
+		if (!this.active) {
+			return Stream.empty();
+		}
+		return this.ingredientGrid.getSlots();
+	}
+
+	public List<IngredientListSlot> getAllSlots() {
+		if (!this.active) {
+			return List.of();
+		}
+		return this.ingredientGrid.getAllSlots();
+	}
+
+	public void setSlotVisualsResolver(Function<IngredientListSlotContext, Optional<BookmarkSlotVisuals>> slotVisualsResolver) {
+		this.ingredientGrid.setSlotVisualsResolver(slotVisualsResolver);
+	}
+
+	public int getUsableColumnCount() {
+		updateLayoutIfDirty();
+		return this.ingredientGrid.getUsableColumnCount();
+	}
+
+	public List<Integer> getUsableColumnsPerRow() {
+		updateLayoutIfDirty();
+		return this.ingredientGrid.getUsableColumnsPerRow();
+	}
+}

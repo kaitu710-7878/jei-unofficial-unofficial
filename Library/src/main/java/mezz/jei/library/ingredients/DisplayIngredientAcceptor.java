@@ -1,0 +1,258 @@
+package mezz.jei.library.ingredients;
+
+import com.google.common.base.Preconditions;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import mezz.jei.api.constants.VanillaTypes;
+import mezz.jei.api.gui.builder.IIngredientAcceptor;
+import mezz.jei.api.ingredients.IIngredientHelper;
+import mezz.jei.api.ingredients.IIngredientType;
+import mezz.jei.api.ingredients.IIngredientTypeWithSubtypes;
+import mezz.jei.api.ingredients.ITypedIngredient;
+import mezz.jei.api.ingredients.subtypes.UidContext;
+import mezz.jei.api.recipe.IFocus;
+import mezz.jei.api.recipe.IFocusGroup;
+import mezz.jei.api.recipe.RecipeIngredientRole;
+import mezz.jei.api.runtime.IIngredientManager;
+import mezz.jei.common.ingredients.TypedIngredient;
+import mezz.jei.common.ingredients.TypedIngredientUtil;
+import mezz.jei.common.ingredients.itemStacks.TypedItemStack;
+import mezz.jei.common.platform.IPlatformFluidHelperInternal;
+import mezz.jei.common.platform.Services;
+import mezz.jei.common.util.ErrorUtil;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.material.Fluid;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnmodifiableView;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+public class DisplayIngredientAcceptor implements IIngredientAcceptor<DisplayIngredientAcceptor> {
+	private final IIngredientManager ingredientManager;
+	private final Runnable onChange;
+	/**
+	 * A list of ingredients, including "blank" ingredients represented by null.
+	 * Blank ingredients are drawn as "nothing" in a rotation of ingredients, but aren't considered in lookups.
+	 */
+	private final List<@Nullable ITypedIngredient<?>> ingredients = new ArrayList<>();
+
+	public DisplayIngredientAcceptor(IIngredientManager ingredientManager) {
+		this(ingredientManager, () -> {});
+	}
+
+	public DisplayIngredientAcceptor(IIngredientManager ingredientManager, Runnable onChange) {
+		this.ingredientManager = ingredientManager;
+		this.onChange = onChange;
+	}
+
+	@Override
+	public DisplayIngredientAcceptor addIngredientsUnsafe(List<?> ingredients) {
+		Preconditions.checkNotNull(ingredients, "ingredients");
+
+		// Ported from 1.21.1 fork (commit 56d013367): preserve intentional blank positions
+		// (null input) while filtering out invalid items (non-null input that became
+		// null after validation). Otherwise a rotation of [valid, invalid, null, invalid]
+		// would show [valid, blank, blank, blank] instead of the expected [valid, blank].
+		for (Object ingredient : ingredients) {
+			@Nullable
+			ITypedIngredient<?> typedIngredient = TypedIngredient.createAndFilterInvalidForDisplay(ingredientManager, ingredient, false);
+			if (ingredient == null || typedIngredient != null) {
+				addIngredient(typedIngredient);
+			}
+		}
+
+		return this;
+	}
+
+	@Override
+	public DisplayIngredientAcceptor addItemStack(ItemStack itemStack) {
+		ErrorUtil.checkNotNull(itemStack, "itemStack");
+
+		addIngredientInternal(VanillaTypes.ITEM_STACK, itemStack);
+		return this;
+	}
+
+	@Override
+	public DisplayIngredientAcceptor addItemStacks(List<ItemStack> itemStacks) {
+		return addIngredients(VanillaTypes.ITEM_STACK, itemStacks);
+	}
+
+	@Override
+	public <T> DisplayIngredientAcceptor addIngredients(IIngredientType<T> ingredientType, List<@Nullable T> ingredients) {
+		ErrorUtil.checkNotNull(ingredientType, "ingredientType");
+		Preconditions.checkNotNull(ingredients, "ingredients");
+
+		// Ported from 1.21.1 fork (commit 56d013367): preserve intentional blank positions
+		// (null input) while filtering out invalid items (non-null input that became
+		// null after validation). Otherwise a rotation of [valid, invalid, null, invalid]
+		// would show [valid, blank, blank, blank] instead of the expected [valid, blank].
+		List<@Nullable ITypedIngredient<T>> typedIngredients = TypedIngredient.createAndFilterInvalidListForDisplay(this.ingredientManager, ingredientType, ingredients, false);
+		for (int i = 0; i < typedIngredients.size(); i++) {
+			@Nullable
+			T ingredient = ingredients.get(i);
+			@Nullable
+			ITypedIngredient<T> typedIngredient = typedIngredients.get(i);
+			if (ingredient == null || typedIngredient != null) {
+				addIngredient(typedIngredient);
+			}
+		}
+
+		return this;
+	}
+
+	@Override
+	public DisplayIngredientAcceptor addIngredients(Ingredient ingredient) {
+		Preconditions.checkNotNull(ingredient, "ingredient");
+
+		List<@Nullable ITypedIngredient<ItemStack>> typedIngredients = TypedIngredient.createAndFilterInvalidListForDisplay(ingredientManager, ingredient, false);
+		typedIngredients.forEach(this::addIngredient);
+
+		return this;
+	}
+
+	@Override
+	public <T> DisplayIngredientAcceptor addIngredient(IIngredientType<T> ingredientType, T ingredient) {
+		ErrorUtil.checkNotNull(ingredientType, "ingredientType");
+		ErrorUtil.checkNotNull(ingredient, "ingredient");
+
+		addIngredientInternal(ingredientType, ingredient);
+		return this;
+	}
+
+	@Override
+	public <I> DisplayIngredientAcceptor addTypedIngredient(ITypedIngredient<I> typedIngredient) {
+		ErrorUtil.checkNotNull(typedIngredient, "typedIngredient");
+
+		@Nullable
+		ITypedIngredient<I> copy = TypedIngredientUtil.checkAndValidateTypedIngredientFromApi(ingredientManager, typedIngredient);
+		addIngredient(copy);
+
+		return this;
+	}
+
+	@Override
+	public DisplayIngredientAcceptor addItemLike(ItemLike itemLike) {
+		Preconditions.checkNotNull(itemLike, "itemLike");
+
+		ITypedIngredient<ItemStack> ingredient = TypedItemStack.create(itemLike);
+		addIngredient(ingredient);
+
+		return this;
+	}
+
+	@Override
+	public DisplayIngredientAcceptor addFluidStack(Fluid fluid) {
+		IPlatformFluidHelperInternal<?> fluidHelper = Services.PLATFORM.getFluidHelper();
+		return addFluidInternal(fluidHelper, fluid, fluidHelper.bucketVolume(), null);
+	}
+
+	@Override
+	public DisplayIngredientAcceptor addFluidStack(Fluid fluid, long amount) {
+		IPlatformFluidHelperInternal<?> fluidHelper = Services.PLATFORM.getFluidHelper();
+		return addFluidInternal(fluidHelper, fluid, amount, null);
+	}
+
+	@Override
+	public DisplayIngredientAcceptor addFluidStack(Fluid fluid, long amount, CompoundTag tag) {
+		IPlatformFluidHelperInternal<?> fluidHelper = Services.PLATFORM.getFluidHelper();
+		return addFluidInternal(fluidHelper, fluid, amount, tag);
+	}
+
+	private <T> DisplayIngredientAcceptor addFluidInternal(IPlatformFluidHelperInternal<T> fluidHelper, Fluid fluid, long amount, @Nullable CompoundTag tag) {
+		T fluidStack = fluidHelper.create(fluid, amount, tag);
+		IIngredientTypeWithSubtypes<Fluid, T> fluidIngredientType = fluidHelper.getFluidIngredientType();
+		addIngredientInternal(fluidIngredientType, fluidStack);
+		return this;
+	}
+
+	@Override
+	public DisplayIngredientAcceptor addTypedIngredients(List<ITypedIngredient<?>> ingredients) {
+		ErrorUtil.checkNotNull(ingredients, "ingredients");
+
+		for (ITypedIngredient<?> typedIngredient : ingredients) {
+			this.addTypedIngredient(typedIngredient);
+		}
+		return this;
+	}
+
+	@Override
+	public DisplayIngredientAcceptor addOptionalTypedIngredients(List<Optional<ITypedIngredient<?>>> ingredients) {
+		ErrorUtil.checkNotNull(ingredients, "ingredients");
+
+		for (Optional<ITypedIngredient<?>> o : ingredients) {
+			if (o.isPresent()) {
+				this.addTypedIngredient(o.get());
+			} else {
+				addIngredient(null);
+			}
+		}
+
+		return this;
+	}
+
+	private <T> void addIngredientInternal(IIngredientType<T> ingredientType, @Nullable T ingredient) {
+		@Nullable
+		ITypedIngredient<T> typedIngredient = TypedIngredient.createAndFilterInvalidForDisplay(this.ingredientManager, ingredientType, ingredient, false);
+		addIngredient(typedIngredient);
+	}
+
+	private void addIngredient(@Nullable ITypedIngredient<?> ingredient) {
+		this.ingredients.add(ingredient);
+		onChange.run();
+	}
+
+	@UnmodifiableView
+	public List<@Nullable ITypedIngredient<?>> getAllIngredients() {
+		return Collections.unmodifiableList(this.ingredients);
+	}
+
+	public IntSet getMatches(IFocusGroup focusGroup, RecipeIngredientRole role) {
+		List<IFocus<?>> focuses = focusGroup.getFocuses(role).toList();
+		IntSet results = new IntOpenHashSet();
+		for (IFocus<?> focus : focuses) {
+			boolean foundExactMatch = getMatches(focus, UidContext.Ingredient, results);
+			if (!foundExactMatch) {
+				getMatches(focus, UidContext.Recipe, results);
+			}
+		}
+		return results;
+	}
+
+	private <T> boolean getMatches(IFocus<T> focus, UidContext uidContext, IntSet results) {
+		List<@Nullable ITypedIngredient<?>> ingredients = getAllIngredients();
+		if (ingredients.isEmpty()) {
+			return false;
+		}
+
+		ITypedIngredient<T> focusValue = focus.getTypedValue();
+		IIngredientType<T> ingredientType = focusValue.getType();
+		IIngredientHelper<T> ingredientHelper = this.ingredientManager.getIngredientHelper(ingredientType);
+		Object focusUid = ingredientHelper.getUid(focusValue, uidContext);
+		boolean foundMatch = false;
+
+		for (int i = 0; i < ingredients.size(); i++) {
+			@Nullable
+			ITypedIngredient<?> typedIngredient = ingredients.get(i);
+			if (typedIngredient == null) {
+				continue;
+			}
+			@Nullable
+			ITypedIngredient<T> ingredient = typedIngredient.cast(ingredientType);
+			if (ingredient == null) {
+				continue;
+			}
+			Object uniqueId = ingredientHelper.getUid(ingredient, uidContext);
+			if (focusUid.equals(uniqueId)) {
+				results.add(i);
+				foundMatch = true;
+			}
+		}
+		return foundMatch;
+	}
+}

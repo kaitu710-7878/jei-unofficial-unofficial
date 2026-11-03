@@ -1,0 +1,256 @@
+package mezz.jei.common.util;
+
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.tree.CommandNode;
+import com.mojang.brigadier.tree.RootCommandNode;
+import mezz.jei.common.network.IConnectionToClient;
+import mezz.jei.common.network.ServerPacketContext;
+import mezz.jei.common.network.packets.PacketCheatPermission;
+import mezz.jei.common.config.GiveMode;
+import mezz.jei.common.config.IServerConfig;
+import mezz.jei.common.platform.Services;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.item.ItemInput;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.util.Collection;
+import java.util.Optional;
+
+/**
+ * Server-side-safe utilities for commands.
+ */
+public final class ServerCommandUtil {
+	private static final Logger LOGGER = LogManager.getLogger();
+
+	private ServerCommandUtil() {
+	}
+
+	public static boolean hasPermissionForCheatMode(ServerPlayer sender, IServerConfig serverConfig) {
+		if (serverConfig.isCheatModeEnabledForCreative() && sender.isCreative()) {
+			return true;
+		}
+
+		if (serverConfig.isCheatModeEnabledForOp() &&
+			Services.PLATFORM.getServerHelper().hasPermissionForCheatMode(sender)
+		) {
+			return true;
+		}
+
+		if (serverConfig.isCheatModeEnabledForGive()) {
+			CommandSourceStack commandSource = sender.createCommandSourceStack();
+			return getGiveCommand(sender)
+				.map(giveCommand -> giveCommand.canUse(commandSource))
+				.orElse(false);
+		}
+
+		return false;
+	}
+
+	/**
+	 * Gives a player an item.
+	 */
+	public static void executeGive(
+		ServerPacketContext context,
+		ItemStack itemStack,
+		GiveMode giveMode
+	) {
+		ServerPlayer sender = context.player();
+		IServerConfig serverConfig = context.serverConfig();
+		if (hasPermissionForCheatMode(sender, serverConfig)) {
+			if (itemStack.isEmpty()) {
+				if (LOGGER.isDebugEnabled()) {
+					LOGGER.debug("Player '{} ({})' tried to give an empty ItemStack.", sender.getName(), sender.getUUID());
+				}
+				return;
+			}
+			if (giveMode == GiveMode.INVENTORY) {
+				fillInventory(sender, itemStack);
+			} else if (giveMode == GiveMode.MOUSE_PICKUP) {
+				mousePickupItemStack(sender, itemStack);
+			}
+		} else {
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Player '{} ({})' tried to cheat an ItemStack '{}' but does not have permission.", sender.getName(), sender.getUUID(), itemStack.getDisplayName());
+			}
+			IConnectionToClient connection = context.connection();
+			connection.sendPacketToClient(new PacketCheatPermission(false), sender);
+		}
+	}
+
+	public static void setHotbarSlot(
+		ServerPacketContext context,
+		ItemStack itemStack,
+		int hotbarSlot
+	) {
+		ServerPlayer sender = context.player();
+		IServerConfig serverConfig = context.serverConfig();
+		if (hasPermissionForCheatMode(sender, serverConfig)) {
+			if (itemStack.isEmpty()) {
+				if (LOGGER.isDebugEnabled()) {
+					LOGGER.debug("Player '{} ({})' tried to set an empty ItemStack to the hotbar slot: {}", sender.getName(), sender.getUUID(), hotbarSlot);
+				}
+				return;
+			}
+			if (!Inventory.isHotbarSlot(hotbarSlot)) {
+				if (LOGGER.isDebugEnabled()) {
+					LOGGER.debug("Player '{} ({})' tried to set slot that is not in the hotbar: {}", sender.getName(), sender.getUUID(), hotbarSlot);
+				}
+				return;
+			}
+			ItemStack stackInSlot = sender.getInventory().getItem(hotbarSlot);
+			if (ItemStack.matches(stackInSlot, itemStack)) {
+				return;
+			}
+			ItemStack itemStackCopy = itemStack.copy();
+			sender.getInventory().setItem(hotbarSlot, itemStack);
+			sender.level().playSound(null, sender.getX(), sender.getY(), sender.getZ(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, ((sender.getRandom().nextFloat() - sender.getRandom().nextFloat()) * 0.7F + 1.0F) * 2.0F);
+			sender.inventoryMenu.broadcastChanges();
+			notifyGive(sender, itemStackCopy);
+		} else {
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Player '{} ({})' tried to cheat an item '{}' to their hotbar but does not have permission.", sender.getName(), sender.getUUID(), itemStack.getDisplayName());
+			}
+			IConnectionToClient connection = context.connection();
+			connection.sendPacketToClient(new PacketCheatPermission(false), sender);
+		}
+	}
+
+	public static void mousePickupItemStack(Player sender, ItemStack itemStack) {
+		AbstractContainerMenu containerMenu = sender.containerMenu;
+
+		ItemStack itemStackCopy = itemStack.copy();
+		ItemStack existingStack = containerMenu.getCarried();
+
+		final int giveCount;
+		if (canStack(existingStack, itemStack)) {
+			int newCount = Math.min(existingStack.getMaxStackSize(), existingStack.getCount() + itemStack.getCount());
+			giveCount = newCount - existingStack.getCount();
+			if (giveCount > 0) {
+				existingStack.setCount(newCount);
+			}
+		} else {
+			containerMenu.setCarried(itemStack);
+			giveCount = itemStack.getCount();
+		}
+
+		if (giveCount > 0) {
+			itemStackCopy.setCount(giveCount);
+			notifyGive(sender, itemStackCopy);
+			if (sender instanceof ServerPlayer) {
+				containerMenu.broadcastChanges();
+			}
+		}
+	}
+
+	public static boolean canStack(ItemStack a, ItemStack b) {
+		return !a.isEmpty() &&
+			!b.isEmpty() &&
+			ItemStack.isSameItemSameTags(a, b);
+	}
+
+	/**
+	 * Gives a player an item.
+	 * Retained to preserve the upstream implementation; inventory giving uses fillInventory instead.
+	 *
+	 * @see GiveCommand#giveItem(CommandSource, ItemInput, Collection, int)
+	 */
+	@SuppressWarnings("JavadocReference")
+	private static void giveToInventory(Player entityplayermp, ItemStack itemStack) {
+		ItemStack itemStackCopy = itemStack.copy();
+		boolean flag = entityplayermp.getInventory().add(itemStack);
+		if (flag && itemStack.isEmpty()) {
+			itemStack.setCount(1);
+			ItemEntity entityitem = entityplayermp.drop(itemStack, false);
+			if (entityitem != null) {
+				entityitem.makeFakeItem();
+			}
+
+			entityplayermp.level().playSound(null, entityplayermp.getX(), entityplayermp.getY(), entityplayermp.getZ(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, ((entityplayermp.getRandom().nextFloat() - entityplayermp.getRandom().nextFloat()) * 0.7F + 1.0F) * 2.0F);
+			entityplayermp.inventoryMenu.broadcastChanges();
+		} else {
+			ItemEntity entityitem = entityplayermp.drop(itemStack, false);
+			if (entityitem != null) {
+				entityitem.setNoPickUpDelay();
+				entityitem.setTarget(entityplayermp.getUUID());
+			}
+		}
+
+		notifyGive(entityplayermp, itemStackCopy);
+	}
+
+	private static void fillInventory(Player entityplayermp, ItemStack itemStack) {
+		ServerPlayer sender = (ServerPlayer) entityplayermp;
+		Inventory inventory = entityplayermp.getInventory();
+		int remaining = itemStack.getCount();
+		ItemStack template = itemStack.copy();
+		template.setCount(1);
+		// Avoid Inventory.add's offhand insertion and creative-mode remainder deletion.
+		for (int slot = 0; slot < inventory.items.size() && remaining > 0; slot++) {
+			int previousRemaining = remaining;
+			ItemStack current = inventory.items.get(slot);
+			if (current.isEmpty()) {
+				int amount = Math.min(remaining, template.getMaxStackSize());
+				ItemStack added = template.copy();
+				added.setCount(amount);
+				added.setPopTime(5);
+				inventory.setItem(slot, added);
+				remaining -= amount;
+			} else if (current.isStackable() && canStack(current, template)) {
+				int amount = Math.min(remaining, current.getMaxStackSize() - current.getCount());
+				if (amount > 0) {
+					current.grow(amount);
+					current.setPopTime(5);
+					remaining -= amount;
+				}
+			}
+			if (remaining < previousRemaining) {
+				// Creative item tabs ignore ordinary menu updates for non-hotbar slots.
+				sender.connection.send(new ClientboundContainerSetSlotPacket(-2, 0, slot, inventory.items.get(slot)));
+			}
+		}
+		int given = itemStack.getCount() - remaining;
+		if (given > 0) {
+			inventory.setChanged();
+			entityplayermp.level().playSound(null, entityplayermp.getX(), entityplayermp.getY(), entityplayermp.getZ(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, ((entityplayermp.getRandom().nextFloat() - entityplayermp.getRandom().nextFloat()) * 0.7F + 1.0F) * 2.0F);
+			ItemStack givenStack = template.copy();
+			givenStack.setCount(given);
+			notifyGive(entityplayermp, givenStack);
+		}
+	}
+
+	private static void notifyGive(Player player, ItemStack stack) {
+		if (player.getServer() == null) {
+			return;
+		}
+		CommandSourceStack commandSource = player.createCommandSourceStack();
+		int count = stack.getCount();
+		ItemStack hoverStack = stack.copy();
+		hoverStack.setCount(1);
+		Component stackTextComponent = hoverStack.getDisplayName();
+		Component displayName = player.getDisplayName();
+		Component message = Component.translatable("commands.give.success.single", count, stackTextComponent, displayName);
+		commandSource.sendSuccess(() -> message, true);
+	}
+
+	private static Optional<CommandNode<CommandSourceStack>> getGiveCommand(Player sender) {
+		return Optional.ofNullable(sender.getServer())
+			.map(minecraftServer -> {
+				Commands commandManager = minecraftServer.getCommands();
+				CommandDispatcher<CommandSourceStack> dispatcher = commandManager.getDispatcher();
+				RootCommandNode<CommandSourceStack> root = dispatcher.getRoot();
+				return root.getChild("give");
+			});
+	}
+}

@@ -1,0 +1,241 @@
+package mezz.jei.gui.bookmarks;
+
+import mezz.jei.api.gui.IRecipeLayoutDrawable;
+import mezz.jei.api.gui.ingredient.IRecipeSlotView;
+import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
+import mezz.jei.api.ingredients.ITypedIngredient;
+import mezz.jei.api.recipe.RecipeIngredientRole;
+import mezz.jei.api.recipe.RecipeType;
+import mezz.jei.api.recipe.category.IRecipeCategory;
+import mezz.jei.api.runtime.IIngredientManager;
+import mezz.jei.common.transfer.RecipeTransferService;
+import mezz.jei.gui.overlay.elements.IElement;
+import mezz.jei.gui.overlay.elements.RecipeBookmarkElement;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Objects;
+
+import java.util.Optional;
+public class RecipeBookmark<R, I> implements IBookmark {
+	private final IElement<I> element;
+	private final IRecipeCategory<R> recipeCategory;
+	private final R recipe;
+	private final ResourceLocation recipeUid;
+	private final ITypedIngredient<I> recipeOutput;
+	private final RecipeIngredientRole displayRole;
+	@Nullable
+	private final Object equalityScope;
+	private boolean visible = true;
+
+	@Nullable
+	public static <T> RecipeBookmark<T, ?> create(
+		IRecipeLayoutDrawable<T> recipeLayoutDrawable,
+		IIngredientManager ingredientManager,
+		RecipeTransferService recipeTransferService
+	) {
+		T recipe = recipeLayoutDrawable.getRecipe();
+		IRecipeCategory<T> recipeCategory = recipeLayoutDrawable.getRecipeCategory();
+		ResourceLocation recipeUid = recipeCategory.getRegistryName(recipe);
+		if (recipeUid == null) {
+			return null;
+		}
+
+		IRecipeSlotsView recipeSlotsView = recipeLayoutDrawable.getRecipeSlotsView();
+		{
+			ITypedIngredient<?> output = findFirst(recipeSlotsView, RecipeIngredientRole.OUTPUT);
+			if (output != null) {
+				output = ingredientManager.normalizeTypedIngredient(output);
+				return new RecipeBookmark<>(recipeCategory, recipe, recipeUid, output, RecipeIngredientRole.OUTPUT, recipeTransferService);
+			}
+		}
+		{
+			ITypedIngredient<?> input = findFirst(recipeSlotsView, RecipeIngredientRole.INPUT);
+			if (input != null) {
+				input = ingredientManager.normalizeTypedIngredient(input);
+				return new RecipeBookmark<>(recipeCategory, recipe, recipeUid, input, RecipeIngredientRole.INPUT, recipeTransferService);
+			}
+		}
+
+		return null;
+	}
+
+	@Nullable
+	private static ITypedIngredient<?> findFirst(IRecipeSlotsView slotsView, RecipeIngredientRole role) {
+		for (IRecipeSlotView slotView : slotsView.getSlotViews()) {
+			if (slotView.getRole() != role) {
+				continue;
+			}
+			Optional<ITypedIngredient<?>> ingredient = slotView.getDisplayedIngredient()
+				.or(() -> slotView.getAllIngredients().findFirst());
+			if (ingredient.isPresent()) {
+				return ingredient.get();
+			}
+		}
+		return null;
+	}
+
+	public RecipeBookmark(
+		IRecipeCategory<R> recipeCategory,
+		R recipe,
+		ResourceLocation recipeUid,
+		ITypedIngredient<I> recipeOutput,
+		RecipeIngredientRole displayRole,
+		RecipeTransferService recipeTransferService
+	) {
+		this(recipeCategory, recipe, recipeUid, recipeOutput, displayRole, null, () -> recipeTransferService);
+	}
+
+	public RecipeBookmark(IRecipeCategory<R> category, R recipe, ResourceLocation uid, ITypedIngredient<I> output, RecipeIngredientRole role) {
+		this(category, recipe, uid, output, role, (Object) null);
+	}
+
+	public RecipeBookmark(
+		IRecipeCategory<R> recipeCategory,
+		R recipe,
+		ResourceLocation recipeUid,
+		ITypedIngredient<I> recipeOutput,
+		RecipeIngredientRole displayRole,
+		@Nullable Object equalityScope
+	) {
+		this(recipeCategory, recipe, recipeUid, recipeOutput, displayRole, equalityScope,
+			() -> ((mezz.jei.gui.recipes.RecipesGui) mezz.jei.common.Internal.getJeiRuntime().getRecipesGui()).getRecipeTransferService());
+	}
+
+	private RecipeBookmark(IRecipeCategory<R> recipeCategory, R recipe, ResourceLocation recipeUid, ITypedIngredient<I> recipeOutput,
+		RecipeIngredientRole displayRole, @Nullable Object equalityScope, java.util.function.Supplier<RecipeTransferService> recipeTransferService) {
+		this.recipeCategory = recipeCategory;
+		this.recipe = recipe;
+		this.recipeUid = recipeUid;
+		this.recipeOutput = recipeOutput;
+		this.element = new RecipeBookmarkElement<>(this, recipeTransferService);
+		this.displayRole = displayRole;
+		this.equalityScope = equalityScope;
+	}
+
+	public IRecipeCategory<R> getRecipeCategory() {
+		return recipeCategory;
+	}
+
+	public ResourceLocation getRecipeUid() {
+		return recipeUid;
+	}
+
+	public R getRecipe() {
+		return recipe;
+	}
+
+	public ITypedIngredient<I> getRecipeOutput() {
+		return recipeOutput;
+	}
+
+	@Override
+	public IElement<?> getElement() {
+		return element;
+	}
+
+	@Override
+	public boolean isVisible() {
+		return visible;
+	}
+
+	@Override
+	public void setVisible(boolean visible) {
+		this.visible = visible;
+	}
+
+	public RecipeIngredientRole getDisplayRole() {
+		return displayRole;
+	}
+
+	public BookmarkItemMetadata createDefaultMetadata(int groupId) {
+		BookmarkItemType type = BookmarkItemType.fromRecipeRole(displayRole);
+		return new BookmarkItemMetadata(
+			groupId,
+			type,
+			1,
+			getIngredientFactor(),
+			BookmarkItemMetadata.CHANCE_FULL,
+			recipeCategory.getRecipeType().getUid(),
+			recipeUid,
+			java.util.Set.of()
+		);
+	}
+
+	private long getIngredientFactor() {
+		if (recipeOutput.getIngredient() instanceof ItemStack stack) {
+			return Math.max(1, stack.getCount());
+		}
+		return 1;
+	}
+
+	public <T> boolean isRecipe(RecipeType<T> otherType, T otherRecipe) {
+		RecipeType<R> recipeType = recipeCategory.getRecipeType();
+		if (recipeType.equals(otherType)) {
+			Class<? extends R> recipeClass = recipeType.getRecipeClass();
+			if (recipeClass.isInstance(otherRecipe)) {
+				R castRecipe = recipeClass.cast(otherRecipe);
+				ResourceLocation otherUid = recipeCategory.getRegistryName(castRecipe);
+				return recipeUid.equals(otherUid);
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(
+			equalityScope,
+			recipeUid,
+			displayRole,
+			recipeOutput.getType(),
+			getIngredientHash(recipeOutput.getIngredient())
+		);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof RecipeBookmark<?, ?> recipeBookmark) {
+			return Objects.equals(recipeBookmark.equalityScope, equalityScope) &&
+				recipeBookmark.recipeUid.equals(recipeUid) &&
+				recipeBookmark.displayRole == displayRole &&
+				recipeBookmark.recipeOutput.getType().equals(recipeOutput.getType()) &&
+				ingredientsEqual(recipeBookmark.recipeOutput.getIngredient(), recipeOutput.getIngredient());
+		}
+		return false;
+	}
+
+	/**
+	 * Returns a copy of this bookmark sharing the given equality scope,
+	 * mirroring the 1.21.1
+	 * {@code BookmarkList#ensureRecipeBookmarkScope} behaviour: bookmarks of
+	 * the same recipe tree share one scope object so that equal ingredients
+	 * across recipes of the tree de-duplicate.
+	 */
+	public RecipeBookmark<R, I> withEqualityScope(@Nullable Object equalityScope) {
+		return new RecipeBookmark<>(recipeCategory, recipe, recipeUid, recipeOutput, displayRole, equalityScope);
+	}
+
+	@Nullable
+	Object getEqualityScope() {
+		return equalityScope;
+	}
+
+	private static boolean ingredientsEqual(Object first, Object second) {
+		if (first instanceof ItemStack firstStack && second instanceof ItemStack secondStack) {
+			return ItemStack.matches(firstStack, secondStack);
+		}
+		return Objects.equals(first, second);
+	}
+
+	private static int getIngredientHash(Object ingredient) {
+		if (ingredient instanceof ItemStack stack) {
+			// 1.20.1 equivalent of 1.21.1's ItemStack.hashItemAndComponents:
+			// hash on item + tag so that equal stacks (per ItemStack.matches)
+			// hash the same.
+			return Objects.hash(stack.getItem(), stack.getTag());
+		}
+		return Objects.hashCode(ingredient);
+	}
+}

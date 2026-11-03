@@ -1,0 +1,197 @@
+package mezz.jei.gui.input;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import mezz.jei.api.runtime.IScreenHelper;
+import mezz.jei.common.input.IInternalKeyMappings;
+import mezz.jei.common.util.ReflectionUtil;
+import mezz.jei.gui.bookmarks.hotkeys.BookmarkAutoCraftingActivator;
+import mezz.jei.gui.input.handlers.ChatLinkInputHandler;
+import mezz.jei.gui.input.handlers.DragRouter;
+import mezz.jei.gui.input.handlers.UserInputRouter;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+
+import java.util.List;
+
+public class ClientInputHandler {
+	private final List<ICharTypedHandler> charTypedHandlers;
+	private final ChatLinkInputHandler chatLinkInputHandler;
+	private final UserInputRouter inputRouter;
+	private final DragRouter dragRouter;
+	private final IInternalKeyMappings keybindings;
+	private final IScreenHelper screenHelper;
+	private final ReflectionUtil reflectionUtil = new ReflectionUtil();
+
+	public ClientInputHandler(
+		List<ICharTypedHandler> charTypedHandlers,
+		ChatLinkInputHandler chatLinkInputHandler,
+		UserInputRouter inputRouter,
+		DragRouter dragRouter,
+		IInternalKeyMappings keybindings,
+		IScreenHelper screenHelper
+	) {
+		this.charTypedHandlers = charTypedHandlers;
+		this.chatLinkInputHandler = chatLinkInputHandler;
+		this.inputRouter = inputRouter;
+		this.dragRouter = dragRouter;
+		this.keybindings = keybindings;
+		this.screenHelper = screenHelper;
+	}
+
+	public void onInitGui() {
+		BookmarkAutoCraftingActivator.clearAutoCraftingInputs();
+		this.chatLinkInputHandler.handleGuiChange();
+		this.inputRouter.handleGuiChange();
+		this.dragRouter.handleGuiChange();
+	}
+
+	/**
+	 * When we have keyboard focus, use Pre
+	 */
+	public boolean onKeyboardKeyPressedPre(Screen screen, UserInput input) {
+		if (screen instanceof mezz.jei.gui.config.screen.JeiConfigScreen) {
+			return false;
+		}
+		if (this.chatLinkInputHandler.handleUserInput(screen, input, keybindings)) {
+			return true;
+		}
+
+		// Pinned selectors and the focus-search shortcut take priority over container text fields.
+		if (PinnedTooltipManager.hasKeyboardFocus() || input.is(keybindings.getFocusSearch()) || !isContainerTextFieldFocused(screen)) {
+			if (screenHelper.getGuiProperties(screen).isPresent()) {
+				return this.inputRouter.handleUserInput(screen, input, keybindings);
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Without keyboard focus, use Post
+	 */
+	public boolean onKeyboardKeyPressedPost(Screen screen, UserInput input) {
+		if (screen instanceof mezz.jei.gui.config.screen.JeiConfigScreen) {
+			return false;
+		}
+		if (isContainerTextFieldFocused(screen)) {
+			if (screenHelper.getGuiProperties(screen).isPresent()) {
+				return this.inputRouter.handleUserInput(screen, input, keybindings);
+			}
+		}
+		return false;
+	}
+	/**
+	 * Release the auto-crafting key claim on key release, so a subsequent
+	 * Shift+C press inside the same open container is not silently blocked.
+	 */
+	public void onKeyboardKeyReleased(UserInput input) {
+		BookmarkAutoCraftingActivator.releaseAutoCraftingInput(input.getKey());
+	}
+	/**
+	 * When we have keyboard focus, use Pre
+	 */
+	public boolean onKeyboardCharTypedPre(Screen screen, char codePoint, int modifiers) {
+		if (screen instanceof mezz.jei.gui.config.screen.JeiConfigScreen) {
+			return false;
+		}
+		if (PinnedTooltipManager.hasKeyboardFocus() || !isContainerTextFieldFocused(screen)) {
+			return handleCharTyped(codePoint, modifiers);
+		}
+		return false;
+	}
+
+	/**
+	 * Without keyboard focus, use Post
+	 */
+	public void onKeyboardCharTypedPost(Screen screen, char codePoint, int modifiers) {
+		if (screen instanceof mezz.jei.gui.config.screen.JeiConfigScreen) {
+			return;
+		}
+		if (isContainerTextFieldFocused(screen)) {
+			handleCharTyped(codePoint, modifiers);
+		}
+	}
+
+	public boolean onGuiMouseClicked(Screen screen, UserInput input) {
+		if (screen instanceof mezz.jei.gui.config.screen.JeiConfigScreen) {
+			return false;
+		}
+		if (this.chatLinkInputHandler.handleUserInput(screen, input, keybindings)) {
+			return true;
+		}
+
+		if (screenHelper.getGuiProperties(screen).isEmpty()) {
+			return false;
+		}
+
+		boolean handled = this.inputRouter.handleUserInput(screen, input, keybindings);
+
+		if (Minecraft.getInstance().screen == screen && isMouseDragButton(input)) {
+			handled |= this.dragRouter.startDrag(screen, input);
+		}
+		return handled;
+	}
+
+	public boolean onGuiMouseReleased(Screen screen, UserInput input) {
+		if (screen instanceof mezz.jei.gui.config.screen.JeiConfigScreen) {
+			return false;
+		}
+		if (this.chatLinkInputHandler.handleUserInput(screen, input, keybindings)) {
+			return true;
+		}
+
+		if (screenHelper.getGuiProperties(screen).isEmpty()) {
+			return false;
+		}
+
+		boolean handled = this.inputRouter.handleUserInput(screen, input, keybindings);
+
+		if (isMouseDragButton(input)) {
+			handled |= this.dragRouter.completeDrag(screen, input);
+		}
+		return handled;
+	}
+
+	public static boolean isMouseDragButton(UserInput input) {
+		if (input.getKey().getType() != InputConstants.Type.MOUSE) {
+			return false;
+		}
+		int mouseButton = input.getKey().getValue();
+		return mouseButton == InputConstants.MOUSE_BUTTON_LEFT ||
+			mouseButton == InputConstants.MOUSE_BUTTON_RIGHT;
+	}
+
+	public boolean onGuiMouseScroll(double mouseX, double mouseY, double scrollDelta) {
+		if (Minecraft.getInstance().screen instanceof net.minecraft.client.gui.screens.ChatScreen &&
+			mezz.jei.gui.chat.ChatRecipeTooltip.INSTANCE.scroll(mouseX, mouseY, scrollDelta)
+		) {
+			return true;
+		}
+		if (Minecraft.getInstance().screen instanceof mezz.jei.gui.config.screen.JeiConfigScreen) {
+			return false;
+		}
+		return this.inputRouter.handleMouseScrolled(mouseX, mouseY, scrollDelta);
+	}
+
+	public boolean onGuiMouseDragged(Screen screen, double mouseX, double mouseY, int button, double dragX, double dragY) {
+		if (screen instanceof net.minecraft.client.gui.screens.ChatScreen && (mezz.jei.gui.chat.ChatRecipeTooltip.INSTANCE.isPinned() || mezz.jei.gui.chat.ChatRecipeTooltip.INSTANCE.hasTags())) {
+			return true;
+		}
+		if (screen instanceof mezz.jei.gui.config.screen.JeiConfigScreen) {
+			return false;
+		}
+		InputConstants.Key input = InputConstants.Type.MOUSE.getOrCreate(button);
+		return this.inputRouter.handleMouseDragged(mouseX, mouseY, input, dragX, dragY);
+	}
+
+	private boolean handleCharTyped(char codePoint, int modifiers) {
+		return this.charTypedHandlers.stream()
+			.filter(ICharTypedHandler::hasKeyboardFocus)
+			.anyMatch(handler -> handler.onCharTyped(codePoint, modifiers));
+	}
+
+	private boolean isContainerTextFieldFocused(Screen screen) {
+		return reflectionUtil.getFieldWithClass(screen, EditBox.class)
+			.anyMatch(textField -> textField.isActive() && textField.isFocused());
+	}
+}

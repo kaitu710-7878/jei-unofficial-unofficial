@@ -1,0 +1,84 @@
+package mezz.jei.api.ingredients.subtypes;
+
+import mezz.jei.api.constants.VanillaTypes;
+import mezz.jei.api.ingredients.IIngredientTypeWithSubtypes;
+import mezz.jei.api.registration.ISubtypeRegistration;
+import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Gets subtype information from ingredients that have subtype interpreters.
+ * <p>
+ * Add subtypes for your ingredients with {@link ISubtypeRegistration#registerSubtypeInterpreter(IIngredientTypeWithSubtypes, Object, ISubtypeInterpreter)}.
+ */
+@ApiStatus.NonExtendable
+public interface ISubtypeManager {
+	/**
+	 * Get the data from an ItemStack that is relevant to comparing and telling subtypes apart.
+	 * Returns null if the ItemStack has no information used for subtypes.
+	 *
+	 * @since 15.49.0
+	 */
+	@Nullable
+	default Object getSubtypeData(ItemStack ingredient, UidContext context) {
+		return getSubtypeData(VanillaTypes.ITEM_STACK, ingredient, context);
+	}
+
+	/**
+	 * Get the data from an ingredient that is relevant to comparing and telling subtypes apart.
+	 * Returns null if the ingredient has no information used for subtypes.
+	 *
+	 * @since 15.49.0
+	 */
+	@Nullable
+	default <T> Object getSubtypeData(IIngredientTypeWithSubtypes<?, T> ingredientType, T ingredient, UidContext context) {
+		String subtypeInfo = getSubtypeInfo(ingredientType, ingredient, context);
+		if (subtypeInfo.isEmpty()) {
+			return null;
+		}
+		return subtypeInfo;
+	}
+
+	/**
+	 * Get the data from an ItemStack that is relevant to comparing and telling subtypes apart.
+	 * Returns {@link IIngredientSubtypeInterpreter#NONE} if the ItemStack has no information used for subtypes.
+	 *
+	 * @since 11.1.1
+	 */
+	default String getSubtypeInfo(ItemStack ingredient, UidContext context) {
+		return getSubtypeInfo(VanillaTypes.ITEM_STACK, ingredient, context);
+	}
+
+	/**
+	 * Get the data from an ingredient that is relevant to comparing and telling subtypes apart.
+	 * Returns {@link IIngredientSubtypeInterpreter#NONE} if the ingredient has no information used for subtypes.
+	 *
+	 * @since 9.7.0
+	 */
+	<T> String getSubtypeInfo(IIngredientTypeWithSubtypes<?, T> ingredientType, T ingredient, UidContext context);
+
+	/**
+	 * Return true if the given ItemStack can have subtypes.
+	 * For example in the vanilla game an enchanted book may have subtypes, but an apple does not.
+	 *
+	 * @see ISubtypeRegistration#registerSubtypeInterpreter
+	 * @see ISubtypeManager#getSubtypeData
+	 *
+	 * @since 15.37.0
+	 */
+	default boolean hasSubtypes(ItemStack ingredient) {
+		return hasSubtypes(VanillaTypes.ITEM_STACK, ingredient);
+	}
+
+	/**
+	 * Return true if the given ingredient can have subtypes.
+	 * For example in the vanilla game an enchanted book may have subtypes, but an apple does not.
+	 *
+	 * @see ISubtypeRegistration#registerSubtypeInterpreter
+	 * @see ISubtypeManager#getSubtypeData
+	 *
+	 * @since 15.6.0
+	 */
+	<T, B> boolean hasSubtypes(IIngredientTypeWithSubtypes<B, T> ingredientType, T ingredient);
+}

@@ -1,0 +1,396 @@
+package mezz.jei.common.gui.textures;
+
+import mezz.jei.api.constants.ModIds;
+import mezz.jei.api.gui.drawable.IDrawable;
+import mezz.jei.api.gui.drawable.IDrawableStatic;
+import mezz.jei.common.gui.elements.DrawableNineSliceTexture;
+import mezz.jei.common.gui.elements.DrawableSprite;
+import mezz.jei.common.gui.elements.HighResolutionDrawable;
+import net.minecraft.resources.ResourceLocation;
+
+public class Textures {
+	private final JeiSpriteUploader spriteUploader;
+
+	private final IDrawableStatic slot;
+	private final IDrawableStatic outputSlot;
+	private final DrawableNineSliceTexture recipeCatalystSlotBackground;
+	private final DrawableNineSliceTexture ingredientListSlotBackground;
+	private final DrawableNineSliceTexture bookmarkListSlotBackground;
+	private final IDrawableStatic tabSelected;
+	private final IDrawableStatic tabUnselected;
+	private final DrawableNineSliceTexture buttonDisabled;
+	private final DrawableNineSliceTexture buttonEnabled;
+	private final DrawableNineSliceTexture buttonHighlight;
+	private final DrawableNineSliceTexture buttonPressed;
+	private final DrawableNineSliceTexture buttonPressedHighlight;
+	private final DrawableNineSliceTexture recipeGuiBackground;
+	private final DrawableNineSliceTexture ingredientListBackground;
+	private final DrawableNineSliceTexture bookmarkListBackground;
+	private final DrawableNineSliceTexture recipeBackground;
+	private final DrawableNineSliceTexture interactiveIngredientTooltipBackground;
+	private final DrawableNineSliceTexture recipePreviewBackground;
+	private final DrawableNineSliceTexture searchBackground;
+	private final DrawableNineSliceTexture scrollbarBackground;
+	private final DrawableNineSliceTexture scrollbarMarker;
+	private final DrawableNineSliceTexture exclusionAreaShadow;
+
+	private final HighResolutionDrawable shapelessIcon;
+	private final IDrawableStatic arrowPrevious;
+	private final IDrawableStatic arrowNext;
+	private final IDrawableStatic recipeTransfer;
+	private final DrawableSprite recipeBookmark;
+	private final DrawableSprite recipeFavorite;
+	private final IDrawableStatic configButtonIcon;
+	private final IDrawableStatic configButtonCheatIcon;
+	private final IDrawableStatic bookmarkButtonDisabledIcon;
+	private final IDrawableStatic bookmarkButtonEnabledIcon;
+	private final IDrawableStatic favoriteButtonDisabledIcon;
+	private final IDrawableStatic favoriteButtonEnabledIcon;
+	private final IDrawableStatic historyButtonDisabledIcon;
+	private final IDrawableStatic historyButtonEnabledICon;
+	private final IDrawableStatic infoIcon;
+	private final DrawableNineSliceTexture catalystTab;
+	private final DrawableNineSliceTexture recipeOptionsTab;
+	private final IDrawableStatic flameIcon;
+	private final IDrawableStatic flameEmptyIcon;
+	private final IDrawableStatic recipeArrow;
+	private final IDrawableStatic recipeArrowFilled;
+	private final IDrawableStatic recipePlusSign;
+	private final IDrawableStatic bookmarksFirst;
+	private final IDrawableStatic craftableFirst;
+	private final IDrawableStatic tagBadgeIcon;
+	private final IDrawableStatic listBadgeIcon;
+
+	private final IDrawableStatic brewingStandBackground;
+	private final IDrawableStatic brewingStandBlazeHeat;
+	private final IDrawableStatic brewingStandBubbles;
+	private final IDrawableStatic brewingStandArrow;
+
+	private final DrawableNineSliceTexture configButton;
+	private final DrawableNineSliceTexture configButtonHover;
+	private final DrawableNineSliceTexture configButtonPressed;
+	private final DrawableNineSliceTexture configButtonPrimary;
+	private final DrawableNineSliceTexture configInput;
+	private final DrawableNineSliceTexture configTabSelected;
+	private final IDrawableStatic configSwitchOn;
+	private final IDrawableStatic configSwitchOff;
+	private final IDrawableStatic configIconUp;
+	private final IDrawableStatic configIconDown;
+
+	public Textures(JeiSpriteUploader spriteUploader) {
+		this.spriteUploader = spriteUploader;
+
+		this.slot = createGuiSprite("slot", 18, 18);
+		this.outputSlot = createGuiSprite("output_slot", 26, 26);
+		this.recipeCatalystSlotBackground = createNineSliceGuiSprite("recipe_catalyst_slot_background", 18, 18, 4, 4, 4, 4);
+		this.ingredientListSlotBackground = createNineSliceGuiSprite("ingredient_list_slot_background", 18, 18, 4, 4, 4, 4);
+		this.bookmarkListSlotBackground = createNineSliceGuiSprite("bookmark_list_slot_background", 18, 18, 4, 4, 4, 4);
+		this.tabSelected = createGuiSprite("tab_selected", 24, 24);
+		this.tabUnselected = createGuiSprite("tab_unselected", 24, 24);
+		this.buttonDisabled = createNineSliceGuiSprite("button_disabled", 20, 20, 6, 6, 6, 6);
+		this.buttonEnabled = createNineSliceGuiSprite("button_enabled", 20, 20, 6, 6, 6, 6);
+		this.buttonHighlight = createNineSliceGuiSprite("button_highlight", 20, 20, 6, 6, 6, 6);
+		this.buttonPressed = createNineSliceGuiSprite("button_pressed", 20, 20, 6, 6, 6, 6);
+		this.buttonPressedHighlight = createNineSliceGuiSprite("button_pressed_highlight", 20, 20, 6, 6, 6, 6);
+		this.recipeGuiBackground = createNineSliceGuiSprite("gui_background", 64, 64, 16, 16, 16, 16);
+		this.ingredientListBackground = createNineSliceGuiSprite("ingredient_list_background", 64, 64, 16, 16, 16, 16);
+		this.bookmarkListBackground = createNineSliceGuiSprite("bookmark_list_background", 64, 64, 16, 16, 16, 16);
+		this.recipeBackground = createNineSliceGuiSprite("single_recipe_background", 64, 64, 16, 16, 16, 16);
+		this.interactiveIngredientTooltipBackground = createNineSliceGuiSprite("interactive_ingredient_tooltip_background", 64, 64, 16, 16, 16, 16);
+		this.recipePreviewBackground = createNineSliceGuiSprite("recipe_preview_background", 64, 64, 16, 16, 16, 16);
+		this.searchBackground = createNineSliceGuiSprite("search_background", 20, 20, 6, 6, 6, 6);
+		this.scrollbarBackground = createNineSliceGuiSprite("scrollbar_background", 14, 50, 6, 6, 6, 6);
+		this.scrollbarMarker = createNineSliceGuiSprite("scrollbar_marker", 12, 15, 2, 2, 2, 1);
+		this.exclusionAreaShadow = createNineSliceGuiSprite("exclusion_area_shadow", 16, 16, 4, 4, 4, 4);
+		this.catalystTab = createNineSliceGuiSprite("catalyst_tab", 28, 28, 8, 9, 8, 8);
+		this.recipeOptionsTab = createNineSliceGuiSprite("recipe_options_tab", 28, 28, 8, 9, 8, 8);
+		this.recipeArrow = createGuiSprite("recipe_arrow", 22, 16);
+		this.recipeArrowFilled = createGuiSprite("recipe_arrow_filled", 22, 16);
+		this.recipePlusSign = createGuiSprite("recipe_plus_sign", 13, 13);
+
+		this.brewingStandBackground = createGuiSprite("brewing_stand_background", 64, 60);
+		this.brewingStandBlazeHeat = createGuiSprite("brewing_stand_blaze_heat", 18, 4);
+		this.brewingStandBubbles = createGuiSprite("brewing_stand_bubbles", 11, 28);
+		this.brewingStandArrow = createGuiSprite("brewing_stand_arrow", 7, 27);
+
+		DrawableSprite rawShapelessIcon = createGuiSprite("icons/shapeless_icon", 36, 36)
+			.trim(1, 2, 1, 1);
+		this.shapelessIcon = new HighResolutionDrawable(rawShapelessIcon, 4);
+
+		this.arrowPrevious = createGuiSprite("icons/arrow_previous", 9, 9)
+			.trim(0, 0, 1, 1);
+		this.arrowNext = createGuiSprite("icons/arrow_next", 9, 9)
+			.trim(0, 0, 1, 1);
+		this.recipeTransfer = createGuiSprite("icons/recipe_transfer", 7, 7);
+		this.recipeBookmark = createGuiSprite("icons/recipe_bookmark", 9, 9);
+		this.recipeFavorite = createGuiSprite("icons/recipe_favorite", 9, 9);
+		this.configButtonIcon = createGuiSprite("icons/config_button", 16, 16);
+		this.configButtonCheatIcon = createGuiSprite("icons/config_button_cheat", 16, 16);
+		this.bookmarkButtonDisabledIcon = createGuiSprite("icons/bookmark_button_disabled", 16, 16);
+		this.bookmarkButtonEnabledIcon = createGuiSprite("icons/bookmark_button_enabled", 16, 16);
+		this.favoriteButtonDisabledIcon = createGuiSprite("icons/favorite_button_disabled", 16, 16);
+		this.favoriteButtonEnabledIcon = createGuiSprite("icons/favorite_button_enabled", 16, 16);
+		this.historyButtonDisabledIcon = createGuiSprite("icons/history_button_disabled", 16, 16);
+		this.historyButtonEnabledICon = createGuiSprite("icons/history_button_enabled", 16, 16);
+		this.infoIcon = createGuiSprite("icons/info", 16, 16);
+		this.flameIcon = createGuiSprite("icons/flame", 14, 14);
+		this.flameEmptyIcon = createGuiSprite("icons/flame_empty", 14, 14);
+		this.bookmarksFirst = createGuiSprite("icons/bookmarks_first", 16, 16);
+		this.craftableFirst = createGuiSprite("icons/craftable_first", 16, 16);
+
+		this.configButton = createNineSliceGuiSprite("config/button", 24, 24, 6, 6, 6, 7);
+		this.configButtonHover = createNineSliceGuiSprite("config/button_hover", 24, 24, 6, 6, 6, 7);
+		this.configButtonPressed = createNineSliceGuiSprite("config/button_pressed", 24, 24, 6, 6, 6, 7);
+		this.configButtonPrimary = createNineSliceGuiSprite("config/button_primary", 24, 24, 6, 6, 6, 7);
+		this.configInput = createNineSliceGuiSprite("config/input", 24, 24, 4, 4, 4, 4);
+		this.configTabSelected = createNineSliceGuiSprite("config/tab_selected", 24, 24, 6, 6, 6, 7);
+		this.configSwitchOn = createGuiSprite("config/switch_on", 32, 18);
+		this.configSwitchOff = createGuiSprite("config/switch_off", 32, 18);
+		this.configIconUp = createGuiSprite("config/icon_up", 16, 16);
+		this.configIconDown = createGuiSprite("config/icon_down", 16, 16);
+		this.tagBadgeIcon = createGuiSprite("icons/tag_badge", 9, 9);
+		this.listBadgeIcon = createGuiSprite("icons/list_badge", 9, 9);
+	}
+
+	private ResourceLocation createSprite(String name) {
+		return new ResourceLocation(ModIds.JEI_ID, name);
+	}
+
+	private DrawableSprite createGuiSprite(String name, int width, int height) {
+		ResourceLocation location = createSprite(name);
+		return new DrawableSprite(spriteUploader, location, width, height);
+	}
+
+	private DrawableNineSliceTexture createNineSliceGuiSprite(String name, int width, int height, int left, int right, int top, int bottom) {
+		ResourceLocation location = createSprite(name);
+		return new DrawableNineSliceTexture(spriteUploader, location, width, height, left, right, top, bottom);
+	}
+
+	public IDrawableStatic getSlot() {
+		return slot;
+	}
+
+	public IDrawableStatic getOutputSlot() {
+		return outputSlot;
+	}
+
+	public IDrawableStatic getTabSelected() {
+		return tabSelected;
+	}
+
+	public IDrawableStatic getTabUnselected() {
+		return tabUnselected;
+	}
+
+	public HighResolutionDrawable getShapelessIcon() {
+		return shapelessIcon;
+	}
+
+	public IDrawableStatic getArrowPrevious() {
+		return arrowPrevious;
+	}
+
+	public IDrawableStatic getArrowNext() {
+		return arrowNext;
+	}
+
+	public IDrawableStatic getRecipeTransfer() {
+		return recipeTransfer;
+	}
+
+	public IDrawableStatic getBookmarksFirst() {
+		return bookmarksFirst;
+	}
+
+	public IDrawableStatic getCraftableFirst() {
+		return craftableFirst;
+	}
+
+	public IDrawableStatic getTagBadgeIcon() {
+		return tagBadgeIcon;
+	}
+
+	public IDrawableStatic getListBadgeIcon() {
+		return listBadgeIcon;
+	}
+
+	public IDrawableStatic getConfigButtonIcon() {
+		return configButtonIcon;
+	}
+
+	public IDrawableStatic getConfigButtonCheatIcon() {
+		return configButtonCheatIcon;
+	}
+
+	public IDrawableStatic getBookmarkButtonDisabledIcon() {
+		return bookmarkButtonDisabledIcon;
+	}
+
+	public IDrawableStatic getBookmarkButtonEnabledIcon() {
+		return bookmarkButtonEnabledIcon;
+	}
+
+	public IDrawableStatic getFavoriteButtonDisabledIcon() {
+		return favoriteButtonDisabledIcon;
+	}
+
+	public IDrawableStatic getFavoriteButtonEnabledIcon() {
+		return favoriteButtonEnabledIcon;
+	}
+
+	public IDrawableStatic getHistoryButtonDisabledIcon() {
+		return historyButtonDisabledIcon;
+	}
+
+	public IDrawableStatic getHistoryButtonEnabledICon() {
+		return historyButtonEnabledICon;
+	}
+
+	public DrawableNineSliceTexture getButtonForState(boolean pressed, boolean enabled, boolean hovered) {
+		if (!enabled) {
+			return buttonDisabled;
+		}
+
+		if (hovered) {
+			if (pressed) {
+				return buttonPressedHighlight;
+			}
+			return buttonHighlight;
+		}
+		if (pressed) {
+			return buttonPressed;
+		}
+		return buttonEnabled;
+	}
+
+	public DrawableNineSliceTexture getRecipeGuiBackground() {
+		return recipeGuiBackground;
+	}
+
+	public DrawableNineSliceTexture getIngredientListBackground() {
+		return ingredientListBackground;
+	}
+
+	public DrawableNineSliceTexture getBookmarkListBackground() {
+		return bookmarkListBackground;
+	}
+
+	public DrawableNineSliceTexture getRecipeBackground() {
+		return recipeBackground;
+	}
+
+	public DrawableNineSliceTexture getInteractiveIngredientTooltipBackground() {
+		return interactiveIngredientTooltipBackground;
+	}
+
+	public DrawableNineSliceTexture getRecipePreviewBackground() {
+		return recipePreviewBackground;
+	}
+
+	public DrawableNineSliceTexture getSearchBackground() {
+		return searchBackground;
+	}
+
+	public IDrawableStatic getInfoIcon() {
+		return infoIcon;
+	}
+
+	public DrawableNineSliceTexture getCatalystTab() {
+		return catalystTab;
+	}
+
+	public DrawableNineSliceTexture getRecipeOptionsTab() {
+		return recipeOptionsTab;
+	}
+
+	public IDrawableStatic getRecipeArrow() {
+		return recipeArrow;
+	}
+
+	public IDrawableStatic getRecipeArrowFilled() {
+		return recipeArrowFilled;
+	}
+
+	public IDrawableStatic getRecipePlusSign() {
+		return recipePlusSign;
+	}
+
+	public DrawableNineSliceTexture getRecipeCatalystSlotBackground() {
+		return recipeCatalystSlotBackground;
+	}
+
+	public DrawableNineSliceTexture getIngredientListSlotBackground() {
+		return ingredientListSlotBackground;
+	}
+
+	public DrawableNineSliceTexture getBookmarkListSlotBackground() {
+		return bookmarkListSlotBackground;
+	}
+
+	public IDrawableStatic getFlameIcon() {
+		return flameIcon;
+	}
+
+	public IDrawableStatic getFlameEmptyIcon() {
+		return flameEmptyIcon;
+	}
+
+	public IDrawable getRecipeBookmark() {
+		return recipeBookmark;
+	}
+
+	public IDrawable getRecipeFavorite() {
+		return recipeFavorite;
+	}
+
+	public DrawableNineSliceTexture getScrollbarMarker() {
+		return scrollbarMarker;
+	}
+
+	public DrawableNineSliceTexture getExclusionAreaShadow() {
+		return exclusionAreaShadow;
+	}
+
+	public DrawableNineSliceTexture getScrollbarBackground() {
+		return scrollbarBackground;
+	}
+
+	public IDrawableStatic getBrewingStandBackground() {
+		return brewingStandBackground;
+	}
+
+	public IDrawableStatic getBrewingStandBlazeHeat() {
+		return brewingStandBlazeHeat;
+	}
+
+	public IDrawableStatic getBrewingStandBubbles() {
+		return brewingStandBubbles;
+	}
+
+	public IDrawableStatic getBrewingStandArrow() {
+		return brewingStandArrow;
+	}
+
+	public JeiSpriteUploader getSpriteUploader() {
+		return spriteUploader;
+	}
+
+	public DrawableNineSliceTexture getConfigScreenNineSlice(String name) {
+		return switch (name) {
+			case "button_hover" -> configButtonHover;
+			case "button_pressed" -> configButtonPressed;
+			case "button_primary" -> configButtonPrimary;
+			case "input" -> configInput;
+			case "tab_selected" -> configTabSelected;
+			default -> configButton;
+		};
+	}
+
+	public IDrawableStatic getConfigScreenSprite(String name) {
+		return "switch_on".equals(name) ? configSwitchOn : configSwitchOff;
+	}
+
+	public IDrawableStatic getConfigScreenIcon(String name) {
+		return "icon_up".equals(name) ? configIconUp : configIconDown;
+	}
+}

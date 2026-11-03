@@ -1,0 +1,107 @@
+package mezz.jei.common.config;
+
+import mezz.jei.api.runtime.config.IJeiConfigValue;
+import mezz.jei.common.config.file.IConfigListener;
+
+import java.util.List;
+import java.util.Set;
+
+public interface IClientConfig {
+	int getConfigScreenTransparency();
+	int minRecipeGuiHeight = 175;
+	int defaultRecipeGuiHeight = 350;
+	int maximumRecipeGuiHeight = 7680;
+	boolean defaultCenterSearchBar = false;
+
+	boolean isCenterSearchBarEnabled();
+
+	void addCenterSearchBarEnabledListener(IConfigListener<Boolean> listener);
+
+	boolean isQuantityFieldEnabled();
+
+	void addQuantityFieldEnabledListener(IConfigListener<Boolean> listener);
+
+	void addMaxRecipeGuiHeightListener(IConfigListener<Integer> listener);
+
+	boolean isLowMemorySlowSearchEnabled();
+
+	void addLowMemorySlowSearchEnabledListener(IConfigListener<Boolean> listener);
+
+	boolean isCatchRenderErrorsEnabled();
+
+	boolean isRecipeSyncWarningEnabled();
+
+	boolean isCheatToHotbarUsingHotkeysEnabled();
+
+	boolean isAddingBookmarksToFrontEnabled();
+
+	boolean isShowRecipeHandlerIconEnabled();
+
+	int getFavoriteTreeDepth();
+
+	boolean isBookmarkOutputAsRecipeEnabled();
+
+	boolean isLookupFluidContentsEnabled();
+
+	boolean isLookupBlockTagsEnabled();
+
+	GiveMode getGiveMode();
+
+	boolean getShowHiddenIngredients();
+
+	List<BookmarkTooltipFeature> getBookmarkTooltipFeatures();
+
+	boolean isHoldShiftToShowBookmarkTooltipFeaturesEnabled();
+
+	boolean isDragToRearrangeBookmarksEnabled();
+
+	BookmarkRecipeMarkerMode getBookmarkRecipeMarkerMode();
+
+	boolean isLookupHistoryEnabled();
+
+	void setLookupHistoryEnabled(boolean enabled);
+
+	void addLookupHistoryEnabledListener(IConfigListener<Boolean> listener);
+
+	int getMaxLookupHistoryRows();
+
+	int getMaxLookupHistoryIngredients();
+
+	HistoryDisplaySide getLookupHistoryDisplaySide();
+
+	void addLookupHistoryDisplaySideListener(IConfigListener<HistoryDisplaySide> listener);
+
+	void addMaxLookupHistoryRowsListener(IConfigListener<Integer> listener);
+
+	void addMaxLookupHistoryIngredientsListener(IConfigListener<Integer> listener);
+
+	IJeiConfigValue<Boolean> recipeSlotCyclingEnabled();
+
+	boolean isIngredientsSummaryEnabled();
+
+	int getDragDelayMs();
+
+	int getSmoothScrollRate();
+
+	int getMaxRecipeGuiHeight();
+
+	List<IngredientSortStage> getIngredientSorterStages();
+
+	void addIngredientSorterStagesListener(IConfigListener<List<IngredientSortStage>> listener);
+
+	Set<RecipeSorterStage> getRecipeSorterStages();
+
+	void enableRecipeSorterStage(RecipeSorterStage stage);
+
+	void disableRecipeSorterStage(RecipeSorterStage stage);
+
+	boolean isTagContentTooltipEnabled();
+
+	boolean getHideSingleTagContentTooltipEnabled();
+
+	boolean isShowTagRecipesEnabled();
+
+	boolean isShowCreativeTabNamesEnabled();
+
+	boolean isToastReflowEnabled();
+}

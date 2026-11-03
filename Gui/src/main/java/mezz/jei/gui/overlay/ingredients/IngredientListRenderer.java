@@ -1,0 +1,498 @@
+package mezz.jei.gui.overlay.ingredients;
+
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import mezz.jei.api.gui.drawable.IDrawable;
+import mezz.jei.api.ingredients.IIngredientRenderer;
+import mezz.jei.api.ingredients.IIngredientType;
+import mezz.jei.api.ingredients.ITypedIngredient;
+import mezz.jei.api.ingredients.rendering.BatchRenderElement;
+import mezz.jei.api.runtime.IEditModeConfig;
+import mezz.jei.api.runtime.IIngredientManager;
+import mezz.jei.common.Internal;
+import mezz.jei.common.gui.JeiGuiColors;
+import mezz.jei.common.gui.JeiGuiColors.GuiColor;
+import mezz.jei.common.gui.elements.OffsetDrawable;
+import mezz.jei.common.util.ImmutableRect2i;
+import mezz.jei.common.util.SafeIngredientUtil;
+import mezz.jei.common.collect.ListMultiMap;
+import mezz.jei.gui.bookmarks.BookmarkSlotBorder;
+import mezz.jei.gui.collapsible.CollapsedGroupElement;
+import mezz.jei.gui.input.MouseUtil;
+import mezz.jei.gui.overlay.IngredientListSlotContext;
+import mezz.jei.gui.overlay.bookmarks.BookmarkSlotVisuals;
+import mezz.jei.gui.overlay.elements.IElement;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import org.joml.Matrix4f;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.RenderType;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Stream;
+
+public class IngredientListRenderer {
+	private static final int BLACKLIST_COLOR = 0xDDFF0000;
+	private static final int WILDCARD_BLACKLIST_COLOR = 0xDDFFA500;
+	private static final float BOOKMARK_SLOT_TEXT_SCALE = 0.65f;
+	// 1.20.1 has no GuiRenderLayers; mirror the 1.21.1
+	// GuiRenderLayers.OVERLAY_DECORATION_Z value.
+	private static final int OVERLAY_DECORATION_Z = 300;
+	private final List<IngredientListSlot> slots = new ArrayList<>();
+	private final ListMultiMap<IIngredientType<?>, BatchRenderElement<?>> renderElementsByType = new ListMultiMap<>();
+	private final List<IDrawable> renderOverlays = new ArrayList<>();
+	private final BorderVertexTracker borderVertices = new BorderVertexTracker();
+	private final IIngredientManager ingredientManager;
+	private final boolean searchable;
+	private Function<IngredientListSlotContext, Optional<BookmarkSlotVisuals>> slotVisualsResolver = context -> Optional.empty();
+	private Optional<IngredientListSlot> hoveredSlot = Optional.empty();
+	private int layoutVersion = 0;
+	private int columnCount = 0;
+
+	private int blocked = 0;
+
+	public IngredientListRenderer(IIngredientManager ingredientManager, boolean searchable) {
+		this.ingredientManager = ingredientManager;
+		this.searchable = searchable;
+	}
+
+	public void clear() {
+		borderVertices.clear();
+		slots.clear();
+		renderElementsByType.clear();
+		renderOverlays.clear();
+		blocked = 0;
+	}
+
+	public int size() {
+		return (int) slots.stream()
+			.filter(slot -> !slot.isBlocked())
+			.count();
+	}
+
+	public void add(IngredientListSlot ingredientListSlot) {
+		slots.add(ingredientListSlot);
+		addRenderElement(ingredientListSlot);
+	}
+
+	public void setSlotVisualsResolver(Function<IngredientListSlotContext, Optional<BookmarkSlotVisuals>> slotVisualsResolver) {
+		this.slotVisualsResolver = slotVisualsResolver;
+	}
+
+	private void addRenderElement(IngredientListSlot ingredientListSlot) {
+		ingredientListSlot.getOptionalElement()
+			.ifPresent(element -> {
+				// 1.21.1 parity: a collapsed group slot is drawn as a double stack (background
+				// member at a lower z, representative at a higher z) instead of a batch element.
+				if (element instanceof CollapsedGroupElement<?> groupElement && groupElement.isCollapsed()) {
+					IDrawable doubleStack = groupElement.createDoubleStackDrawable();
+					if (doubleStack != null) {
+						ImmutableRect2i renderArea = ingredientListSlot.getRenderArea();
+						renderOverlays.add(OffsetDrawable.create(doubleStack, renderArea.x(), renderArea.y()));
+						return;
+					}
+				}
+				ITypedIngredient<?> typedIngredient = element.getTypedIngredient();
+				IIngredientType<?> ingredientType = typedIngredient.getType();
+				ImmutableRect2i renderArea = ingredientListSlot.getRenderArea();
+				BatchRenderElement<?> batchRenderElement = new BatchRenderElement<>(typedIngredient.getIngredient(), renderArea.x(), renderArea.y());
+				renderElementsByType.put(ingredientType, batchRenderElement);
+				IDrawable renderOverlay = element.createRenderOverlay();
+				if (renderOverlay != null) {
+					renderOverlays.add(OffsetDrawable.create(renderOverlay, renderArea.x(), renderArea.y()));
+				}
+			});
+	}
+
+	public Stream<IngredientListSlot> getSlots() {
+		return slots.stream()
+			.filter(s -> !s.isBlocked());
+	}
+
+	public int getColumnCount() {
+		int count = 0;
+		Integer firstRowY = null;
+		for (IngredientListSlot slot : slots) {
+			int y = slot.getArea().getY();
+			if (firstRowY == null) {
+				firstRowY = y;
+			}
+			if (y == firstRowY) {
+				count++;
+			} else {
+				break;
+			}
+		}
+		return count;
+	}
+
+	public int getLayoutVersion() {
+		return layoutVersion;
+	}
+
+	public void set(final int startIndex, List<IElement<?>> ingredientList) {
+		this.layoutVersion++;
+		blocked = 0;
+		renderElementsByType.clear();
+		renderOverlays.clear();
+
+		Iterator<IElement<?>> elementIterator = ingredientList.listIterator(startIndex);
+
+		for (IngredientListSlot ingredientListSlot : slots) {
+			if (ingredientListSlot.isBlocked()) {
+				ingredientListSlot.clear();
+				blocked++;
+			} else if (elementIterator.hasNext()) {
+				IElement<?> element = elementIterator.next();
+				while (shouldSkipInvisibleElement(element) && elementIterator.hasNext()) {
+					element = elementIterator.next();
+				}
+				if (element.isLayoutPlaceholder()) {
+					ingredientListSlot.clear();
+				} else if (element.isVisible()) {
+					ingredientListSlot.setElement(element);
+					addRenderElement(ingredientListSlot);
+				} else if (element.reservesInvisibleSpace()) {
+					ingredientListSlot.setElement(element);
+				} else {
+					ingredientListSlot.clear();
+				}
+			} else {
+				ingredientListSlot.clear();
+			}
+		}
+	}
+
+	private static boolean shouldSkipInvisibleElement(IElement<?> element) {
+		return !element.isLayoutPlaceholder() &&
+			!element.isVisible() &&
+			!element.reservesInvisibleSpace();
+	}
+
+	public void render(GuiGraphics guiGraphics) {
+		this.hoveredSlot = findHoveredSlot((int) MouseUtil.getX(), (int) MouseUtil.getY());
+		this.columnCount = getColumnCount();
+		renderSlotBackgrounds(guiGraphics);
+		renderSlotBorders(guiGraphics);
+
+		if (searchable && Internal.getClientToggleState().isEditModeEnabled()) {
+			renderEditMode(guiGraphics);
+		}
+
+		for (Map.Entry<IIngredientType<?>, List<BatchRenderElement<?>>> entry : renderElementsByType.entrySet()) {
+			renderBatch(guiGraphics, entry);
+		}
+
+		for (IDrawable overlay : renderOverlays) {
+			overlay.draw(guiGraphics);
+		}
+
+		renderSlotTextOverlays(guiGraphics);
+		this.hoveredSlot = Optional.empty();
+	}
+
+	private Optional<IngredientListSlot> findHoveredSlot(int mouseX, int mouseY) {
+		return slots.stream()
+			.filter(slot -> !slot.isBlocked())
+			.filter(slot -> slot.isMouseOver(mouseX, mouseY))
+			.findFirst();
+	}
+
+	private void renderSlotBackgrounds(GuiGraphics guiGraphics) {
+		boolean drewBackground = false;
+		int hoveredSlotIndex = hoveredSlot.map(slots::indexOf).orElse(-1);
+		for (int i = 0; i < slots.size(); i++) {
+			IngredientListSlot slot = slots.get(i);
+			Optional<BookmarkSlotVisuals> visuals = getSlotVisuals(slot, i, hoveredSlotIndex);
+			OptionalInt backgroundColor = visuals
+				.map(BookmarkSlotVisuals::backgroundColor)
+				.orElseGet(OptionalInt::empty);
+			OptionalInt markerBackgroundColor = visuals
+				.map(BookmarkSlotVisuals::markerBackgroundColor)
+				.orElseGet(OptionalInt::empty);
+			OptionalInt color = backgroundColor.isPresent() ? backgroundColor : markerBackgroundColor;
+			if (color.isPresent()) {
+				drewBackground = true;
+				ImmutableRect2i area = slot.getArea();
+				RenderSystem.enableBlend();
+				guiGraphics.fill(
+					RenderType.guiOverlay(),
+					area.getX(),
+					area.getY(),
+					area.getX() + area.getWidth(),
+					area.getY() + area.getHeight(),
+					color.getAsInt()
+				);
+			}
+		}
+		RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+		if (drewBackground) {
+			RenderSystem.disableBlend();
+		}
+	}
+
+	private void renderSlotBorders(GuiGraphics guiGraphics) {
+		borderVertices.clear();
+		Matrix4f matrix = guiGraphics.pose().last().pose();
+		BufferBuilder bufferBuilder = null;
+		Tesselator tesselator = null;
+		int hoveredSlotIndex = hoveredSlot.map(slots::indexOf).orElse(-1);
+		for (int i = 0; i < slots.size(); i++) {
+			IngredientListSlot slot = slots.get(i);
+			Optional<BookmarkSlotBorder> border = getSlotVisuals(slot, i, hoveredSlotIndex)
+				.flatMap(BookmarkSlotVisuals::border);
+			if (border.isPresent()) {
+				if (bufferBuilder == null) {
+					// 1.20.1 uses the classic Tesselator.getBuilder() API;
+					// 1.21.1 uses Tesselator.begin() + BufferUploader.drawWithShader.
+					tesselator = Tesselator.getInstance();
+					bufferBuilder = tesselator.getBuilder();
+					bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+				}
+				BookmarkSlotBorder frame = border.get();
+				ImmutableRect2i area = slot.getArea();
+				drawBorder(bufferBuilder, matrix, area, frame);
+				int x = area.getX();
+				int y = area.getY();
+				int right = x + area.getWidth();
+				int bottom = y + area.getHeight();
+				if (frame.left() || frame.top()) {
+					drawBorderVertex(bufferBuilder, matrix, frame, x, y);
+				}
+				if (frame.right() || frame.top()) {
+					drawBorderVertex(bufferBuilder, matrix, frame, right, y);
+				}
+				if (frame.left() || frame.bottom()) {
+					drawBorderVertex(bufferBuilder, matrix, frame, x, bottom);
+				}
+				if (frame.right() || frame.bottom()) {
+					drawBorderVertex(bufferBuilder, matrix, frame, right, bottom);
+				}
+			}
+		}
+		if (bufferBuilder != null) {
+			RenderSystem.enableBlend();
+			RenderSystem.setShader(GameRenderer::getPositionColorShader);
+			tesselator.end();
+			RenderSystem.disableBlend();
+		}
+	}
+
+	private static void drawBorder(
+		BufferBuilder bufferBuilder,
+		Matrix4f matrix,
+		ImmutableRect2i area,
+		BookmarkSlotBorder border
+	) {
+		int color = border.color();
+		float x = area.getX();
+		float y = area.getY();
+		float width = area.getWidth();
+		float height = area.getHeight();
+		if (border.left()) {
+			addQuad(bufferBuilder, matrix, x - 0.5F, y + 0.5F, x + 0.5F, y + height - 0.5F, color);
+		}
+		if (border.right()) {
+			addQuad(bufferBuilder, matrix, x + width - 0.5F, y + 0.5F, x + width + 0.5F, y + height - 0.5F, color);
+		}
+		if (border.top()) {
+			addQuad(bufferBuilder, matrix, x + 0.5F, y - 0.5F, x + width - 0.5F, y + 0.5F, color);
+		}
+		if (border.bottom()) {
+			addQuad(bufferBuilder, matrix, x + 0.5F, y + height - 0.5F, x + width - 0.5F, y + height + 0.5F, color);
+		}
+	}
+
+	private void drawBorderVertex(BufferBuilder buffer, Matrix4f matrix, BookmarkSlotBorder border, int x, int y) {
+		if (borderVertices.claim(border.frameKey(), x, y)) {
+			addQuad(buffer, matrix, x - 0.5F, y - 0.5F, x + 0.5F, y + 0.5F, border.color());
+		}
+	}
+
+	private static void addQuad(
+		BufferBuilder bufferBuilder,
+		Matrix4f matrix,
+		float x1,
+		float y1,
+		float x2,
+		float y2,
+		int color
+	) {
+		// 1.20.1 BufferBuilder uses vertex().color(r,g,b,a).endVertex().
+		float a = (float) (color >> 24 & 255) / 255.0F;
+		float r = (float) (color >> 16 & 255) / 255.0F;
+		float g = (float) (color >> 8 & 255) / 255.0F;
+		float b = (float) (color & 255) / 255.0F;
+		bufferBuilder.vertex(matrix, x1, y1, 0).color(r, g, b, a).endVertex();
+		bufferBuilder.vertex(matrix, x1, y2, 0).color(r, g, b, a).endVertex();
+		bufferBuilder.vertex(matrix, x2, y2, 0).color(r, g, b, a).endVertex();
+		bufferBuilder.vertex(matrix, x2, y1, 0).color(r, g, b, a).endVertex();
+	}
+
+	private void renderSlotTextOverlays(GuiGraphics guiGraphics) {
+		Minecraft minecraft = Minecraft.getInstance();
+		Font font = minecraft.font;
+		int hoveredSlotIndex = hoveredSlot.map(slots::indexOf).orElse(-1);
+		for (int i = 0; i < slots.size(); i++) {
+			IngredientListSlot slot = slots.get(i);
+			getSlotVisuals(slot, i, hoveredSlotIndex).ifPresent(visuals -> {
+				ImmutableRect2i area = slot.getArea();
+				visuals.multiplierText()
+					.ifPresent(text -> drawTopLeftText(guiGraphics, font, area, text, visuals.multiplierTextColor().orElse(0xFFFFFFFF)));
+				visuals.recipeMarkerText()
+					.ifPresent(text -> {
+						if (text.equals("C")) {
+							drawBottomLeftText(guiGraphics, font, area, text, visuals.recipeMarkerTextColor().orElse(0xFFFFFF55));
+						} else {
+							drawTopRightText(guiGraphics, font, area, text, visuals.recipeMarkerTextColor().orElse(0xFFFFFF55));
+						}
+					});
+				visuals.amountText()
+					.ifPresent(text -> drawBottomRightText(guiGraphics, font, area, text, visuals.amountTextColor().orElse(0xFFFFFFFF)));
+			});
+		}
+	}
+
+	private Optional<BookmarkSlotVisuals> getSlotVisuals(IngredientListSlot slot, int slotIndex, int hoveredSlotIndex) {
+		Optional<IElement<?>> element = slot.getOptionalElement()
+			.filter(IElement::isVisible);
+		if (element.isEmpty()) {
+			return Optional.empty();
+		}
+		Optional<IElement<?>> hoveredElement = hoveredSlot
+			.flatMap(IngredientListSlot::getOptionalElement);
+		IngredientListSlotContext context = new IngredientListSlotContext(
+			element.get(),
+			hoveredElement,
+			slotIndex,
+			hoveredSlotIndex,
+			getRowIndex(slot),
+			hoveredSlot.map(this::getRowIndex).orElse(-1),
+			columnCount,
+			slots.size(),
+			layoutVersion
+		);
+		return slotVisualsResolver.apply(context);
+	}
+
+	public List<IngredientListSlot> getAllSlots() {
+		return List.copyOf(slots);
+	}
+
+	private int getRowIndex(IngredientListSlot slot) {
+		return slot.getArea().getY();
+	}
+
+	private static void drawTopLeftText(GuiGraphics guiGraphics, Font font, ImmutableRect2i area, String text, int color) {
+		drawScaledText(guiGraphics, font, text, area.getX() + 1, area.getY() + 1, color);
+	}
+
+	private static void drawTopRightText(GuiGraphics guiGraphics, Font font, ImmutableRect2i area, String text, int color) {
+		int x = area.getX() + area.getWidth() - scaledTextWidth(font, text);
+		drawScaledText(guiGraphics, font, text, x, area.getY() + 1, color);
+	}
+
+	private static void drawBottomLeftText(GuiGraphics guiGraphics, Font font, ImmutableRect2i area, String text, int color) {
+		int y = area.getY() + area.getHeight() - Math.round(font.lineHeight * BOOKMARK_SLOT_TEXT_SCALE);
+		drawScaledText(guiGraphics, font, text, area.getX() + 1, y, color);
+	}
+
+	private static void drawBottomRightText(GuiGraphics guiGraphics, Font font, ImmutableRect2i area, String text, int color) {
+		int x = area.getX() + area.getWidth() - scaledTextWidth(font, text);
+		int y = area.getY() + area.getHeight() - Math.round(font.lineHeight * BOOKMARK_SLOT_TEXT_SCALE);
+		drawScaledText(guiGraphics, font, text, x, y, color);
+	}
+
+	private static int scaledTextWidth(Font font, String text) {
+		return Math.round(font.width(text) * BOOKMARK_SLOT_TEXT_SCALE);
+	}
+
+	private static void drawScaledText(GuiGraphics guiGraphics, Font font, String text, int x, int y, int color) {
+		guiGraphics.pose().pushPose();
+		guiGraphics.pose().translate(x, y, OVERLAY_DECORATION_Z);
+		guiGraphics.pose().scale(BOOKMARK_SLOT_TEXT_SCALE, BOOKMARK_SLOT_TEXT_SCALE, 1);
+		guiGraphics.drawString(font, text, 0, 0, color, true);
+		guiGraphics.pose().popPose();
+	}
+
+	private <T> void renderBatch(GuiGraphics guiGraphics, Map.Entry<IIngredientType<?>, List<BatchRenderElement<?>>> entry) {
+		@SuppressWarnings("unchecked")
+		IIngredientType<T> type = (IIngredientType<T>) entry.getKey();
+		IIngredientRenderer<T> ingredientRenderer = ingredientManager.getIngredientRenderer(type);
+		@SuppressWarnings("unchecked")
+		List<BatchRenderElement<T>> elements = (List<BatchRenderElement<T>>) (Object) entry.getValue();
+		SafeIngredientUtil.renderBatch(guiGraphics, type, ingredientRenderer, elements);
+	}
+
+	private void renderEditMode(GuiGraphics guiGraphics) {
+		IEditModeConfig editModeConfig = Internal.getJeiRuntime().getEditModeConfig();
+
+		for (IngredientListSlot slot : slots) {
+			slot.getOptionalElement()
+				.filter(IElement::isVisible)
+				.ifPresent(element -> {
+					renderEditMode(guiGraphics, slot.getArea(), slot.getPadding(), element.getTypedIngredient(), editModeConfig);
+				});
+		}
+
+		RenderSystem.enableBlend();
+	}
+
+	private static <T> void renderEditMode(GuiGraphics guiGraphics, ImmutableRect2i area, int padding, ITypedIngredient<T> typedIngredient, IEditModeConfig config) {
+		Set<IEditModeConfig.HideMode> hideModes = config.getIngredientHiddenUsingConfigFile(typedIngredient);
+		if (!hideModes.isEmpty()) {
+			boolean wildcard = hideModes.contains(IEditModeConfig.HideMode.WILDCARD);
+			boolean single = hideModes.contains(IEditModeConfig.HideMode.SINGLE);
+			int wildcardColor = JeiGuiColors.getColor(GuiColor.EDIT_MODE_HIDDEN_WILDCARD_OVERLAY);
+			int singleColor = JeiGuiColors.getColor(GuiColor.EDIT_MODE_HIDDEN_INGREDIENT_OVERLAY);
+			if (wildcard && single) {
+				guiGraphics.fill(
+					RenderType.guiOverlay(),
+					area.getX() + padding,
+					area.getY() + padding,
+					area.getX() + 16 + padding,
+					area.getY() + 8 + padding,
+					wildcardColor
+				);
+				guiGraphics.fill(
+					RenderType.guiOverlay(),
+					area.getX() + padding,
+					area.getY() + 8 + padding,
+					area.getX() + 16 + padding,
+					area.getY() + 16 + padding,
+					singleColor
+				);
+			} else if (wildcard) {
+				guiGraphics.fill(
+					RenderType.guiOverlay(),
+					area.getX() + padding,
+					area.getY() + padding,
+					area.getX() + 16 + padding,
+					area.getY() + 16 + padding,
+					wildcardColor
+				);
+			} else if (single) {
+				guiGraphics.fill(
+					RenderType.guiOverlay(),
+					area.getX() + padding,
+					area.getY() + padding,
+					area.getX() + 16 + padding,
+					area.getY() + 16 + padding,
+					singleColor
+				);
+			}
+			RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+		}
+	}
+}
