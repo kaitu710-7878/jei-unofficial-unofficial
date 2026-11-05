@@ -120,4 +120,12 @@ public class BookmarkAmountFormatterTest {
 		Assertions.assertNotNull(formattedAmount);
 		Assertions.assertTrue(formattedAmount.endsWith("B") || formattedAmount.endsWith("EB"), "Formatted: " + formattedAmount);
 	}
+	@Test
+	public void testFluidBmdUnit() {
+		// 1,000 buckets = 1,000,000 mB = 1 bmd
+		Assertions.assertEquals("1bmd", BookmarkAmountFormatter.formatFluidAmount(1_000_000, 1_000));
+		Assertions.assertEquals("1.5bmd", BookmarkAmountFormatter.formatFluidAmount(1_500_000, 1_000));
+		Assertions.assertEquals("12bmd", BookmarkAmountFormatter.formatFluidAmount(12_000_000, 1_000));
+		Assertions.assertEquals("999bmd", BookmarkAmountFormatter.formatFluidAmount(999_000_000, 1_000));
+	}
 }

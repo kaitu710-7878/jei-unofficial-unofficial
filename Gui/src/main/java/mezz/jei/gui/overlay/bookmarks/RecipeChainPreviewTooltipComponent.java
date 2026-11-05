@@ -136,12 +136,19 @@ public class RecipeChainPreviewTooltipComponent implements ClientTooltipComponen
 		}
 
 		private static void drawAmountText(GuiGraphics guiGraphics, Font font, String text) {
-			int x = INGREDIENT_SIZE - Math.round(font.width(text) * AMOUNT_TEXT_SCALE);
-			int y = INGREDIENT_SIZE - Math.round(font.lineHeight * AMOUNT_TEXT_SCALE);
+			int rawWidth = font.width(text);
+			int maxAllowedWidth = Math.max(1, INGREDIENT_SIZE - 2);
+			float scale = AMOUNT_TEXT_SCALE;
+			if (rawWidth * scale > maxAllowedWidth) {
+				scale = (float) maxAllowedWidth / (float) rawWidth;
+			}
+			int textWidth = Math.round(rawWidth * scale);
+			int x = Math.max(1, INGREDIENT_SIZE - 1 - textWidth);
+			int y = Math.max(1, INGREDIENT_SIZE - 1 - Math.round(font.lineHeight * scale));
 			PoseStack pose = guiGraphics.pose();
 			pose.pushPose();
 			pose.translate(x, y, 300);
-			pose.scale(AMOUNT_TEXT_SCALE, AMOUNT_TEXT_SCALE, 1);
+			pose.scale(scale, scale, 1);
 			guiGraphics.drawString(font, text, 0, 0, 0xFFFFFFFF, true);
 			pose.popPose();
 		}

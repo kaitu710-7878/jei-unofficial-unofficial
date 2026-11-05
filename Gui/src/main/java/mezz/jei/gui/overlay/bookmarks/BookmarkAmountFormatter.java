@@ -143,7 +143,7 @@ public final class BookmarkAmountFormatter {
 			return FluidAmountFormatter.format(amount, bucketVolume) + "B";
 		}
 		if (amount < bucketVolume * 1_000_000L) {
-			return formatCompact(amount, bucketVolume * 1_000L, "kB");
+			return formatCompact(amount, bucketVolume * 1_000L, "bmd");
 		}
 		if (amount < bucketVolume * 1_000_000_000L) {
 			return formatCompact(amount, bucketVolume * 1_000_000L, "MB");
@@ -175,6 +175,10 @@ public final class BookmarkAmountFormatter {
 			bucketVolume = 1_000;
 		}
 		BigInteger bigBv = BigInteger.valueOf(bucketVolume);
+		BigInteger oneBmd = bigBv.multiply(THOUSAND);
+		if (amount.compareTo(oneBmd.multiply(THOUSAND)) < 0) {
+			return formatCompactBigInt(amount, oneBmd, "bmd");
+		}
 		BigInteger buckets = amount.divide(bigBv);
 		return formatItemAmount(buckets) + "B";
 	}

@@ -14,12 +14,20 @@ import mezz.jei.gui.bookmarks.BookmarkDisplayEntry;
 import mezz.jei.gui.bookmarks.BookmarkIngredientKey;
 import mezz.jei.gui.bookmarks.BookmarkCandidateTooltipState;
 import mezz.jei.gui.bookmarks.BookmarkList;
+import mezz.jei.common.util.BigIntMath;
 import mezz.jei.gui.overlay.bookmarks.BookmarkAmountFormatter;
 import mezz.jei.gui.bookmarks.IBookmark;
 import mezz.jei.gui.bookmarks.chain.RecipeChainItem;
 import mezz.jei.gui.input.UserInput;
 import mezz.jei.gui.overlay.ingredients.IngredientGridTooltipHelper;
 import mezz.jei.gui.util.FocusUtil;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+
+import java.math.BigInteger;
+import java.text.NumberFormat;
+import java.util.Locale;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -97,9 +105,29 @@ public class ProjectedBookmarkElement<T> implements IElement<T> {
 			true,
 			showToggleInputCatalyst
 		);
+		addBookmarkAmountTooltip(tooltip);
 		addPermutationTooltip(tooltip);
 		if (delegate instanceof RecipeBookmarkElement<?, ?> recipeBookmarkElement) {
 			recipeBookmarkElement.addRecipeTooltipFeatures(tooltip);
+		}
+	}
+
+	private void addBookmarkAmountTooltip(JeiTooltip tooltip) {
+		BigInteger amount = displayEntry.recipeChainItem()
+			.map(RecipeChainItem::bigCalculatedAmount)
+			.orElseGet(displayEntry.metadata()::bigAmount);
+		if (amount != null && amount.compareTo(BigIntMath.ONE) > 0) {
+			String formatted = BookmarkAmountFormatter.formatTypedAmount(amount, getTypedIngredient().getType().getUid());
+			MutableComponent comp;
+			if (BigIntMath.isLongExact(amount) && amount.compareTo(BigInteger.valueOf(1_000)) >= 0) {
+				String exact = NumberFormat.getInstance(Locale.US).format(amount.longValue());
+				boolean isFluid = BookmarkAmountFormatter.usesFluidAmountUnits(getTypedIngredient().getType().getUid());
+				String unitSuffix = isFluid ? " mB" : "";
+				comp = Component.translatable("jei.tooltip.bookmark.amount", formatted + " (" + exact + unitSuffix + ")");
+			} else {
+				comp = Component.translatable("jei.tooltip.bookmark.amount", formatted);
+			}
+			tooltip.add(comp.withStyle(ChatFormatting.GRAY));
 		}
 	}
 
@@ -152,7 +180,13 @@ public class ProjectedBookmarkElement<T> implements IElement<T> {
 		if (amount <= 0) {
 			return typedIngredient;
 		}
-		T ingredient = ingredientHelper.copyWithAmount(typedIngredient.getIngredient(), amount);
-		return mezz.jei.common.ingredients.TypedIngredient.createUnvalidated(typedIngredient.getType(), ingredient);
+		try {
+			// Clamp to safe Integer.MAX_VALUE to prevent int overflow in vanilla/Forge FluidStack or external chemical stacks
+			long safeAmount = Math.min((long) Integer.MAX_VALUE, Math.max(1L, amount));
+			T ingredient = ingredientHelper.copyWithAmount(typedIngredient.getIngredient(), safeAmount);
+			return mezz.jei.common.ingredients.TypedIngredient.createUnvalidated(typedIngredient.getType(), ingredient);
+		} catch (Throwable ignored) {
+			return typedIngredient;
+		}
 	}
 }

@@ -473,6 +473,7 @@
   "jei.tooltip.bookmarks": "JEI Bookmarks",
   "key.jei.pauseRecipeCycling": "Pause Recipe Ingredient Cycling",
   "key.jei.selectRecipeInput": "Select recipe input / clear selection",
+  "jei.tooltip.bookmark.amount": "Bookmark Amount: %s",
   "jei.tooltip.bookmark.select.input": "%s: select matching ingredients; Ctrl: source only",
   "jei.tooltip.recipe.select.input": "%s: select / clear matching slots; Ctrl: source slot only",
   "key.jei.showBookmarkTooltipFeatures": "Show Bookmark Details",

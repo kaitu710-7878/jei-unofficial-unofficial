@@ -83,7 +83,7 @@ public class FluidHelper implements IPlatformFluidHelperInternal<FluidStack> {
 			return FluidStack.EMPTY;
 		}
 		FluidStack copy = this.copy(ingredient);
-		int intAmount = Math.toIntExact(amount);
+		int intAmount = (int) Math.min(Integer.MAX_VALUE, Math.max(0, amount));
 		copy.setAmount(intAmount);
 		return copy;
 	}

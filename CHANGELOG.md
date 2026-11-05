@@ -15,6 +15,34 @@
 
 ---
 
+### [15.59.0.212-jeiuu.3-beta2] - 2026-11-05 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **流体・ガスの巨大数量ホバー時クラッシュおよびフリーズの修正**:
+  - FluidHelper.copyWithAmount において Math.toIntExact による整数オーバーフロー例外（ArithmeticException: integer overflow）を Integer.MAX_VALUE クランプ処理へ修正。
+  - ProjectedBookmarkElement でのツールチップ用流体スタック生成時に安全クランプと例外防護を追加し、外部MODのツールチップ生成処理におけるフリーズ・クラッシュを完全に防止。
+- **ブックマークツールチップへの BigInteger / long 数量行の追加**:
+  - アイテム・液体・ガスのブックマークスロットにホバーした際、ツールチップに安全かつ正確な数量表示（短縮フォーマットおよびカンマ区切りの実数表記）を追加。
+- **液体・ガスの単位表記を md (1,000,000 mB) へ変更**:
+  - 1,000 バケツ（1,000,000 mB）を表す流体単位表記を kB から md に更新。BigInteger の流体量とも一貫して統合。
+- **プレビューツールチップの文字重なり防止**:
+  - RecipeChainPreviewTooltipComponent の数量テキスト描画に動的オートスケーリングと境界クランプを適用。
+
+---
+
+### [15.59.0.212-jeiuu.3-beta2] - 2026-11-05 (Beta)
+#### Fixed & Improved
+- **Fixed Crash and Freezes on Tooltip Hover for Huge Fluid/Gas Amounts**:
+  - Fixed ArithmeticException: integer overflow in FluidHelper.copyWithAmount by clamping to Integer.MAX_VALUE instead of calling Math.toIntExact.
+  - Added clamp guards and exception isolation in ProjectedBookmarkElement.createTooltipIngredient to completely prevent external mod chemical/fluid renderers from freezing or crashing.
+- **Added BigInteger & Long Quantity Display to Bookmark Tooltips**:
+  - Added safe, clear bookmark amount info in tooltips (both formatted unit representation and full comma-delimited numbers) on hover for items and fluids.
+- **Updated Fluid & Gas Unit to md (1,000,000 mB)**:
+  - Replaced the 1,000-bucket (1,000,000 mB) unit suffix from kB to md, fully integrated with BigInteger fluid calculations.
+- **Prevented Text Overflow in Preview Tooltip Component**:
+  - Added dynamic font auto-scaling and slot boundary clamping in RecipeChainPreviewTooltipComponent.
+
+---
+
 ### [15.59.0.212-jeiuu.3-beta1] - 2026-11-05 (Beta)
 #### 追加・改善 (Added & Improved)
 - **レシピチェーンの BigInteger (bigint) 計算・表示対応**:

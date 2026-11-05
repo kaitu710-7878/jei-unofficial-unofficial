@@ -330,6 +330,7 @@
     "jei.alias.panda.spawn.egg":  "endangered",
     "jei.alias.villager.spawn.egg":  "HMMM",
     "jei.tooltip.bookmarks":  "JEIブックマーク",
+    "jei.tooltip.bookmark.amount":  "ブックマーク数量: %s",
     "jei.tooltip.favoriteRecipes.recipe":  "お気に入りレシピ",
     "jei.tooltip.bookmarks.group.hotkeys.quantity_step":  "倍率単位で数量を変更",
     "jei.tooltip.bookmarks.group.keys.right":  "右クリック",
