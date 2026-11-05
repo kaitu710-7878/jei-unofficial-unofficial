@@ -5,8 +5,11 @@ import mezz.jei.common.config.BookmarkRecipeMarkerMode;
 import mezz.jei.gui.bookmarks.BookmarkDisplayEntry;
 import mezz.jei.gui.bookmarks.BookmarkItemMetadata;
 import mezz.jei.gui.bookmarks.BookmarkViewMode;
+import mezz.jei.common.util.BigIntMath;
 import mezz.jei.gui.bookmarks.chain.RecipeChainItem;
 import mezz.jei.gui.bookmarks.chain.RecipeChainItemType;
+
+import java.math.BigInteger;
 
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -62,7 +65,7 @@ public final class BookmarkChainSlotVisuals {
 		Optional<RecipeChainItem> chainItem = entry.recipeChainItem();
 		if (chainItem.isPresent()) {
 			RecipeChainItem item = chainItem.get();
-			long displayAmount = getDisplayAmount(item, displayMode);
+			BigInteger displayAmount = getDisplayBigAmount(item, displayMode);
 			Optional<String> multiplierText = getMultiplierText(entry, item, displayMode);
 			Optional<String> recipeMarkerText = getRecipeMarkerText(entry.metadata(), recipeMarkerMode);
 			return Optional.of(new BookmarkSlotVisuals(
@@ -84,7 +87,7 @@ public final class BookmarkChainSlotVisuals {
 			return Optional.of(new BookmarkSlotVisuals(
 				displayMode == BookmarkSlotDisplayMode.DEFAULT ? OptionalInt.empty() : OptionalInt.of(metadata.type().isNonConsumable() ? CATALYST_COLOR : INGREDIENT_COLOR),
 				OptionalInt.empty(),
-				formatPositiveAmount(metadata, metadata.amount()),
+				formatPositiveAmount(metadata, metadata.bigAmount()),
 				getAmountTextColor(metadata),
 				Optional.empty(),
 				OptionalInt.empty(),
@@ -99,7 +102,7 @@ public final class BookmarkChainSlotVisuals {
 			return Optional.of(new BookmarkSlotVisuals(
 				OptionalInt.empty(),
 				getMarkerBackgroundColor(entry, null, displayMode, recipeMarkerMode, markerHovered),
-				formatPositiveAmount(metadata, metadata.amount()),
+				formatPositiveAmount(metadata, metadata.bigAmount()),
 				getAmountTextColor(metadata),
 				multiplierText,
 				getMultiplierTextColor(entry, null, displayMode, multiplierText),
@@ -201,11 +204,11 @@ public final class BookmarkChainSlotVisuals {
 		return OptionalInt.empty();
 	}
 
-	private static long getDisplayAmount(RecipeChainItem item, BookmarkSlotDisplayMode displayMode) {
+	private static BigInteger getDisplayBigAmount(RecipeChainItem item, BookmarkSlotDisplayMode displayMode) {
 		return switch (displayMode) {
-			case DEFAULT -> item.calculatedAmount();
-			case REAL -> item.realAmount();
-			case SHIFT -> item.shiftAmount();
+			case DEFAULT -> item.bigCalculatedAmount();
+			case REAL -> item.bigRealAmount();
+			case SHIFT -> item.bigShiftAmount();
 		};
 	}
 
@@ -214,18 +217,18 @@ public final class BookmarkChainSlotVisuals {
 		if (entry.metadata().type().isGraphInput() || !entry.metadata().type().isRecipeAssociated()) {
 			return Optional.empty();
 		}
-		long multiplier = item == null ? entry.metadata().multiplier() : item.realMultiplier();
+		BigInteger multiplier = item == null ? BigIntMath.valueOf(entry.metadata().multiplier()) : item.bigRealMultiplier();
 		if (displayMode == BookmarkSlotDisplayMode.SHIFT && item != null) {
-			multiplier = item.calculatedMultiplier();
+			multiplier = item.bigCalculatedMultiplier();
 		}
 		if (displayMode != BookmarkSlotDisplayMode.DEFAULT && !entry.metadata().type().isGraphInput() && entry.metadata().recipeUid() != null) {
-			return Optional.of("x" + formatAmount(Math.max(0, multiplier)));
+			return Optional.of("x" + formatAmount(multiplier));
 		}
-		if (item != null && item.type() != RecipeChainItemType.INGREDIENT && item.realMultiplier() != item.calculatedMultiplier()) {
-			return Optional.of("x" + formatAmount(Math.max(0, multiplier)));
+		if (item != null && item.type() != RecipeChainItemType.INGREDIENT && !item.bigRealMultiplier().equals(item.bigCalculatedMultiplier())) {
+			return Optional.of("x" + formatAmount(multiplier));
 		}
-		if (entry.isOutputRecipe() || multiplier > 1) {
-			return Optional.of("x" + formatAmount(Math.max(0, multiplier)));
+		if (entry.isOutputRecipe() || multiplier.compareTo(BigIntMath.ONE) > 0) {
+			return Optional.of("x" + formatAmount(multiplier));
 		}
 		return Optional.empty();
 	}
@@ -239,8 +242,8 @@ public final class BookmarkChainSlotVisuals {
 		if (multiplierText.isEmpty() || displayMode != BookmarkSlotDisplayMode.DEFAULT) {
 			return OptionalInt.empty();
 		}
-		long multiplier = item == null ? entry.metadata().multiplier() : item.realMultiplier();
-		if (entry.isOutputRecipe() || multiplier > 1) {
+		BigInteger multiplier = item == null ? BigIntMath.valueOf(entry.metadata().multiplier()) : item.bigRealMultiplier();
+		if (entry.isOutputRecipe() || multiplier.compareTo(BigIntMath.ONE) > 0) {
 			return OptionalInt.of(RECIPE_MARKER_TEXT_COLOR);
 		}
 		return OptionalInt.empty();
@@ -269,21 +272,21 @@ public final class BookmarkChainSlotVisuals {
 		return OptionalInt.empty();
 	}
 
-	private static Optional<String> formatPositiveAmount(BookmarkItemMetadata metadata, long amount) {
+	private static Optional<String> formatPositiveAmount(BookmarkItemMetadata metadata, BigInteger amount) {
 		return formatAmountText(metadata, amount, false);
 	}
 
 	private static Optional<String> formatPlainBookmarkAmount(BookmarkItemMetadata metadata) {
-		long amount = metadata.amount();
-		if (amount <= 1 && !shouldShowChanceAmount(metadata)) {
+		BigInteger amount = metadata.bigAmount();
+		if (amount.compareTo(BigIntMath.ONE) <= 0 && !shouldShowChanceAmount(metadata)) {
 			return Optional.empty();
 		}
 		return formatPositiveAmount(metadata, amount);
 	}
 
-	private static Optional<String> formatAmountText(BookmarkItemMetadata metadata, long amount, boolean showZero) {
-		if (amount <= 0) {
-			if ((showZero || shouldShowChanceAmount(metadata)) && amount == 0) {
+	private static Optional<String> formatAmountText(BookmarkItemMetadata metadata, BigInteger amount, boolean showZero) {
+		if (amount == null || amount.signum() <= 0) {
+			if ((showZero || shouldShowChanceAmount(metadata)) && (amount != null && amount.signum() == 0)) {
 				return Optional.of(formatChancePrefix(metadata) + "0");
 			}
 			return Optional.empty();
@@ -312,7 +315,7 @@ public final class BookmarkChainSlotVisuals {
 			metadata.multiplier() > 0;
 	}
 
-	private static String formatAmount(long amount) {
-		return BookmarkAmountFormatter.formatItemAmount(amount);
+	private static String formatAmount(BigInteger amount) {
+		return BookmarkAmountFormatter.formatItemAmount(amount == null || amount.signum() < 0 ? BigIntMath.ZERO : amount);
 	}
 }

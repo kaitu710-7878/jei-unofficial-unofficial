@@ -8,13 +8,15 @@
  */
 package mezz.jei.gui.bookmarks.chain;
 
+import mezz.jei.common.util.BigIntMath;
 import mezz.jei.common.util.SaturatedMath;
+import mezz.jei.gui.bookmarks.BookmarkGroupManager;
+import mezz.jei.gui.bookmarks.BookmarkIngredientKey;
 import mezz.jei.gui.bookmarks.BookmarkItemMetadata;
 import mezz.jei.gui.bookmarks.BookmarkItemType;
-import mezz.jei.gui.bookmarks.BookmarkIngredientKey;
-import mezz.jei.gui.bookmarks.BookmarkGroupManager;
 import net.minecraft.resources.ResourceLocation;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -36,12 +38,12 @@ public final class RecipeChainMath {
 	private RecipeChainGraph graph;
 	private RecipeChainPlan plan;
 
-	private final Map<ResourceLocation, Long> outputRecipes = new LinkedHashMap<>();
+	private final Map<ResourceLocation, BigInteger> outputRecipes = new LinkedHashMap<>();
 	private final Map<ResourceLocation, RecipeChainInput> outputTargets = new LinkedHashMap<>();
 	private final Map<RecipeChainInput, RecipeChainInput> preferredItems = new LinkedHashMap<>();
-	private final Map<RecipeChainInput, Long> requiredAmount = new HashMap<>();
-	private final Map<RecipeChainInput, Long> workingMultipliers = new HashMap<>();
-	private final Map<BookmarkIngredientKey, Long> containerItems = new LinkedHashMap<>();
+	private final Map<RecipeChainInput, BigInteger> requiredAmount = new HashMap<>();
+	private final Map<RecipeChainInput, BigInteger> workingMultipliers = new HashMap<>();
+	private final Map<BookmarkIngredientKey, BigInteger> containerItems = new LinkedHashMap<>();
 	private final Map<BookmarkIngredientKey, List<RecipeChainRemainderStack>> reusableContainerItems = new LinkedHashMap<>();
 	private final Set<BookmarkIngredientKey> containerItemsBlacklist = new LinkedHashSet<>();
 	private int nextSyntheticIndex = -1;
@@ -52,6 +54,10 @@ public final class RecipeChainMath {
 	public interface IDemandVisitor {
 		@org.jetbrains.annotations.Nullable
 		IDemandVisitor visit(RecipeChainInput input, long requested, long remaining);
+
+		default @org.jetbrains.annotations.Nullable IDemandVisitor visitBig(RecipeChainInput input, BigInteger requested, BigInteger remaining) {
+			return visit(input, BigIntMath.toLongSaturated(requested), BigIntMath.toLongSaturated(remaining));
+		}
 	}
 
 	public static void visitDemands(List<RecipeChainInput> inputs, Set<ResourceLocation> collapsedRecipes, IDemandVisitor visitor) {
@@ -70,17 +76,19 @@ public final class RecipeChainMath {
 				initialItems.add(input);
 			} else if (type.isGraphInput()) {
 				recipeIngredients.add(input);
-				workingMultipliers.put(input, 0L);
+				workingMultipliers.put(input, BigIntMath.ZERO);
 			} else if (type.isGraphOutput()) {
 				recipeResults.add(input);
-				workingMultipliers.put(input, 0L);
+				workingMultipliers.put(input, BigIntMath.ZERO);
 				outputTargets.putIfAbsent(recipeUid, input);
 			}
 		}
 		rebuildPlan();
 		outputTargets.clear();
 		outputTargets.putAll(plan.outputTargets());
-		outputRecipes.putAll(plan.outputRecipes());
+		for (Map.Entry<ResourceLocation, Long> entry : plan.outputRecipes().entrySet()) {
+			outputRecipes.put(entry.getKey(), BigIntMath.valueOf(entry.getValue()));
+		}
 	}
 
 	public static RecipeChainDetails refresh(List<RecipeChainInput> inputs, Set<ResourceLocation> collapsedRecipes) {
@@ -101,14 +109,14 @@ public final class RecipeChainMath {
 			BookmarkItemMetadata metadata = result.metadata();
 			ResourceLocation recipeUid = metadata.recipeUid();
 			if (recipeUid != null && outputRecipes.containsKey(recipeUid) && isOutputTarget(result)) {
-				long multiplier = outputRecipes.get(recipeUid);
+				BigInteger multiplier = outputRecipes.get(recipeUid);
 				rootIngredients.add(new RecipeChainInput(
 					nextSyntheticIndex--,
 					new BookmarkItemMetadata(
 						metadata.groupId(),
 						BookmarkItemType.INGREDIENT,
 						1,
-						metadata.amount(multiplier),
+						metadata.amount(BigIntMath.toLongSaturated(multiplier)),
 						BookmarkItemMetadata.CHANCE_FULL,
 						metadata.recipeTypeUid(),
 						ROOT_RECIPE_UID,
@@ -120,7 +128,7 @@ public final class RecipeChainMath {
 		}
 
 		outputRecipes.clear();
-		outputRecipes.put(ROOT_RECIPE_UID, 1L);
+		outputRecipes.put(ROOT_RECIPE_UID, BigIntMath.ONE);
 		outputTargets.clear();
 		recipeResults.removeIf(result -> ROOT_RECIPE_UID.equals(result.metadata().recipeUid()));
 		RecipeChainInput rootResult = new RecipeChainInput(
@@ -143,45 +151,34 @@ public final class RecipeChainMath {
 		return ROOT_RECIPE_UID;
 	}
 
-	/**
-	 * Derived from GTNH NEI ShortcutInputHandler.autocraftingIgnoreInventory().
-	 * Craft All keeps existing root results and expands the synthetic root demand
-	 * to the next requested batch boundary, so autocrafting still produces another
-	 * batch when the player already has enough of the final result.
-	 *
-	 * Logic ported from JEI 1.21.1 (StardustMINUS-01/JustEnoughItems, branch 1.21.1):
-	 * the expansion rounds up to the next batch boundary and is behavior-equivalent
-	 * to the 1.20.1 Bug6 fix (craft exactly the requested batch regardless of how
-	 * many final results are already in the inventory).
-	 */
 	public void expandRootDemandForCraftAll(List<RecipeChainInput> inventory) {
 		ResourceLocation rootRecipeUid = createMasterRoot();
 		for (int i = 0; i < recipeIngredients.size(); i++) {
 			RecipeChainInput ingredient = recipeIngredients.get(i);
 			BookmarkItemMetadata metadata = ingredient.metadata();
-			long requiredAmount = metadata.amount();
-			if (requiredAmount <= 0 || !rootRecipeUid.equals(metadata.recipeUid())) {
+			BigInteger requiredAmount = metadata.bigAmount();
+			if (requiredAmount.signum() <= 0 || !rootRecipeUid.equals(metadata.recipeUid())) {
 				continue;
 			}
 
-			long availableAmount = 0;
+			BigInteger availableAmount = BigIntMath.ZERO;
 			for (RecipeChainInput available : inventory) {
 				BookmarkItemMetadata availableMetadata = available.metadata();
 				if (metadata.isSatisfiedBy(availableMetadata)) {
-					availableAmount = SaturatedMath.add(availableAmount, availableMetadata.amount());
+					availableAmount = BigIntMath.add(availableAmount, availableMetadata.bigAmount());
 				}
 			}
 
-			if (availableAmount >= requiredAmount) {
-				long remainder = availableAmount % requiredAmount;
-				long expandedAmount = SaturatedMath.add(availableAmount, requiredAmount - remainder);
+			if (availableAmount.compareTo(requiredAmount) >= 0) {
+				BigInteger remainder = availableAmount.remainder(requiredAmount);
+				BigInteger expandedAmount = BigIntMath.add(availableAmount, requiredAmount.subtract(remainder));
 				recipeIngredients.set(i, new RecipeChainInput(
 					ingredient.index(),
 					new BookmarkItemMetadata(
 						metadata.groupId(),
 						metadata.type(),
 						1,
-						expandedAmount,
+						BigIntMath.toLongSaturated(expandedAmount),
 						BookmarkItemMetadata.CHANCE_FULL,
 						metadata.recipeTypeUid(),
 						metadata.recipeUid(),
@@ -219,12 +216,12 @@ public final class RecipeChainMath {
 
 	private RecipeChainDetails refresh() {
 		resetCalculation();
-		for (Map.Entry<ResourceLocation, Long> outputRecipe : outputRecipes.entrySet()) {
+		for (Map.Entry<ResourceLocation, BigInteger> outputRecipe : outputRecipes.entrySet()) {
 			ResourceLocation recipeUid = outputRecipe.getKey();
-			long multiplier = outputRecipe.getValue();
+			BigInteger multiplier = outputRecipe.getValue();
 			for (RecipeChainInput result : graph.resultsFor(recipeUid)) {
 				if (!result.metadata().emptyFactor() && isOutputTarget(result) && result.metadata().equalsRecipe(recipeUid, result.metadata().groupId())) {
-					long resultAmount = result.metadata().amount(multiplier);
+					BigInteger resultAmount = result.metadata().bigAmount(multiplier);
 					preferredItems.put(result, result);
 					calculateSuitableRecipe(result, resultAmount, new ArrayList<>());
 					preferredItems.remove(result);
@@ -232,12 +229,12 @@ public final class RecipeChainMath {
 			}
 		}
 
-		for (Map.Entry<ResourceLocation, Long> outputRecipe : outputRecipes.entrySet()) {
+		for (Map.Entry<ResourceLocation, BigInteger> outputRecipe : outputRecipes.entrySet()) {
 			ResourceLocation recipeUid = outputRecipe.getKey();
-			long multiplier = outputRecipe.getValue();
+			BigInteger multiplier = outputRecipe.getValue();
 			for (RecipeChainInput result : graph.resultsFor(recipeUid)) {
 				if (!result.metadata().emptyFactor() && isOutputTarget(result) && result.metadata().equalsRecipe(recipeUid, result.metadata().groupId())) {
-					requiredAmount.computeIfPresent(result, (ignored, amount) -> amount - result.metadata().amount(multiplier));
+					requiredAmount.computeIfPresent(result, (ignored, amount) -> amount.subtract(result.metadata().bigAmount(multiplier)));
 				}
 			}
 		}
@@ -253,10 +250,10 @@ public final class RecipeChainMath {
 		workingMultipliers.clear();
 
 		for (RecipeChainInput ingredient : recipeIngredients) {
-			workingMultipliers.put(ingredient, 0L);
+			workingMultipliers.put(ingredient, BigIntMath.ZERO);
 		}
 		for (RecipeChainInput result : recipeResults) {
-			workingMultipliers.put(result, 0L);
+			workingMultipliers.put(result, BigIntMath.ZERO);
 		}
 
 		preferredItems.putAll(plan.preferredResults());
@@ -270,20 +267,19 @@ public final class RecipeChainMath {
 		this.graph = plan.graph();
 	}
 
-	private void calculateSuitableRecipe(RecipeChainInput ingredient, long amount, List<ResourceLocation> visited) {
+	private void calculateSuitableRecipe(RecipeChainInput ingredient, BigInteger amount, List<ResourceLocation> visited) {
 		RecipeChainInput preferred = preferredItems.get(ingredient);
-		// 1.21.1 parity: report the amount that was requested before the container shift.
-		long requested = amount;
+		BigInteger requested = amount;
 
-		if (amount > 0) {
+		if (amount.signum() > 0) {
 			amount = shiftContainerItems(ingredient.metadata(), amount);
 		}
 
-		if (amount > 0) {
+		if (amount.signum() > 0) {
 			for (RecipeChainInput initialItem : initialItems) {
 				if (ingredient.metadata().isSatisfiedBy(initialItem.metadata())) {
-					amount = addRequiredAmount(initialItem, amount, initialItem.metadata().amount());
-					if (amount == 0) {
+					amount = addRequiredAmount(initialItem, amount, initialItem.metadata().bigAmount());
+					if (amount.signum() == 0) {
 						break;
 					}
 				}
@@ -292,29 +288,29 @@ public final class RecipeChainMath {
 
 		if (preferred == null) {
 			if (demandVisitor != null) {
-				demandVisitor.visit(ingredient, requested, amount);
+				demandVisitor.visitBig(ingredient, requested, amount);
 			}
-			addRequiredAmount(ingredient, amount, Long.MAX_VALUE);
+			addRequiredAmount(ingredient, amount, null);
 			return;
 		}
 
 		ResourceLocation preferredRecipe = preferred.metadata().recipeUid();
 		if (preferredRecipe == null || visited.contains(preferredRecipe)) {
 			if (demandVisitor != null) {
-				demandVisitor.visit(ingredient, requested, amount);
+				demandVisitor.visitBig(ingredient, requested, amount);
 			}
-			addRequiredAmount(preferred, amount, Long.MAX_VALUE);
+			addRequiredAmount(preferred, amount, null);
 			return;
 		}
 
-		addRequiredAmount(preferred, amount, Long.MAX_VALUE);
-		long multiplier = Math.max(
-			0,
-			preferred.metadata().multiplierFromAmount(requiredAmount.getOrDefault(preferred, 0L)) -
-				workingMultipliers.getOrDefault(preferred, 0L)
-		);
-		IDemandVisitor childVisitor = demandVisitor == null ? null : demandVisitor.visit(ingredient, requested, amount);
-		if (multiplier > 0) {
+		addRequiredAmount(preferred, amount, null);
+		BigInteger targetAmount = requiredAmount.getOrDefault(preferred, BigIntMath.ZERO);
+		BigInteger neededMultiplier = preferred.metadata().multiplierFromAmount(targetAmount);
+		BigInteger currentMultiplier = workingMultipliers.getOrDefault(preferred, BigIntMath.ZERO);
+		BigInteger multiplier = BigIntMath.max(BigIntMath.ZERO, neededMultiplier.subtract(currentMultiplier));
+
+		IDemandVisitor childVisitor = demandVisitor == null ? null : demandVisitor.visitBig(ingredient, requested, amount);
+		if (multiplier.signum() > 0) {
 			addShift(preferredRecipe, multiplier);
 			visited.add(preferredRecipe);
 			IDemandVisitor previousVisitor = demandVisitor;
@@ -328,73 +324,79 @@ public final class RecipeChainMath {
 		}
 	}
 
-	private void prepareIngredients(ResourceLocation recipeUid, long multiplier, List<ResourceLocation> visited) {
+	private void prepareIngredients(ResourceLocation recipeUid, BigInteger multiplier, List<ResourceLocation> visited) {
 		for (RecipeChainInput ingredient : graph.ingredientsFor(recipeUid)) {
 			if (!ingredient.metadata().emptyFactor()) {
-				calculateSuitableRecipe(ingredient, ingredient.metadata().amount(multiplier), visited);
+				calculateSuitableRecipe(ingredient, ingredient.metadata().bigAmount(multiplier), visited);
 			}
 		}
 	}
 
-	private long addRequiredAmount(RecipeChainInput input, long amount, long maxAmount) {
-		if (amount <= 0) {
-			requiredAmount.putIfAbsent(input, 0L);
-			return 0;
+	private BigInteger addRequiredAmount(RecipeChainInput input, BigInteger amount, @org.jetbrains.annotations.Nullable BigInteger maxAmount) {
+		if (amount == null || amount.signum() <= 0) {
+			requiredAmount.putIfAbsent(input, BigIntMath.ZERO);
+			return BigIntMath.ZERO;
 		}
 		if (isReusableContainerItem(input.metadata())) {
 			return addReusableContainerRequiredAmount(input, amount, maxAmount);
 		}
-		long currentAmount = requiredAmount.getOrDefault(input, 0L);
-		long available = Math.max(0, maxAmount - currentAmount);
-		long consumed = Math.min(amount, available);
-		addContainerItems(input.metadata(), consumed);
-		if (consumed > 0 || requiredAmount.containsKey(input)) {
-			requiredAmount.put(input, SaturatedMath.add(currentAmount, consumed));
+		BigInteger currentAmount = requiredAmount.getOrDefault(input, BigIntMath.ZERO);
+		BigInteger consumed;
+		if (maxAmount == null) {
+			consumed = amount;
+		} else {
+			BigInteger available = BigIntMath.max(BigIntMath.ZERO, maxAmount.subtract(currentAmount));
+			consumed = BigIntMath.min(amount, available);
 		}
-		return amount - consumed;
+		addContainerItems(input.metadata(), consumed);
+		if (consumed.signum() > 0 || requiredAmount.containsKey(input)) {
+			requiredAmount.put(input, BigIntMath.add(currentAmount, consumed));
+		}
+		return amount.subtract(consumed);
 	}
 
-	private long addReusableContainerRequiredAmount(RecipeChainInput input, long amount, long maxAmount) {
+	private BigInteger addReusableContainerRequiredAmount(RecipeChainInput input, BigInteger amount, @org.jetbrains.annotations.Nullable BigInteger maxAmount) {
 		BookmarkItemMetadata metadata = input.metadata();
-		long currentAmount = requiredAmount.getOrDefault(input, 0L);
-		long remaining = amount;
-		long usesPerItem = metadata.containerItemCraftingUses();
-		while (remaining > 0 && currentAmount < maxAmount) {
-			currentAmount++;
-			long covered = Math.min(remaining, usesPerItem);
-			remaining -= covered;
-			long remainingUses = usesPerItem - covered;
+		BigInteger currentAmount = requiredAmount.getOrDefault(input, BigIntMath.ZERO);
+		BigInteger remaining = amount;
+		long usesPerItemLong = metadata.containerItemCraftingUses();
+		BigInteger usesPerItem = BigIntMath.valueOf(usesPerItemLong);
+		while (remaining.signum() > 0 && (maxAmount == null || currentAmount.compareTo(maxAmount) < 0)) {
+			currentAmount = currentAmount.add(BigIntMath.ONE);
+			BigInteger covered = BigIntMath.min(remaining, usesPerItem);
+			remaining = remaining.subtract(covered);
+			long remainingUses = usesPerItemLong - covered.longValue();
 			addReusableContainerItem(metadata, remainingUses);
 			if (remainingUses == 0) {
-				addContainerItem(metadata.brokenContainerItem(), 1);
+				addContainerItem(metadata.brokenContainerItem(), BigIntMath.ONE);
 			}
 		}
-		if (currentAmount > 0 || requiredAmount.containsKey(input)) {
+		if (currentAmount.signum() > 0 || requiredAmount.containsKey(input)) {
 			requiredAmount.put(input, currentAmount);
 		}
 		return remaining;
 	}
 
-	private long shiftContainerItems(BookmarkItemMetadata metadata, long amount) {
-		long remaining = shiftReusableContainerItems(metadata, amount);
-		if (remaining <= 0) {
-			return 0;
+	private BigInteger shiftContainerItems(BookmarkItemMetadata metadata, BigInteger amount) {
+		BigInteger remaining = shiftReusableContainerItems(metadata, amount);
+		if (remaining.signum() <= 0) {
+			return BigIntMath.ZERO;
 		}
 		if (metadata.containerItem() == null) {
 			return remaining;
 		}
 		for (BookmarkIngredientKey permutation : metadata.permutations()) {
-			if (remaining <= 0) {
+			if (remaining.signum() <= 0) {
 				break;
 			}
-			long available = containerItems.getOrDefault(permutation, 0L);
-			if (available <= 0) {
+			BigInteger available = containerItems.getOrDefault(permutation, BigIntMath.ZERO);
+			if (available.signum() <= 0) {
 				continue;
 			}
-			long consumed = Math.min(remaining, available);
-			remaining -= consumed;
-			long left = available - consumed;
-			if (left > 0) {
+			BigInteger consumed = BigIntMath.min(remaining, available);
+			remaining = remaining.subtract(consumed);
+			BigInteger left = available.subtract(consumed);
+			if (left.signum() > 0) {
 				containerItems.put(permutation, left);
 			} else {
 				containerItems.remove(permutation);
@@ -403,11 +405,11 @@ public final class RecipeChainMath {
 		return remaining;
 	}
 
-	private void addContainerItems(BookmarkItemMetadata metadata, long amount) {
+	private void addContainerItems(BookmarkItemMetadata metadata, BigInteger amount) {
 		BookmarkIngredientKey containerItem = metadata.containerItem();
 		boolean blacklisted = metadata.permutations().stream()
 			.anyMatch(containerItemsBlacklist::contains);
-		if (containerItem != null && metadata.containerItemCraftingUses() > 0 && amount > 0 && !blacklisted) {
+		if (containerItem != null && metadata.containerItemCraftingUses() > 0 && amount.signum() > 0 && !blacklisted) {
 			addContainerItem(containerItem, amount);
 		}
 	}
@@ -419,33 +421,33 @@ public final class RecipeChainMath {
 		if (containerItem != null && remainingUses > 0 && !blacklisted) {
 			reusableContainerItems.computeIfAbsent(containerItem, ignored -> new ArrayList<>())
 				.add(new RecipeChainRemainderStack(containerItem, remainingUses, metadata.brokenContainerItem()));
-			addContainerItem(containerItem, 1);
+			addContainerItem(containerItem, BigIntMath.ONE);
 		}
 	}
 
-	private long shiftReusableContainerItems(BookmarkItemMetadata metadata, long amount) {
-		long remaining = amount;
+	private BigInteger shiftReusableContainerItems(BookmarkItemMetadata metadata, BigInteger amount) {
+		BigInteger remaining = amount;
 		for (BookmarkIngredientKey permutation : metadata.permutations()) {
-			if (remaining <= 0) {
+			if (remaining.signum() <= 0) {
 				break;
 			}
 			List<RecipeChainRemainderStack> reusableItems = reusableContainerItems.get(permutation);
 			if (reusableItems == null) {
 				continue;
 			}
-			for (int i = 0; i < reusableItems.size() && remaining > 0;) {
+			for (int i = 0; i < reusableItems.size() && remaining.signum() > 0;) {
 				RecipeChainRemainderStack reusableItem = reusableItems.get(i);
-				long availableUses = reusableItem.remainingUses();
-				long consumed = Math.min(remaining, availableUses);
-				remaining -= consumed;
-				availableUses -= consumed;
-				if (availableUses > 0) {
-					reusableItems.set(i, reusableItem.withRemainingUses(availableUses));
+				BigInteger availableUses = BigIntMath.valueOf(reusableItem.remainingUses());
+				BigInteger consumed = BigIntMath.min(remaining, availableUses);
+				remaining = remaining.subtract(consumed);
+				long leftUses = reusableItem.remainingUses() - consumed.longValue();
+				if (leftUses > 0) {
+					reusableItems.set(i, reusableItem.withRemainingUses(leftUses));
 					i++;
 				} else {
 					reusableItems.remove(i);
 					decrementContainerItem(permutation);
-					addContainerItem(reusableItem.brokenKey(), 1);
+					addContainerItem(reusableItem.brokenKey(), BigIntMath.ONE);
 				}
 			}
 			if (reusableItems.isEmpty()) {
@@ -455,18 +457,18 @@ public final class RecipeChainMath {
 		return remaining;
 	}
 
-	private void addContainerItem(BookmarkIngredientKey key, long amount) {
-		if (key != null && amount > 0) {
-			containerItems.merge(key, amount, SaturatedMath::add);
+	private void addContainerItem(BookmarkIngredientKey key, BigInteger amount) {
+		if (key != null && amount != null && amount.signum() > 0) {
+			containerItems.merge(key, amount, BigIntMath::add);
 		}
 	}
 
 	private void decrementContainerItem(BookmarkIngredientKey key) {
-		long amount = containerItems.getOrDefault(key, 0L);
-		if (amount <= 1) {
+		BigInteger amount = containerItems.getOrDefault(key, BigIntMath.ZERO);
+		if (amount.compareTo(BigIntMath.ONE) <= 0) {
 			containerItems.remove(key);
 		} else {
-			containerItems.put(key, amount - 1);
+			containerItems.put(key, amount.subtract(BigIntMath.ONE));
 		}
 	}
 
@@ -474,12 +476,12 @@ public final class RecipeChainMath {
 		return metadata.containerItem() != null && metadata.containerItemCraftingUses() > 1;
 	}
 
-	private void addShift(ResourceLocation recipeUid, long shift) {
+	private void addShift(ResourceLocation recipeUid, BigInteger shift) {
 		for (RecipeChainInput ingredient : graph.ingredientsFor(recipeUid)) {
-			workingMultipliers.merge(ingredient, shift, SaturatedMath::add);
+			workingMultipliers.merge(ingredient, shift, BigIntMath::add);
 		}
 		for (RecipeChainInput result : graph.resultsFor(recipeUid)) {
-			workingMultipliers.merge(result, shift, SaturatedMath::add);
+			workingMultipliers.merge(result, shift, BigIntMath::add);
 		}
 	}
 
@@ -497,36 +499,38 @@ public final class RecipeChainMath {
 		for (RecipeChainInput initialItem : initialItems) {
 			initialItemIndexes.add(initialItem.index());
 			BookmarkItemMetadata metadata = initialItem.metadata();
-			long required = requiredAmount.getOrDefault(initialItem, 0L);
+			BigInteger required = requiredAmount.getOrDefault(initialItem, BigIntMath.ZERO);
+			BigInteger itemAmount = metadata.bigAmount();
 			calculatedItems.put(initialItem.index(), new RecipeChainItem(
 				initialItem.index(),
 				metadata,
 				RecipeChainItemType.INGREDIENT,
-				metadata.amount(),
+				itemAmount,
 				required,
-				metadata.amount(),
-				metadata.multiplier(),
-				metadata.multiplier()
+				itemAmount,
+				BigIntMath.valueOf(metadata.multiplier()),
+				BigIntMath.valueOf(metadata.multiplier())
 			));
 		}
 
 		for (RecipeChainInput result : recipeResults) {
 			BookmarkItemMetadata metadata = result.metadata();
 			ResourceLocation recipeUid = metadata.recipeUid();
-			long calculatedMultiplier = workingMultipliers.getOrDefault(result, 0L);
-			long required = requiredAmount.getOrDefault(result, 0L);
-			long calculatedAmount = metadata.amount(calculatedMultiplier);
-			long shiftAmount = Math.max(0, calculatedAmount - required);
+			BigInteger calculatedMultiplier = workingMultipliers.getOrDefault(result, BigIntMath.ZERO);
+			BigInteger required = requiredAmount.getOrDefault(result, BigIntMath.ZERO);
+			BigInteger calculatedAmount = metadata.bigAmount(calculatedMultiplier);
+			BigInteger shiftAmount = BigIntMath.max(BigIntMath.ZERO, calculatedAmount.subtract(required));
 			RecipeChainItemType type = recipeUid != null && outputRecipes.containsKey(recipeUid) && isOutputTarget(result) ? RecipeChainItemType.RESULT : RecipeChainItemType.REMAINDER;
-			if (shiftAmount > 0 && type == RecipeChainItemType.REMAINDER) {
+			if (shiftAmount.signum() > 0 && type == RecipeChainItemType.REMAINDER) {
 				remainderItems.add(result.index());
 			}
-			long realMultiplier = getRealMultiplier(metadata, middleRecipes);
+			long realMultiplierLong = getRealMultiplier(metadata, middleRecipes);
+			BigInteger realMultiplier = BigIntMath.valueOf(realMultiplierLong);
 			calculatedItems.put(result.index(), new RecipeChainItem(
 				result.index(),
 				metadata,
 				type,
-				metadata.amount(realMultiplier),
+				metadata.bigAmount(realMultiplier),
 				shiftAmount,
 				calculatedAmount,
 				realMultiplier,
@@ -536,21 +540,22 @@ public final class RecipeChainMath {
 
 		for (RecipeChainInput ingredient : recipeIngredients) {
 			BookmarkItemMetadata metadata = ingredient.metadata();
-			long calculatedMultiplier = workingMultipliers.getOrDefault(ingredient, 0L);
+			BigInteger calculatedMultiplier = workingMultipliers.getOrDefault(ingredient, BigIntMath.ZERO);
 			RecipeChainInput preferred = preferredItems.get(ingredient);
-			long required = requiredAmount.containsKey(preferred) ? 0 : requiredAmount.getOrDefault(ingredient, metadata.amount(calculatedMultiplier));
-			if (required > 0) {
+			BigInteger required = requiredAmount.containsKey(preferred) ? BigIntMath.ZERO : requiredAmount.getOrDefault(ingredient, metadata.bigAmount(calculatedMultiplier));
+			if (required.signum() > 0) {
 				missingIngredients.add(ingredient.index());
-				addMissedItem(missedItems, metadata, required);
+				addMissedItem(missedItems, metadata, BigIntMath.toLongSaturated(required));
 			}
-			long realMultiplier = getRealMultiplier(metadata, middleRecipes);
+			long realMultiplierLong = getRealMultiplier(metadata, middleRecipes);
+			BigInteger realMultiplier = BigIntMath.valueOf(realMultiplierLong);
 			calculatedItems.put(ingredient.index(), new RecipeChainItem(
 				ingredient.index(),
 				metadata,
 				RecipeChainItemType.INGREDIENT,
-				metadata.amount(realMultiplier),
+				metadata.bigAmount(realMultiplier),
 				required,
-				metadata.amount(calculatedMultiplier),
+				metadata.bigAmount(calculatedMultiplier),
 				realMultiplier,
 				calculatedMultiplier
 			));
@@ -565,6 +570,9 @@ public final class RecipeChainMath {
 			}
 		});
 
+		Map<BookmarkIngredientKey, Long> saturatedContainerItems = new LinkedHashMap<>();
+		containerItems.forEach((key, val) -> saturatedContainerItems.put(key, BigIntMath.toLongSaturated(val)));
+
 		return new RecipeChainDetails(
 			calculatedItems,
 			suppliers,
@@ -573,7 +581,7 @@ public final class RecipeChainMath {
 			middleRecipes,
 			recipeRelations,
 			missedItems,
-			containerItems,
+			saturatedContainerItems,
 			initialItemIndexes,
 			missingIngredients,
 			remainderItems,
@@ -675,6 +683,10 @@ public final class RecipeChainMath {
 		return itemToRecipe;
 	}
 
+	/**
+	 * Parallelized collapsed block compilation when multiple collapsed blocks are present.
+	 * Pure calculation without shared mutable state across blocks.
+	 */
 	private Map<ResourceLocation, RecipeChainDetails.CollapsedBlock> createCollapsedBlocks(
 		Set<ResourceLocation> topLevelRecipes,
 		Map<Integer, ResourceLocation> itemToRecipe,
@@ -685,56 +697,79 @@ public final class RecipeChainMath {
 			return collapsedBlocks;
 		}
 		Set<ResourceLocation> middleRecipes = getMiddleRecipes();
-		for (ResourceLocation root : sortedCollapsedRecipes()) {
-			Set<ResourceLocation> relations = recipeRelations.getOrDefault(root, Set.of(root));
-			List<RecipeChainInput> closureResults = recipeResults.stream()
-				.filter(result -> root.equals(itemToRecipe.get(result.index())))
-				.filter(result -> {
-					ResourceLocation recipeUid = result.metadata().recipeUid();
-					return recipeUid != null && relations.contains(recipeUid);
-				})
-				.toList();
-			List<RecipeChainInput> closureIngredients = recipeIngredients.stream()
-				.filter(ingredient -> root.equals(itemToRecipe.get(ingredient.index())))
-				.filter(ingredient -> {
-					ResourceLocation recipeUid = ingredient.metadata().recipeUid();
-					return recipeUid != null && relations.contains(recipeUid);
-				})
-				.toList();
-			Map<String, Long> shadowShifts = computeShadowShifts(root, relations);
-			List<BlockAccumulator> collected = collectCollapsedItems(
-				root,
-				relations,
-				topLevelRecipes,
-				outputRecipes.keySet(),
-				closureResults,
-				closureIngredients,
-				preferredItems,
-				requiredAmount,
-				workingMultipliers
-			);
-			for (BlockAccumulator accumulator : collected) {
-				long realMultiplier;
-				if (accumulator.anchor()) {
-					realMultiplier = middleRecipes.contains(root) ? Math.max(0, accumulator.metadata().multiplier() - 1) : accumulator.metadata().multiplier();
-				} else {
-					realMultiplier = accumulator.metadata()
-						.multiplierFromAmount(shadowShifts.getOrDefault(accumulator.key(), 0L));
-				}
-				accumulator.setRealMultiplier(realMultiplier);
-			}
+		List<ResourceLocation> sortedRoots = sortedCollapsedRecipes();
 
-			List<RecipeChainDetails.CollapsedBlockItem> blockItems = new ArrayList<>();
-			Comparator<BlockAccumulator> blockComparator = Comparator
-				.comparingInt(BlockAccumulator::typeWeight)
-				.thenComparingInt(BlockAccumulator::sourceIndex);
-			collected.stream()
-				.sorted(blockComparator)
-				.map(BlockAccumulator::toBlockItem)
-				.forEach(blockItems::add);
-			collapsedBlocks.put(root, new RecipeChainDetails.CollapsedBlock(root, List.copyOf(blockItems)));
+		// Use multithreaded calculation if there are multiple collapsed blocks
+		if (sortedRoots.size() > 1) {
+			List<RecipeChainDetails.CollapsedBlock> blocks = sortedRoots.parallelStream()
+				.map(root -> computeCollapsedBlock(root, topLevelRecipes, itemToRecipe, recipeRelations, middleRecipes))
+				.toList();
+			for (RecipeChainDetails.CollapsedBlock block : blocks) {
+				collapsedBlocks.put(block.recipeUid(), block);
+			}
+		} else {
+			for (ResourceLocation root : sortedRoots) {
+				collapsedBlocks.put(root, computeCollapsedBlock(root, topLevelRecipes, itemToRecipe, recipeRelations, middleRecipes));
+			}
 		}
 		return collapsedBlocks;
+	}
+
+	private RecipeChainDetails.CollapsedBlock computeCollapsedBlock(
+		ResourceLocation root,
+		Set<ResourceLocation> topLevelRecipes,
+		Map<Integer, ResourceLocation> itemToRecipe,
+		Map<ResourceLocation, Set<ResourceLocation>> recipeRelations,
+		Set<ResourceLocation> middleRecipes
+	) {
+		Set<ResourceLocation> relations = recipeRelations.getOrDefault(root, Set.of(root));
+		List<RecipeChainInput> closureResults = recipeResults.stream()
+			.filter(result -> root.equals(itemToRecipe.get(result.index())))
+			.filter(result -> {
+				ResourceLocation recipeUid = result.metadata().recipeUid();
+				return recipeUid != null && relations.contains(recipeUid);
+			})
+			.toList();
+		List<RecipeChainInput> closureIngredients = recipeIngredients.stream()
+			.filter(ingredient -> root.equals(itemToRecipe.get(ingredient.index())))
+			.filter(ingredient -> {
+				ResourceLocation recipeUid = ingredient.metadata().recipeUid();
+				return recipeUid != null && relations.contains(recipeUid);
+			})
+			.toList();
+		Map<String, BigInteger> shadowShifts = computeShadowShifts(root, relations);
+		List<BlockAccumulator> collected = collectCollapsedItems(
+			root,
+			relations,
+			topLevelRecipes,
+			outputRecipes.keySet(),
+			closureResults,
+			closureIngredients,
+			preferredItems,
+			requiredAmount,
+			workingMultipliers
+		);
+		for (BlockAccumulator accumulator : collected) {
+			BigInteger realMultiplier;
+			if (accumulator.anchor()) {
+				long mult = middleRecipes.contains(root) ? Math.max(0, accumulator.metadata().multiplier() - 1) : accumulator.metadata().multiplier();
+				realMultiplier = BigIntMath.valueOf(mult);
+			} else {
+				realMultiplier = accumulator.metadata()
+					.multiplierFromAmount(shadowShifts.getOrDefault(accumulator.key(), BigIntMath.ZERO));
+			}
+			accumulator.setRealMultiplier(realMultiplier);
+		}
+
+		List<RecipeChainDetails.CollapsedBlockItem> blockItems = new ArrayList<>();
+		Comparator<BlockAccumulator> blockComparator = Comparator
+			.comparingInt(BlockAccumulator::typeWeight)
+			.thenComparingInt(BlockAccumulator::sourceIndex);
+		collected.stream()
+			.sorted(blockComparator)
+			.map(BlockAccumulator::toBlockItem)
+			.forEach(blockItems::add);
+		return new RecipeChainDetails.CollapsedBlock(root, List.copyOf(blockItems));
 	}
 
 	/**
@@ -742,7 +777,7 @@ public final class RecipeChainMath {
 	 * with the bookmark multipliers (the collapsed root keeps its multiplier, every other
 	 * closure recipe is zeroed) so the block can show the real, bookmark-driven amounts.
 	 */
-	private Map<String, Long> computeShadowShifts(ResourceLocation root, Set<ResourceLocation> relations) {
+	private Map<String, BigInteger> computeShadowShifts(ResourceLocation root, Set<ResourceLocation> relations) {
 		List<RecipeChainInput> subResults = new ArrayList<>();
 		List<RecipeChainInput> subIngredients = new ArrayList<>();
 		for (RecipeChainInput result : recipeResults) {
@@ -777,7 +812,7 @@ public final class RecipeChainMath {
 			shadowMath.requiredAmount,
 			shadowMath.workingMultipliers
 		);
-		Map<String, Long> shifts = new HashMap<>();
+		Map<String, BigInteger> shifts = new HashMap<>();
 		for (BlockAccumulator item : shadowItems) {
 			shifts.put(item.key(), item.shiftAmount());
 		}
@@ -792,26 +827,26 @@ public final class RecipeChainMath {
 		List<RecipeChainInput> closureResults,
 		List<RecipeChainInput> closureIngredients,
 		Map<RecipeChainInput, RecipeChainInput> preferredItems,
-		Map<RecipeChainInput, Long> requiredAmount,
-		Map<RecipeChainInput, Long> workingMultipliers
+		Map<RecipeChainInput, BigInteger> requiredAmount,
+		Map<RecipeChainInput, BigInteger> workingMultipliers
 	) {
 		Map<String, BlockAccumulator> results = new LinkedHashMap<>();
 		Map<String, BlockAccumulator> ingredients = new LinkedHashMap<>();
-		long rootMultiplier = 0;
+		BigInteger rootMultiplier = BigIntMath.ZERO;
 		for (RecipeChainInput result : closureResults) {
 			BookmarkItemMetadata metadata = result.metadata();
 			ResourceLocation recipeUid = metadata.recipeUid();
 			if (recipeUid == null || !relations.contains(recipeUid)) {
 				continue;
 			}
-			long itemAmount = metadata.amount(workingMultipliers.getOrDefault(result, 0L));
-			long required = requiredAmount.getOrDefault(result, 0L);
-			long amount = itemAmount - required;
+			BigInteger itemAmount = metadata.bigAmount(workingMultipliers.getOrDefault(result, BigIntMath.ZERO));
+			BigInteger required = requiredAmount.getOrDefault(result, BigIntMath.ZERO);
+			BigInteger amount = itemAmount.subtract(required);
 			boolean anchor = root.equals(recipeUid);
 			if (anchor) {
-				rootMultiplier = workingMultipliers.getOrDefault(result, 0L);
+				rootMultiplier = workingMultipliers.getOrDefault(result, BigIntMath.ZERO);
 			}
-			if (anchor || amount > 0) {
+			if (anchor || amount.signum() > 0) {
 				String key = aggregationKey(metadata, result.index());
 				RecipeChainItemType type = outputRecipes.contains(recipeUid) ? RecipeChainItemType.RESULT : RecipeChainItemType.REMAINDER;
 				BlockAccumulator accumulator = results.computeIfAbsent(
@@ -828,12 +863,12 @@ public final class RecipeChainMath {
 				continue;
 			}
 			RecipeChainInput preferred = preferredItems.get(ingredient);
-			long itemAmount = metadata.amount(workingMultipliers.getOrDefault(ingredient, 0L));
-			long amount = requiredAmount.containsKey(preferred) ? 0 : requiredAmount.getOrDefault(ingredient, itemAmount);
-			long refAmount = preferred != null && !topLevelRecipes.contains(preferred.metadata().recipeUid()) ? requiredAmount.getOrDefault(preferred, 0L) : 0;
-			boolean include = amount != 0 ||
-				(itemAmount > refAmount && requiredAmount.containsKey(preferred)) ||
-				(root.equals(recipeUid) && rootMultiplier == 0);
+			BigInteger itemAmount = metadata.bigAmount(workingMultipliers.getOrDefault(ingredient, BigIntMath.ZERO));
+			BigInteger amount = requiredAmount.containsKey(preferred) ? BigIntMath.ZERO : requiredAmount.getOrDefault(ingredient, itemAmount);
+			BigInteger refAmount = preferred != null && !topLevelRecipes.contains(preferred.metadata().recipeUid()) ? requiredAmount.getOrDefault(preferred, BigIntMath.ZERO) : BigIntMath.ZERO;
+			boolean include = amount.signum() != 0 ||
+				(itemAmount.compareTo(refAmount) > 0 && requiredAmount.containsKey(preferred)) ||
+				(root.equals(recipeUid) && rootMultiplier.signum() == 0);
 			if (!include) {
 				continue;
 			}
@@ -842,7 +877,7 @@ public final class RecipeChainMath {
 				key,
 				ignored -> new BlockAccumulator(key, ingredient.index(), metadata, RecipeChainItemType.INGREDIENT, false)
 			);
-			accumulator.append(amount, itemAmount - refAmount, metadata);
+			accumulator.append(amount, itemAmount.subtract(refAmount), metadata);
 		}
 		List<BlockAccumulator> collected = new ArrayList<>(results.size() + ingredients.size());
 		collected.addAll(results.values());
@@ -867,10 +902,10 @@ public final class RecipeChainMath {
 		private final BookmarkItemMetadata metadata;
 		private final RecipeChainItemType type;
 		private final boolean anchor;
-		private long shiftAmount;
-		private long calculatedAmount;
-		private long calculatedMultiplier;
-		private long realMultiplier;
+		private BigInteger shiftAmount = BigIntMath.ZERO;
+		private BigInteger calculatedAmount = BigIntMath.ZERO;
+		private BigInteger calculatedMultiplier = BigIntMath.ZERO;
+		private BigInteger realMultiplier = BigIntMath.ZERO;
 
 		private BlockAccumulator(
 			String key,
@@ -886,17 +921,17 @@ public final class RecipeChainMath {
 			this.anchor = anchor;
 		}
 
-		private void append(long amount, long calculatedAmount, BookmarkItemMetadata metadata) {
-			shiftAmount = SaturatedMath.add(shiftAmount, amount);
-			this.calculatedAmount = SaturatedMath.add(this.calculatedAmount, calculatedAmount);
-			calculatedMultiplier = SaturatedMath.add(calculatedMultiplier, metadata.multiplierFromAmount(calculatedAmount));
+		private void append(BigInteger amount, BigInteger calculatedAmount, BookmarkItemMetadata metadata) {
+			shiftAmount = BigIntMath.add(shiftAmount, amount);
+			this.calculatedAmount = BigIntMath.add(this.calculatedAmount, calculatedAmount);
+			calculatedMultiplier = BigIntMath.add(calculatedMultiplier, metadata.multiplierFromAmount(calculatedAmount));
 		}
 
 		private String key() {
 			return key;
 		}
 
-		private long shiftAmount() {
+		private BigInteger shiftAmount() {
 			return shiftAmount;
 		}
 
@@ -908,8 +943,8 @@ public final class RecipeChainMath {
 			return anchor;
 		}
 
-		private void setRealMultiplier(long realMultiplier) {
-			this.realMultiplier = realMultiplier;
+		private void setRealMultiplier(BigInteger realMultiplier) {
+			this.realMultiplier = realMultiplier == null ? BigIntMath.ZERO : realMultiplier;
 		}
 
 		private int typeWeight() {
@@ -929,7 +964,7 @@ public final class RecipeChainMath {
 				sourceIndex,
 				metadata,
 				type,
-				metadata.amount(realMultiplier),
+				metadata.bigAmount(realMultiplier),
 				shiftAmount,
 				calculatedAmount,
 				realMultiplier,
@@ -951,5 +986,4 @@ public final class RecipeChainMath {
 		ResourceLocation recipeUid = result.metadata().recipeUid();
 		return recipeUid != null && outputTargets.get(recipeUid) == result;
 	}
-
 }

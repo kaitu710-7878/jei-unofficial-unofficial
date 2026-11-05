@@ -394,34 +394,46 @@ public class IngredientListRenderer {
 		return slot.getArea().getY();
 	}
 
+	private static float calculateSlotTextScale(Font font, ImmutableRect2i area, String text) {
+		int rawWidth = font.width(text);
+		int maxAllowedWidth = Math.max(1, area.getWidth() - 2);
+		float scale = BOOKMARK_SLOT_TEXT_SCALE;
+		if (rawWidth * scale > maxAllowedWidth) {
+			scale = (float) maxAllowedWidth / (float) rawWidth;
+		}
+		return Math.min(scale, BOOKMARK_SLOT_TEXT_SCALE);
+	}
+
 	private static void drawTopLeftText(GuiGraphics guiGraphics, Font font, ImmutableRect2i area, String text, int color) {
-		drawScaledText(guiGraphics, font, text, area.getX() + 1, area.getY() + 1, color);
+		float scale = calculateSlotTextScale(font, area, text);
+		drawFittedScaledText(guiGraphics, font, text, area.getX() + 1, area.getY() + 1, scale, color);
 	}
 
 	private static void drawTopRightText(GuiGraphics guiGraphics, Font font, ImmutableRect2i area, String text, int color) {
-		int x = area.getX() + area.getWidth() - scaledTextWidth(font, text);
-		drawScaledText(guiGraphics, font, text, x, area.getY() + 1, color);
+		float scale = calculateSlotTextScale(font, area, text);
+		int textWidth = Math.round(font.width(text) * scale);
+		int x = Math.max(area.getX() + 1, area.getX() + area.getWidth() - 1 - textWidth);
+		drawFittedScaledText(guiGraphics, font, text, x, area.getY() + 1, scale, color);
 	}
 
 	private static void drawBottomLeftText(GuiGraphics guiGraphics, Font font, ImmutableRect2i area, String text, int color) {
-		int y = area.getY() + area.getHeight() - Math.round(font.lineHeight * BOOKMARK_SLOT_TEXT_SCALE);
-		drawScaledText(guiGraphics, font, text, area.getX() + 1, y, color);
+		float scale = calculateSlotTextScale(font, area, text);
+		int y = area.getY() + area.getHeight() - 1 - Math.round(font.lineHeight * scale);
+		drawFittedScaledText(guiGraphics, font, text, area.getX() + 1, y, scale, color);
 	}
 
 	private static void drawBottomRightText(GuiGraphics guiGraphics, Font font, ImmutableRect2i area, String text, int color) {
-		int x = area.getX() + area.getWidth() - scaledTextWidth(font, text);
-		int y = area.getY() + area.getHeight() - Math.round(font.lineHeight * BOOKMARK_SLOT_TEXT_SCALE);
-		drawScaledText(guiGraphics, font, text, x, y, color);
+		float scale = calculateSlotTextScale(font, area, text);
+		int textWidth = Math.round(font.width(text) * scale);
+		int x = Math.max(area.getX() + 1, area.getX() + area.getWidth() - 1 - textWidth);
+		int y = area.getY() + area.getHeight() - 1 - Math.round(font.lineHeight * scale);
+		drawFittedScaledText(guiGraphics, font, text, x, y, scale, color);
 	}
 
-	private static int scaledTextWidth(Font font, String text) {
-		return Math.round(font.width(text) * BOOKMARK_SLOT_TEXT_SCALE);
-	}
-
-	private static void drawScaledText(GuiGraphics guiGraphics, Font font, String text, int x, int y, int color) {
+	private static void drawFittedScaledText(GuiGraphics guiGraphics, Font font, String text, int x, int y, float scale, int color) {
 		guiGraphics.pose().pushPose();
 		guiGraphics.pose().translate(x, y, OVERLAY_DECORATION_Z);
-		guiGraphics.pose().scale(BOOKMARK_SLOT_TEXT_SCALE, BOOKMARK_SLOT_TEXT_SCALE, 1);
+		guiGraphics.pose().scale(scale, scale, 1);
 		guiGraphics.drawString(font, text, 0, 0, color, true);
 		guiGraphics.pose().popPose();
 	}

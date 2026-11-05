@@ -8,8 +8,11 @@
  */
 package mezz.jei.gui.bookmarks;
 
+import mezz.jei.common.util.BigIntMath;
 import mezz.jei.common.util.SaturatedMath;
 import net.minecraft.resources.ResourceLocation;
+
+import java.math.BigInteger;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
@@ -118,26 +121,44 @@ public record BookmarkItemMetadata(
 	}
 
 	public long amount(long multiplier) {
-		long effectiveMultiplier = type.scalesWithMultiplier() ? multiplier : 1;
-		long amount = SaturatedMath.multiply(Math.max(0, factor), Math.max(0, effectiveMultiplier));
+		return BigIntMath.toLongSaturated(bigAmount(multiplier));
+	}
+
+	public BigInteger bigAmount() {
+		return bigAmount(multiplier);
+	}
+
+	public BigInteger bigAmount(long multiplier) {
+		return bigAmount(BigIntMath.valueOf(multiplier));
+	}
+
+	public BigInteger bigAmount(BigInteger multiplier) {
+		BigInteger effectiveMultiplier = type.scalesWithMultiplier() ? (multiplier == null ? BigIntMath.ZERO : BigIntMath.max(BigIntMath.ZERO, multiplier)) : BigIntMath.ONE;
+		BigInteger baseFactor = BigIntMath.max(BigIntMath.ZERO, BigIntMath.valueOf(factor));
+		BigInteger amount = BigIntMath.multiply(baseFactor, effectiveMultiplier);
 		if (chance > 0 && chance != CHANCE_FULL) {
+			BigInteger bigChance = BigIntMath.valueOf(chance);
 			if (type.isGraphInput()) {
-				return SaturatedMath.divideRoundUp(SaturatedMath.multiply(amount, chance), CHANCE_FULL);
+				return BigIntMath.divideRoundUp(BigIntMath.multiply(amount, bigChance), BigIntMath.CHANCE_FULL);
 			}
-			return SaturatedMath.multiply(amount, chance) / CHANCE_FULL;
+			return BigIntMath.multiply(amount, bigChance).divide(BigIntMath.CHANCE_FULL);
 		}
 		return amount;
 	}
 
 	public long multiplierFromAmount(long amount) {
-		if (factor <= 0 || chance <= 0) {
-			return 0;
+		return BigIntMath.toLongSaturated(multiplierFromAmount(BigIntMath.valueOf(amount)));
+	}
+
+	public BigInteger multiplierFromAmount(BigInteger amount) {
+		if (factor <= 0 || chance <= 0 || amount == null || amount.signum() <= 0) {
+			return BigIntMath.ZERO;
 		}
 		if (chance == CHANCE_FULL) {
-			return SaturatedMath.divideRoundUp(amount, factor);
+			return BigIntMath.divideRoundUp(amount, BigIntMath.valueOf(factor));
 		}
-		long denominator = SaturatedMath.multiply(factor, chance);
-		return SaturatedMath.divideRoundUp(SaturatedMath.multiply(amount, CHANCE_FULL), denominator);
+		BigInteger denominator = BigIntMath.multiply(BigIntMath.valueOf(factor), BigIntMath.valueOf(chance));
+		return BigIntMath.divideRoundUp(BigIntMath.multiply(amount, BigIntMath.CHANCE_FULL), denominator);
 	}
 
 	public boolean equalsRecipe(BookmarkItemMetadata metadata) {
