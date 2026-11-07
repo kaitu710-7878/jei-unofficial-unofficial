@@ -10,16 +10,13 @@
 ### 概要
 **JEI Unofficial Unofficial (JEIUU)** は、StardustMINUS氏による「JEI unofficial (JEIU)」をベースに、**Minecraft 1.20.1 Minecraft Forge 専用** に特化・最適化・更新した非公式フォークMODです。
 
-Fabric等の他ローダー向けコードを完全に除外して構成をスリム化しつつ、JEIUが誇る先進的な利便性向上機能（レシピツリー生成、チェーンブックマーク、高速クラフト等）をForge 1.20.1環境で安定して提供します。
-
-### バージョニング規則
-将来的に上流のJEI / JEIUを追従更新した際にもベース元を明確に識別できるよう、以下のバージョニング体系を採用しています：
-- **表記形式**: `<上流JEIバージョン>-jeiuu.<JEIUUリビジョン>` (例: `15.59.0.212-jeiuu.2`)
-- **上流JEIバージョン**: ベース元のJEI/JEIUバージョン（例: `15.59.0.212`）をそのまま保持。
-- **JEIUUリビジョン**: 本フォーク独自で行われたバグ修正や最適化の更新番号。
+Fabric等の他ローダー向けコードを完全に除外して構成をスリム化しつつ、JEIUが誇る先進的な利便性向上機能（レシピツリー生成、チェーンブックマーク、高速クラフト等）をForge 1.20.1環境で安定して提供します。非公式版ではありますが、コミュニティ向けの継続的な不具合修正・機能改善・最適化アップデートを行っています。
 
 ### 特徴
 - **Minecraft 1.20.1 Forge 専用設計**: 不要なマルチローダー依存性を排除し、ビルド構成および実行環境を軽量化。
+- **BigInteger (bigint) レシピチェーン作成・計算対応**:
+  - `Long.MAX_VALUE` を超える超膨大な流体・ガス・アイテム要求や倍率計算でもオーバーフローやクラッシュを起こさず、高精度にレシピチェーンの作成・計算・描画を行う演算エンジンを新設。
+  - スロット内の数値描画オートスケーリング、短縮丸め込み（K, M, B, T, P, E, Z, Y, 指数表記）、流体専用単位（bmd等）に対応。
 - **JEI前提要求達成ロジックの内蔵**:
   - `modId="jei"` として登録されるため、JEIを前提MODとして要求するアドオンや外部MOD（Create, Mekanism, AE2, Jade, EMI等）の依存関係チェックをそのまま完全にパスします。
   - 公式JEI API（`mezz.jei.api.*`）を完全内包しており、互換性を損ないません。
@@ -29,6 +26,18 @@ Fabric等の他ローダー向けコードを完全に除外して構成をス�
   - アイテムリストの折りたたみ機能。
   - AE2などの大規模技術MODとの高度な連携。
 - **専用アセット**: JEIUU専用のアイコンを同梱。
+
+### バージョニング・更新方針
+- **バージョニング規則**:
+  - **表記形式**: `<上流JEIバージョン>-jeiuu.<JEIUUリビジョン>` (例: `15.59.0.212-jeiuu.3-beta2`)
+  - **上流JEIバージョン**: ベース元のJEI/JEIUバージョン（例: `15.59.0.212`）を識別子として保持。
+  - **JEIUUリビジョン**: 本フォーク独自で行われたバグ修正や最適化の更新番号。
+- **上流JEIのバージョン更新**:
+  - JEIUおよびJEIUUの機能・互換性を維持したまま、大元となる公式JEIのバージョンを追従・更新する場合があります。
+
+### リクエスト・フィードバックについて
+- 改善要望・新機能のリクエストや不具合報告は積極的に歓迎・検討いたします。
+- ※本プロジェクトの開発にはAIを活用しているため、**AIの使用量・利用枠の制約により即座に対応できない場合があります**。あらかじめご理解・ご了承いただけますと幸いです。
 
 ### 導入手順
 1. Minecraft 1.20.1 用の Minecraft Forge（推奨: 47.4.23以上）をインストールします。
@@ -51,16 +60,13 @@ Fabric等の他ローダー向けコードを完全に除外して構成をス�
 ### Overview
 **JEI Unofficial Unofficial (JEIUU)** is an unofficial fork of "JEI unofficial (JEIU)" by StardustMINUS, dedicated, updated, and optimized exclusively for **Minecraft 1.20.1 Minecraft Forge**.
 
-By removing Fabric and multi-loader dependencies, the project is streamlined for maximum stability and performance on Forge 1.20.1, while preserving all the powerful features of JEIU (recipe tree generation, bookmark chaining, fast crafting, etc.).
-
-### Versioning Scheme
-To clearly preserve the upstream JEI base mark across future updates, this project uses:
-- **Format**: `<Upstream JEI Version>-jeiuu.<JEIUU Revision>` (e.g. `15.59.0.212-jeiuu.2`)
-- **Upstream JEI Version**: Intact base version from upstream JEI / JEIU (e.g. `15.59.0.212`).
-- **JEIUU Revision**: Incremented for fork-specific fixes and optimizations.
+By removing Fabric and multi-loader dependencies, the project is streamlined for maximum stability and performance on Forge 1.20.1, while preserving all the powerful features of JEIU (recipe tree generation, bookmark chaining, fast crafting, etc.). Although this is an unofficial fork, it is actively maintained with continuous updates, bug fixes, and performance improvements.
 
 ### Features
 - **1.20.1 Forge Dedicated**: Cleaned from multi-loader toolchains and optimized strictly for Forge 1.20.1.
+- **BigInteger (bigint) Recipe Chain Creation & Calculation**:
+  - Built-in arbitrary-precision arithmetic engine to create, calculate, and render recipe chains without integer overflow or crashes, even when recipes require astronomical amounts of items, fluids, or gases exceeding `Long.MAX_VALUE`.
+  - Dynamic text auto-scaling in slots, compact rounding (K, M, B, T, P, E, Z, Y, scientific notation), and specialized fluid units (e.g., `bmd`).
 - **Built-in JEI Dependency Satisfaction**:
   - Identifies as `modId="jei"`, satisfying dependency requirements for any mods and addons requiring JEI (e.g., Create, Mekanism, Applied Energistics 2, Jade, EMI).
   - Fully embeds and provides official JEI APIs (`mezz.jei.api.*`) with seamless compatibility.
@@ -70,6 +76,18 @@ To clearly preserve the upstream JEI base mark across future updates, this proje
   - Item list folding and batch management.
   - Deep integration with AE2 and major tech mods.
 - **Custom Brand Asset**: Custom JEIUU icon.
+
+### Versioning & Upstream Updates
+- **Versioning Scheme**:
+  - **Format**: `<Upstream JEI Version>-jeiuu.<JEIUU Revision>` (e.g. `15.59.0.212-jeiuu.3-beta2`)
+  - **Upstream JEI Version**: Intact base version from upstream JEI / JEIU (e.g. `15.59.0.212`) preserved as a landmark.
+  - **JEIUU Revision**: Incremented for fork-specific fixes and optimizations.
+- **Upstream JEI Updates**:
+  - We may update the underlying upstream JEI base version as needed, while strictly preserving all existing JEIU and JEIUU features and compatibility.
+
+### Requests & Feedback
+- Feature requests, improvement ideas, and bug reports are actively welcomed and reviewed.
+- *Note*: Development is assisted by AI tooling; due to **AI usage quotas and allowance limits, requests may not always be addressed immediately**. We appreciate your understanding and patience.
 
 ### Installation
 1. Install Minecraft Forge for 1.20.1 (recommended: 47.4.23 or newer).
