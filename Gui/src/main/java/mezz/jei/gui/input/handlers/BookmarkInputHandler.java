@@ -121,17 +121,44 @@ public class BookmarkInputHandler implements IUserInputHandler {
 				return handler;
 			}
 		}
-		if (input.is(keyBindings.getShowRecipeTree())) {
-			return bookmarkOverlay.getPatternEncodeGroupIdUnderMouse(input.getMouseX(), input.getMouseY())
-				.filter(bookmarkList::isGroupCraftingMode)
-				.map(groupId -> {
-					if (!input.isSimulate()) {
-						net.minecraft.client.Minecraft.getInstance().setScreen(
-							new mezz.jei.gui.bookmarks.tree.RecipeTreeScreen(screen, bookmarkList, groupId, ingredientManager)
-						);
-					}
-					return this;
-				});
+		boolean isTreeTrigger = input.is(keyBindings.getShowRecipeTree()) ||
+			(input.getKey().getType() == com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_T) ||
+			(input.getKey().getType() == com.mojang.blaze3d.platform.InputConstants.Type.MOUSE && input.getKey().getValue() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_MIDDLE);
+
+		if (isTreeTrigger) {
+			// 1. Check if hovering over a group (chain or regular) in bookmark overlay
+			Optional<Integer> groupIdOpt = bookmarkOverlay.getPullGroupIdUnderMouse(input.getMouseX(), input.getMouseY());
+			if (groupIdOpt.isPresent()) {
+				int targetGid = groupIdOpt.get();
+				if (!input.isSimulate()) {
+					mezz.jei.gui.tree.CraftingTreeScreen.open(screen, bookmarkList, targetGid, ingredientManager);
+					mezz.jei.common.util.JeiClientSoundUtil.playClickSound();
+				}
+				return Optional.of(this);
+			}
+
+			// 2. Check if hovering over an ingredient in bookmark overlay
+			Optional<mezz.jei.api.ingredients.ITypedIngredient<?>> hoveredIngredient = bookmarkOverlay.getIngredientUnderMouse(input.getMouseX(), input.getMouseY()).<mezz.jei.api.ingredients.ITypedIngredient<?>>map(mezz.jei.gui.input.IClickableIngredientInternal::getTypedIngredient)
+				.findFirst();
+			if (hoveredIngredient.isPresent()) {
+				if (!input.isSimulate()) {
+					mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, bookmarkList, hoveredIngredient.get(), ingredientManager);
+					mezz.jei.common.util.JeiClientSoundUtil.playClickSound();
+				}
+				return Optional.of(this);
+			}
+
+			// 3. Check if hovering over any ingredient via focusSource (GUI container slots, etc.)
+			var focusIngredient = focusSource.getIngredientUnderMouse(input, keyBindings)
+				.filter(clicked -> clicked.getElement().isVisible())
+				.findFirst();
+			if (focusIngredient.isPresent()) {
+				if (!input.isSimulate()) {
+					mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, bookmarkList, focusIngredient.get().getTypedIngredient(), ingredientManager);
+					mezz.jei.common.util.JeiClientSoundUtil.playClickSound();
+				}
+				return Optional.of(this);
+			}
 		}
 		// 1.21.1 parity: with no modifier held, the bookmark key bookmarks the recipe under the
 		// mouse. It falls through to the ingredient path below when not hovering a recipe.

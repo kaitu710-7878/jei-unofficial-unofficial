@@ -1,6 +1,7 @@
 package mezz.jei.gui.tree;
 
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,6 +48,10 @@ public final class TreeGraph {
 		return Collections.unmodifiableList(roots);
 	}
 
+	public @Nullable TreeSlot getRootSlot() {
+		return roots.isEmpty() ? null : roots.get(0);
+	}
+
 	public List<TreeSlot> getItems() {
 		return Collections.unmodifiableList(items);
 	}
@@ -75,7 +80,6 @@ public final class TreeGraph {
 	public void updateCaches() {
 		missingSubtreeCache.clear();
 		needCraftSubtreeCache.clear();
-
 		for (TreeSlot root : roots) {
 			computeCaches(root);
 		}
@@ -87,7 +91,6 @@ public final class TreeGraph {
 		boolean childNeedsCraft = false;
 
 		if (children.isEmpty()) {
-			// Leaf node: missing if it needs craft but has no recipe
 			if (!node.isResolved() && !node.hasRecipe()) {
 				childMissing = true;
 			}

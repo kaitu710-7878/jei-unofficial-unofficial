@@ -34,7 +34,8 @@ JEIUUの設定は主に以下のファイルで管理されます：
 
 #### 4. クラフトツリー（Crafting Tree）操作ガイド
 - **ツリーの起動**:
-  - ブックマーク一覧内のアイテム/チェーン上で `Shift + B` または `T` キー（あるいは **マウス中クリック**）
+  - **ブックマーク欄**: アイテムまたはチェーン、グループヘッダー上で `Shift + B` または `T` キー（あるいは **マウス中クリック**）
+  - **アイテムリスト / レシピ画面 / インベントリ**: 任意のアイテム上で `Shift + B` または `T` キーを押すと、そのアイテムを目標（ルート）とする新しいクラフトツリーを即座に作成・展開
 - **ナビゲーション**:
   - **視点移動（パン）**: 画面背景を左ドラッグ
   - **ズーム拡大・縮小**: マウスホイール（0.2倍 〜 5.0倍）
@@ -80,7 +81,8 @@ JEIUU settings are primarily stored in:
 
 #### 4. Crafting Tree Controls & Guide
 - **Opening the Tree**:
-  - Hover over a bookmark item or chain and press `Shift + B` or `T` (or **Middle-click**).
+  - **From Bookmarks**: Hover over any bookmark item, recipe chain, or group header and press `Shift + B` or `T` (or **Middle-click**).
+  - **From Item List / Recipe GUI / Inventory**: Hover over any item and press `Shift + B` or `T` to immediately generate a new crafting tree rooted at that item.
 - **Navigation**:
   - **Pan Camera**: Click and drag on empty canvas background.
   - **Zoom In / Out**: Mouse wheel (0.2x to 5.0x scale).

@@ -15,6 +15,34 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta2] - 2026-11-12 (Beta)
+#### 修正・追加 (Fixed & Added)
+- **チェーンおよびブックマークからツリーが開けない不具合の修正**:
+  - ブックマークスロット上のアイテム、ブックマークチェーン、グループパネルヘッダーのどこからでも `Shift + B`、`T`、および **マウス中クリック** で確実にクラフトツリー画面（`CraftingTreeScreen`）が起動するよう入力ハンドラ階層を再構築。
+  - 旧ツリー画面（`RecipeTreeScreen`）へ誘導していた残存コードを完全撤去。
+- **チェーン以外（アイテムリスト・レシピ画面・インベントリ）からのツリー直接作成機能**:
+  - JEIアイテムリスト、レシピ画面（`RecipesGui`）、インベントリ内の任意のアイテムにカーソルを合わせて `Shift + B` または `T` キーを押すことで、そのアイテムを完成目標（ルート）とするクラフトツリーを即座にゼロから作成・開くことが可能に。
+- **目標アイテムとレシピを指定して手動でツリーのルート・階層を探索・構築する機能**:
+  - 目標アイテムからツリーを開始し、ツリー内の材料ノードを右クリックして代替レシピを選択することで、その材料の原料ノードがツリーに生えて深掘り展開される手動探索に対応。
+  - レシピ解除（原材料に戻す）、ノード削除（枝の剪定）、数量・倍率の手動調整に対応。
+  - 手動構築したツリーは画面上部の「チェーン保存」ボタンを押すだけで、ブックマーク欄に新しいクラフトチェーングループとして一発保存可能。
+
+---
+
+### [15.59.0.212-jeiuu.4-beta2] - 2026-11-12 (Beta)
+#### Fixed & Added
+- **Fixed Crafting Tree Opening from Chains and Bookmarks**:
+  - Rebuilt input handling so `Shift + B`, `T`, or **mouse middle-click** reliably opens `CraftingTreeScreen` from any bookmark slot item, recipe chain, or group header.
+  - Removed obsolete `RecipeTreeScreen` hooks that blocked event propagation.
+- **Direct Tree Creation from Outside Chains (Item List, Recipes GUI, Inventory)**:
+  - Hovering over any item in JEI ingredient list, recipe screen (`RecipesGui`), or player inventory and pressing `Shift + B` or `T` now immediately generates and opens a brand-new crafting tree rooted at that item.
+- **Manual Root Calculation and Crafting Path Exploration from Scratch**:
+  - Start from a target item and right-click intermediate ingredient nodes to choose specific recipes, expanding sub-ingredients dynamically into deeper tree branches.
+  - Supports reverting back to raw ingredients, pruning branches via node deletion, and manual quantity overrides.
+  - Export custom manually-built trees directly into new bookmark crafting chain groups via the "Save to Chain" button.
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta1] - 2026-11-11 (Beta)
 #### 追加・改善 (Added & Improved)
 - **クラフトツリー（Crafting Tree）機能の完全移植・統合**:

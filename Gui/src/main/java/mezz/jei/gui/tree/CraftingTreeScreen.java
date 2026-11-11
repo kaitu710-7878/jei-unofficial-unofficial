@@ -11,6 +11,7 @@ import mezz.jei.common.Internal;
 import mezz.jei.gui.bookmarks.BookmarkIngredientKey;
 import mezz.jei.gui.bookmarks.BookmarkItemMetadataFactory;
 import mezz.jei.gui.bookmarks.BookmarkList;
+import mezz.jei.gui.bookmarks.chain.RecipeChainInput;
 import mezz.jei.gui.overlay.bookmarks.BookmarkAmountFormatter;
 import mezz.jei.gui.overlay.bookmarks.PlayerInventoryRecipeChainTooltipInventoryProvider;
 import net.minecraft.ChatFormatting;
@@ -29,15 +30,20 @@ import org.lwjgl.glfw.GLFW;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Main Crafting Tree GUI Screen.
  * Fully interactive node hierarchy with pan, zoom, collapse/expand, manual recipe selection,
  * manual quantity overrides, bottom stats bar, bidirectional chain export, and complete BigInteger precision.
+ *
+ * Supports opening directly from bookmark groups, or standalone starting from any target ingredient/recipe.
  *
  * Ported and heavily adapted/refactored from nei-features-for-jei and GTNH NotEnoughItems (LGPL-3.0-or-later).
  */
@@ -47,9 +53,16 @@ public final class CraftingTreeScreen extends Screen {
 
 	private final @Nullable Screen parentScreen;
 	private final BookmarkList bookmarks;
-	private final int groupId;
+	private int groupId;
 	private final IIngredientManager ingredientManager;
 	private final PlayerInventoryRecipeChainTooltipInventoryProvider inventoryProvider;
+
+	// Target-ingredient mode fields
+	private final @Nullable ITypedIngredient<?> targetIngredient;
+	private BigInteger targetAmount;
+	private @Nullable ResourceLocation targetRecipeOverride;
+	private final Map<BookmarkIngredientKey, ResourceLocation> manualRecipes = new LinkedHashMap<>();
+	private final Set<BookmarkIngredientKey> prunedKeys = new HashSet<>();
 
 	private final TreeCamera camera = new TreeCamera();
 	private final TreeLayout layout = new TreeLayout();
@@ -78,6 +91,14 @@ public final class CraftingTreeScreen extends Screen {
 		Minecraft.getInstance().setScreen(new CraftingTreeScreen(parent, bookmarks, groupId, ingredientManager));
 	}
 
+	public static void openForIngredient(Screen parent, BookmarkList bookmarks, ITypedIngredient<?> target, IIngredientManager ingredientManager) {
+		Minecraft.getInstance().setScreen(new CraftingTreeScreen(parent, bookmarks, target, BigInteger.ONE, null, ingredientManager));
+	}
+
+	public static void openForRecipe(Screen parent, BookmarkList bookmarks, ITypedIngredient<?> target, ResourceLocation recipeUid, IIngredientManager ingredientManager) {
+		Minecraft.getInstance().setScreen(new CraftingTreeScreen(parent, bookmarks, target, BigInteger.ONE, recipeUid, ingredientManager));
+	}
+
 	public CraftingTreeScreen(
 		@Nullable Screen parentScreen,
 		BookmarkList bookmarks,
@@ -90,13 +111,49 @@ public final class CraftingTreeScreen extends Screen {
 		this.groupId = groupId;
 		this.ingredientManager = ingredientManager;
 		this.inventoryProvider = new PlayerInventoryRecipeChainTooltipInventoryProvider(Minecraft.getInstance(), ingredientManager);
+		this.targetIngredient = null;
+		this.targetAmount = BigInteger.ONE;
+		this.targetRecipeOverride = null;
+
+		rebuildTreeMath();
+	}
+
+	public CraftingTreeScreen(
+		@Nullable Screen parentScreen,
+		BookmarkList bookmarks,
+		ITypedIngredient<?> targetIngredient,
+		BigInteger targetAmount,
+		@Nullable ResourceLocation targetRecipeOverride,
+		IIngredientManager ingredientManager
+	) {
+		super(Component.translatable("jei.tree.title"));
+		this.parentScreen = parentScreen;
+		this.bookmarks = bookmarks;
+		this.groupId = -1;
+		this.ingredientManager = ingredientManager;
+		this.inventoryProvider = new PlayerInventoryRecipeChainTooltipInventoryProvider(Minecraft.getInstance(), ingredientManager);
+		this.targetIngredient = targetIngredient;
+		this.targetAmount = targetAmount.max(BigInteger.ONE);
+		this.targetRecipeOverride = targetRecipeOverride;
 
 		rebuildTreeMath();
 	}
 
 	private void rebuildTreeMath() {
 		Map<BookmarkIngredientKey, BigInteger> stock = checkInventory ? readInventory() : Map.of();
-		this.treeMath = TreeChainBridge.createTreeMathFromGroup(bookmarks, groupId, stock);
+		if (targetIngredient != null) {
+			List<RecipeChainInput> inputs = TreeRecipeBuilder.buildInputsForTarget(
+				targetIngredient,
+				targetAmount,
+				targetRecipeOverride,
+				manualRecipes,
+				prunedKeys,
+				ingredientManager
+			);
+			this.treeMath = new TreeMath(inputs, stock);
+		} else {
+			this.treeMath = TreeChainBridge.createTreeMathFromGroup(bookmarks, groupId, stock);
+		}
 		this.graph = treeMath.calculate();
 		this.layout.recalculate(graph, null);
 		this.stats = TreeStats.compute(graph);
@@ -232,7 +289,7 @@ public final class CraftingTreeScreen extends Screen {
 					if (nextCollapsed) {
 						treeMath.toggleRecipeCollapsed(node.getRecipeUid());
 					} else {
-						treeMath.getCollapsedRecipes(); // refreshed on recalculation
+						treeMath.getCollapsedRecipes();
 					}
 				}
 			}
@@ -241,9 +298,19 @@ public final class CraftingTreeScreen extends Screen {
 	}
 
 	private void exportToBookmarkChain() {
-		TreeChainBridge.exportTreeToBookmarkGroup(bookmarks, groupId, graph, treeMath.getCollapsedRecipes());
-		if (minecraft != null && minecraft.player != null) {
-			minecraft.player.displayClientMessage(Component.translatable("jei.tree.save_chain.success").withStyle(ChatFormatting.GREEN), false);
+		if (groupId >= 0) {
+			TreeChainBridge.exportTreeToBookmarkGroup(bookmarks, groupId, graph, treeMath.getCollapsedRecipes());
+			if (minecraft != null && minecraft.player != null) {
+				minecraft.player.displayClientMessage(Component.translatable("jei.tree.save_chain.success").withStyle(ChatFormatting.GREEN), false);
+			}
+		} else {
+			Optional<Integer> newGid = TreeChainBridge.saveTreeAsNewBookmarkGroup(bookmarks, graph, ingredientManager);
+			if (newGid.isPresent()) {
+				this.groupId = newGid.get();
+				if (minecraft != null && minecraft.player != null) {
+					minecraft.player.displayClientMessage(Component.translatable("jei.tree.save_chain.success").withStyle(ChatFormatting.GREEN), false);
+				}
+			}
 		}
 	}
 
@@ -308,7 +375,7 @@ public final class CraftingTreeScreen extends Screen {
 				int minX = Math.min(pCenterX, cCenterX);
 				int maxX = Math.max(pCenterX, cCenterX);
 				if (!camera.isWorldRectVisible(minX, pBottomY, maxX - minX + 2, cTopY - pBottomY + 2)) {
-					continue; // Frustum culled!
+					continue;
 				}
 
 				int lineColor = child.isResolved() ? TreeDraw.COLOR_LINE_DEFAULT : (!child.hasRecipe() ? TreeDraw.COLOR_LINE_MISSING : TreeDraw.COLOR_LINE_CRAFTING);
@@ -385,98 +452,103 @@ public final class CraftingTreeScreen extends Screen {
 		if (searchQuery.isEmpty()) {
 			return false;
 		}
-		String uid = slot.getKey().ingredientUid().toLowerCase(Locale.ROOT);
-		return uid.contains(searchQuery);
-	}
-
-	private void renderTypedIngredient(GuiGraphics g, ITypedIngredient<?> typed, int x, int y) {
-		Object ingredient = typed.getIngredient();
-		if (ingredient instanceof ItemStack stack) {
-			g.renderItem(stack, x, y);
-			g.renderItemDecorations(font, stack, x, y, "");
-		} else {
-			// JEI Generic IIngredientRenderer
-			IIngredientRenderer<Object> renderer = ingredientManager.getIngredientRenderer(cast(typed.getType()));
-			renderer.render(g, cast(ingredient));
+		Optional<ITypedIngredient<?>> typedOpt = slot.getTypedIngredient();
+		if (typedOpt.isPresent()) {
+			ITypedIngredient<?> typed = typedOpt.get();
+			// using getIngredientTooltip helper
+			String name = getIngredientTooltip(typed).stream()
+				.map(Component::getString)
+				.reduce("", (a, b) -> a + " " + b)
+				.toLowerCase(Locale.ROOT);
+			return name.contains(searchQuery);
 		}
+		return false;
 	}
 
 	@SuppressWarnings("unchecked")
-	private static <T> T cast(Object obj) {
-		return (T) obj;
+	private <T> void renderTypedIngredient(GuiGraphics g, ITypedIngredient<T> typed, int x, int y) {
+		IIngredientRenderer<T> renderer = ingredientManager.getIngredientRenderer(typed.getType());
+		renderer.render(g, typed.getIngredient());
 	}
 
-	private void renderSlotAmount(GuiGraphics g, TreeSlot slot, int x, int y, int slotSize) {
-		BigInteger amt = slot.getLeftAmount().signum() > 0 ? slot.getLeftAmount() : slot.getRequestedAmount();
-		String text = BookmarkAmountFormatter.formatItemAmount(amt);
+	private <T> List<Component> getIngredientTooltip(ITypedIngredient<T> typed) {
+		IIngredientRenderer<T> renderer = ingredientManager.getIngredientRenderer(typed.getType());
+		return renderer.getTooltip(typed.getIngredient(), net.minecraft.world.item.TooltipFlag.NORMAL);
+	}
 
-		int textW = font.width(text);
-		int textX = x + slotSize - textW - 1;
-		int textY = y + slotSize - font.lineHeight;
+	private void renderSlotAmount(GuiGraphics g, TreeSlot slot, int screenX, int screenY, int scaledSlotSize) {
+		BigInteger amount = slot.getProducedAmount();
+		if (amount.compareTo(BigInteger.ONE) <= 0) {
+			return;
+		}
+		String text = BookmarkAmountFormatter.formatItemAmount(amount);
+		int textWidth = font.width(text);
+		int textX = screenX + scaledSlotSize - textWidth - 1;
+		int textY = screenY + scaledSlotSize - 8;
 
-		int color = slot.isResolved() ? 0xFF81C784 : (slot.hasRecipe() ? 0xFF90CAF9 : 0xFFE57373);
-		g.drawString(font, text, textX, textY, color, true);
+		g.pose().pushPose();
+		g.pose().translate(0, 0, 200);
+		g.drawString(font, text, textX, textY, 0xFFFFFFFF, true);
+		g.pose().popPose();
 	}
 
 	private void renderStatsBar(GuiGraphics g, int mouseX, int mouseY) {
 		int barY = height - STATS_BAR_HEIGHT;
-		g.fill(0, barY, width, height, 0xEE1E1E1E);
+		g.fill(0, barY, width, height, 0xEE1A1A1A);
 		g.fill(0, barY, width, barY + 1, 0xFF444444);
 
 		hoveredStatsSlot = null;
-
-		g.enableScissor(0, barY, width, height);
+		int drawX = 6 - statsScrollOffset;
+		int drawY = barY + 4;
 
 		for (TreeStatsLayout.PlacedSlot placed : statsLayout.getPlacedSlots()) {
-			int slotX = placed.getX() - statsScrollOffset;
-			int slotY = barY + placed.getY();
-
-			if (slotX + TreeStatsLayout.SLOT_SIZE < 0 || slotX > width) {
+			int slotScreenX = drawX + placed.getX();
+			if (slotScreenX + TreeStatsLayout.SLOT_SIZE < 0 || slotScreenX > width) {
 				continue;
 			}
 
-			boolean isHover = mouseX >= slotX && mouseX < slotX + TreeStatsLayout.SLOT_SIZE &&
-				mouseY >= slotY && mouseY < slotY + TreeStatsLayout.SLOT_SIZE;
+			boolean isHover = mouseX >= slotScreenX && mouseX < slotScreenX + TreeStatsLayout.SLOT_SIZE &&
+				mouseY >= drawY && mouseY < drawY + TreeStatsLayout.SLOT_SIZE;
 
 			if (isHover) {
 				hoveredStatsSlot = placed;
 			}
 
-			// Background
-			g.fill(slotX, slotY, slotX + TreeStatsLayout.SLOT_SIZE, slotY + TreeStatsLayout.SLOT_SIZE, 0xAA2A2A2A);
-			g.fill(slotX, slotY, slotX + TreeStatsLayout.SLOT_SIZE, slotY + 1, 0xFF555555);
-			g.fill(slotX, slotY + TreeStatsLayout.SLOT_SIZE - 1, slotX + TreeStatsLayout.SLOT_SIZE, slotY + TreeStatsLayout.SLOT_SIZE, 0xFF555555);
-			g.fill(slotX, slotY, slotX + 1, slotY + TreeStatsLayout.SLOT_SIZE, 0xFF555555);
-			g.fill(slotX + TreeStatsLayout.SLOT_SIZE - 1, slotY, slotX + TreeStatsLayout.SLOT_SIZE, slotY + TreeStatsLayout.SLOT_SIZE, 0xFF555555);
+			// Slot Background
+			int bg = isHover ? 0xFF444444 : 0xFF282828;
+			g.fill(slotScreenX, drawY, slotScreenX + TreeStatsLayout.SLOT_SIZE, drawY + TreeStatsLayout.SLOT_SIZE, bg);
 
-			if (isHover) {
-				g.fill(slotX + 1, slotY + 1, slotX + TreeStatsLayout.SLOT_SIZE - 1, slotY + TreeStatsLayout.SLOT_SIZE - 1, 0x44FFFFFF);
+			// Render Ingredient
+			TreeStats.Row row = placed.getRow();
+			if (row.getKey() != null && row.getKey().typedIngredient() != null) {
+				renderTypedIngredient(g, row.getKey().typedIngredient(), slotScreenX + 1, drawY + 1);
 			}
 
-			// Render ingredient
-			TreeStats.Row row = placed.getRow();
-			row.getTypedIngredient().ifPresent(typed -> {
-				renderTypedIngredient(g, typed, slotX + 1, slotY + 1);
-			});
-
-			// Render amount
-			String amtStr = BookmarkAmountFormatter.formatItemAmount(row.getAmount());
-			int tw = font.width(amtStr);
-			g.drawString(font, amtStr, slotX + TreeStatsLayout.SLOT_SIZE - tw - 1, slotY + TreeStatsLayout.SLOT_SIZE - font.lineHeight, 0xFFFFFFFF, true);
+			// Render Row Amount
+			if (row.getAmount().compareTo(BigInteger.ONE) > 0) {
+				String amtText = BookmarkAmountFormatter.formatItemAmount(row.getAmount());
+				g.pose().pushPose();
+				g.pose().translate(0, 0, 200);
+				g.drawString(font, amtText, slotScreenX + 1, drawY + 9, 0xFFE0E0E0, true);
+				g.pose().popPose();
+			}
 		}
-
-		g.disableScissor();
 	}
 
 	private void renderTooltips(GuiGraphics g, int mouseX, int mouseY) {
 		if (hoveredNode != null) {
 			List<Component> tooltip = new ArrayList<>();
-			BookmarkIngredientKey key = hoveredNode.getKey();
-
-			tooltip.add(Component.literal(key.ingredientUid()).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+			Optional<ITypedIngredient<?>> typedOpt = hoveredNode.getTypedIngredient();
+			if (typedOpt.isPresent()) {
+				ITypedIngredient<?> typed = typedOpt.get();
+				// using getIngredientTooltip helper
+				for (Component line : getIngredientTooltip(typed)) {
+					tooltip.add(line);
+				}
+			}
 
 			tooltip.add(Component.translatable("jei.tree.tooltip.requested", hoveredNode.getRequestedAmount().toString()).withStyle(ChatFormatting.GRAY));
-			tooltip.add(Component.translatable("jei.tree.tooltip.remaining", hoveredNode.getLeftAmount().toString())
+			tooltip.add(Component.translatable("jei.tree.tooltip.produced", hoveredNode.getProducedAmount().toString())
 				.withStyle(hoveredNode.isResolved() ? ChatFormatting.GREEN : ChatFormatting.RED));
 
 			if (hoveredNode.hasRecipe()) {
@@ -537,8 +609,21 @@ public final class CraftingTreeScreen extends Screen {
 				// Open Recipe Selector Dialog
 				TreeSlot target = hoveredNode;
 				Minecraft.getInstance().setScreen(new TreeRecipeSelectorScreen(this, target, selectedRecipe -> {
-					treeMath.setManualRecipe(target.getKey(), selectedRecipe);
-					recalculateTree(target);
+					if (targetIngredient != null) {
+						if (target.equals(graph.getRootSlot())) {
+							this.targetRecipeOverride = selectedRecipe;
+						} else {
+							if (selectedRecipe == null) {
+								this.manualRecipes.remove(target.getKey());
+							} else {
+								this.manualRecipes.put(target.getKey(), selectedRecipe);
+							}
+						}
+						rebuildTreeMath();
+					} else {
+						treeMath.setManualRecipe(target.getKey(), selectedRecipe);
+						recalculateTree(target);
+					}
 				}));
 				return true;
 			} else if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE || (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && Screen.hasShiftDown())) {
@@ -546,15 +631,26 @@ public final class CraftingTreeScreen extends Screen {
 				TreeSlot target = hoveredNode;
 				Minecraft.getInstance().setScreen(new TreeAdjustQuantityScreen(this, target, result -> {
 					if (result.removeNode()) {
-						var unused = graph.collectUnusedRecipes(target);
-						for (ResourceLocation rec : unused) {
-							treeMath.setManualRecipe(target.getKey(), null);
+						if (targetIngredient != null) {
+							prunedKeys.add(target.getKey());
+							rebuildTreeMath();
+						} else {
+							var unused = graph.collectUnusedRecipes(target);
+							for (ResourceLocation rec : unused) {
+								treeMath.setManualRecipe(target.getKey(), null);
+							}
+							recalculateTree(null);
 						}
 					} else {
-						treeMath.setManualAmount(target.getKey(), result.amountOverride());
-						treeMath.setForceCraft(target.getKey(), result.forceCraft());
+						if (targetIngredient != null && target.equals(graph.getRootSlot())) {
+							this.targetAmount = result.amountOverride().max(BigInteger.ONE);
+							rebuildTreeMath();
+						} else {
+							treeMath.setManualAmount(target.getKey(), result.amountOverride());
+							treeMath.setForceCraft(target.getKey(), result.forceCraft());
+							recalculateTree(null);
+						}
 					}
-					recalculateTree(null);
 				}));
 				return true;
 			}
@@ -590,18 +686,14 @@ public final class CraftingTreeScreen extends Screen {
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
 		if (showStats && mouseY >= height - STATS_BAR_HEIGHT) {
-			// Scroll bottom stats panel
-			statsScrollOffset = Math.max(0, Math.min(statsLayout.getTotalWidth() - width, (int) (statsScrollOffset - delta * 24)));
+			statsScrollOffset = Math.max(0, statsScrollOffset - (int) Math.round(delta * 20));
 			return true;
 		}
 
 		if (camera.isInViewport(mouseX, mouseY)) {
-			boolean shift = Screen.hasShiftDown();
-			boolean ctrl = Screen.hasControlDown();
-			camera.scroll(mouseX, mouseY, delta, shift, ctrl);
+			camera.zoomAt(mouseX, mouseY, (int) Math.signum(delta));
 			return true;
 		}
-
 		return super.mouseScrolled(mouseX, mouseY, delta);
 	}
 
@@ -615,41 +707,37 @@ public final class CraftingTreeScreen extends Screen {
 			return searchBox.keyPressed(keyCode, scanCode, modifiers);
 		}
 
+		// Recipe & Uses shortcuts on hovered node
 		if (hoveredNode != null) {
-			// Recipe (R) or Usage (U) lookup in JEI
-			if (keyCode == GLFW.GLFW_KEY_R) {
-				hoveredNode.getTypedIngredient().ifPresent(typed -> {
-					var recipesGui = Internal.getJeiRuntime().getRecipesGui();
-					IFocusFactory focusFactory = Internal.getJeiRuntime().getJeiHelpers().getFocusFactory();
-					IFocus<?> focus = focusFactory.createFocus(RecipeIngredientRole.OUTPUT, typed);
-					recipesGui.show(List.of(focus));
-				});
-				return true;
-			} else if (keyCode == GLFW.GLFW_KEY_U) {
-				hoveredNode.getTypedIngredient().ifPresent(typed -> {
-					var recipesGui = Internal.getJeiRuntime().getRecipesGui();
-					IFocusFactory focusFactory = Internal.getJeiRuntime().getJeiHelpers().getFocusFactory();
-					IFocus<?> focus = focusFactory.createFocus(RecipeIngredientRole.INPUT, typed);
-					recipesGui.show(List.of(focus));
-				});
-				return true;
-			} else if (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
-				// Delete node
-				TreeSlot target = hoveredNode;
-				treeMath.setManualRecipe(target.getKey(), null);
-				recalculateTree(null);
-				return true;
+			Optional<ITypedIngredient<?>> typedOpt = hoveredNode.getTypedIngredient();
+			if (typedOpt.isPresent()) {
+				ITypedIngredient<?> typed = typedOpt.get();
+				if (keyCode == GLFW.GLFW_KEY_R) {
+					openRecipesGui(typed, RecipeIngredientRole.OUTPUT);
+					return true;
+				} else if (keyCode == GLFW.GLFW_KEY_U) {
+					openRecipesGui(typed, RecipeIngredientRole.INPUT);
+					return true;
+				}
 			}
+		}
+
+		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+			onClose();
+			return true;
 		}
 
 		return super.keyPressed(keyCode, scanCode, modifiers);
 	}
 
+	private void openRecipesGui(ITypedIngredient<?> ingredient, RecipeIngredientRole role) {
+		IFocusFactory focusFactory = Internal.getJeiRuntime().getJeiHelpers().getFocusFactory();
+		IFocus<?> focus = focusFactory.createFocus(role, ingredient);
+		Internal.getJeiRuntime().getRecipesGui().show(List.of(focus));
+	}
+
 	@Override
-	public boolean charTyped(char codePoint, int modifiers) {
-		if (searchBox != null && searchBox.isFocused()) {
-			return searchBox.charTyped(codePoint, modifiers);
-		}
-		return super.charTyped(codePoint, modifiers);
+	public boolean isPauseScreen() {
+		return false;
 	}
 }

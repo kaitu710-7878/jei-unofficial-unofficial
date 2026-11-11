@@ -132,14 +132,26 @@ public final class BookmarkOverlayInputHandlers {
 
 		@Override
 		public Optional<IUserInputHandler> handleUserInput(Screen screen, UserInput input, IInternalKeyMappings keyBindings) {
-			if (keyBindings.getShowRecipeTree().isActiveAndMatches(input.getKey())) {
-				Optional<GroupPanelSlot> groupSlot = overlay.getGroupPanelSlotUnderMouse(input.getMouseX(), input.getMouseY());
-				int targetGroupId = groupSlot.map(GroupPanelSlot::groupId).orElse(BookmarkGroupManager.DEFAULT_GROUP_ID);
-				if (input.getInputType() == InputType.EXECUTE) {
-					mezz.jei.gui.tree.CraftingTreeScreen.open(screen, overlay.getBookmarkList(), targetGroupId);
-					playClickSound();
+			boolean isTreeKey = keyBindings.getShowRecipeTree().isActiveAndMatches(input.getKey()) ||
+				(input.getKey().getType() == InputConstants.Type.KEYSYM && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_T);
+
+			if (isTreeKey) {
+				Optional<Integer> pullGid = overlay.getPullGroupIdUnderMouse(input.getMouseX(), input.getMouseY());
+				if (pullGid.isPresent()) {
+					if (input.getInputType() == InputType.EXECUTE) {
+						mezz.jei.gui.tree.CraftingTreeScreen.open(screen, overlay.getBookmarkList(), pullGid.get());
+						playClickSound();
+					}
+					return Optional.of(this);
 				}
-				return Optional.of(this);
+				Optional<mezz.jei.gui.input.IClickableIngredientInternal<?>> clickedIng = overlay.getIngredientUnderMouse(input.getMouseX(), input.getMouseY()).findFirst();
+				if (clickedIng.isPresent()) {
+					if (input.getInputType() == InputType.EXECUTE) {
+						mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, overlay.getBookmarkList(), clickedIng.get().getTypedIngredient(), mezz.jei.common.Internal.getJeiRuntime().getIngredientManager());
+						playClickSound();
+					}
+					return Optional.of(this);
+				}
 			}
 
 			if (input.getKey().getType() != InputConstants.Type.MOUSE) {
@@ -148,10 +160,18 @@ public final class BookmarkOverlayInputHandlers {
 
 			int mouseButton = input.getKey().getValue();
 			if (mouseButton == InputConstants.MOUSE_BUTTON_MIDDLE) {
-				Optional<GroupPanelSlot> groupSlot = overlay.getGroupPanelSlotUnderMouse(input.getMouseX(), input.getMouseY());
-				if (groupSlot.isPresent()) {
+				Optional<Integer> pullGid = overlay.getPullGroupIdUnderMouse(input.getMouseX(), input.getMouseY());
+				if (pullGid.isPresent()) {
 					if (input.getInputType() == InputType.EXECUTE) {
-						mezz.jei.gui.tree.CraftingTreeScreen.open(screen, overlay.getBookmarkList(), groupSlot.get().groupId());
+						mezz.jei.gui.tree.CraftingTreeScreen.open(screen, overlay.getBookmarkList(), pullGid.get());
+						playClickSound();
+					}
+					return Optional.of(this);
+				}
+				Optional<mezz.jei.gui.input.IClickableIngredientInternal<?>> clickedIng = overlay.getIngredientUnderMouse(input.getMouseX(), input.getMouseY()).findFirst();
+				if (clickedIng.isPresent()) {
+					if (input.getInputType() == InputType.EXECUTE) {
+						mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, overlay.getBookmarkList(), clickedIng.get().getTypedIngredient(), mezz.jei.common.Internal.getJeiRuntime().getIngredientManager());
 						playClickSound();
 					}
 					return Optional.of(this);
