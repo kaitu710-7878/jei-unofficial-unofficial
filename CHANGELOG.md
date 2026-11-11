@@ -9,9 +9,21 @@
 
 ### バージョニング方針
 本MODでは、上流のJEI / JEIU のバージョンを追跡しやすくするため、以下の命名規則を採用しています：
-[上流JEIバージョン]-jeiuu.[JEIUUリビジョン番号] (例: 15.59.0.212-jeiuu.2, 15.59.0.212-jeiuu.4-beta1)
+[上流JEIバージョン]-jeiuu.[JEIUUリビジョン番号] (例: 15.59.0.212-jeiuu.2, 15.59.0.212-jeiuu.4-beta3)
 - **上流JEIバージョン** (15.59.0.212): ベースとなっているJEI / JEIUの公式バージョンを表します。
-- **JEIUUリビジョン** (jeiuu.4-beta1): 本フォーク（JEIUU）独自で行われた機能追加・バグ修正・最適化の更新回数およびリリース種別（Alpha/Beta/Release）を表します。
+- **JEIUUリビジョン** (jeiuu.4-beta3): 本フォーク（JEIUU）独自で行われた機能追加・バグ修正・最適化の更新回数およびリリース種別（Alpha/Beta/Release）を表します。
+
+---
+
+### [15.59.0.212-jeiuu.4-beta3] - 2026-11-12 (Beta)
+#### 修正 (Fixed)
+- **クラフトツリー内のアイテム描画が正常に行われない不具合の修正**:
+  - `IIngredientRenderer` 描画時に `PoseStack` の座標変換（`translate(x, y, 100)`）およびカメラのズームスケール適用（`scale`）を実装。画面左上端への描画崩れを解消し、各ツリースロットおよび統計バー内に正しいサイズと位置でアイテムが表示されるよう修正。
+  - スロット内の数量テキストのZレイヤーを前面（Z=300）に調整し、重なりによる不可視化を防止。
+- **レシピチェーンからツリーを開くキー入力（Shift+B / T）が握りつぶされていた問題の修正**:
+  - `GroupInputHandler` において、キー入力（`InputType.IMMEDIATE`）に対して `input.isSimulate()` による安全な実行判定を適用。レシピチェーン表示中にも `Shift + B`、`T`、およびマウス中クリックで確実にクラフトツリーが開くよう修正。
+- **レシピチェーンからの材料データ（ITypedIngredient）の欠落防止**:
+  - `TreeChainBridge` において `BookmarkList.getRecipeChainInputs` を優先参照し、チェーン内の全スロットの `ITypedIngredient` を確実に復元・引当。中間素材の手動レシピ指定時にも JEI レシピから自動で子ノードを動的抽出できるよう強化。
 
 ---
 
@@ -26,20 +38,6 @@
   - 目標アイテムからツリーを開始し、ツリー内の材料ノードを右クリックして代替レシピを選択することで、その材料の原料ノードがツリーに生えて深掘り展開される手動探索に対応。
   - レシピ解除（原材料に戻す）、ノード削除（枝の剪定）、数量・倍率の手動調整に対応。
   - 手動構築したツリーは画面上部の「チェーン保存」ボタンを押すだけで、ブックマーク欄に新しいクラフトチェーングループとして一発保存可能。
-
----
-
-### [15.59.0.212-jeiuu.4-beta2] - 2026-11-12 (Beta)
-#### Fixed & Added
-- **Fixed Crafting Tree Opening from Chains and Bookmarks**:
-  - Rebuilt input handling so `Shift + B`, `T`, or **mouse middle-click** reliably opens `CraftingTreeScreen` from any bookmark slot item, recipe chain, or group header.
-  - Removed obsolete `RecipeTreeScreen` hooks that blocked event propagation.
-- **Direct Tree Creation from Outside Chains (Item List, Recipes GUI, Inventory)**:
-  - Hovering over any item in JEI ingredient list, recipe screen (`RecipesGui`), or player inventory and pressing `Shift + B` or `T` now immediately generates and opens a brand-new crafting tree rooted at that item.
-- **Manual Root Calculation and Crafting Path Exploration from Scratch**:
-  - Start from a target item and right-click intermediate ingredient nodes to choose specific recipes, expanding sub-ingredients dynamically into deeper tree branches.
-  - Supports reverting back to raw ingredients, pruning branches via node deletion, and manual quantity overrides.
-  - Export custom manually-built trees directly into new bookmark crafting chain groups via the "Save to Chain" button.
 
 ---
 
@@ -133,9 +131,35 @@
 
 ### Versioning Policy
 To clearly trace the upstream JEI / JEIU base version, this mod adopts the following versioning scheme:
-[Upstream JEI Version]-jeiuu.[JEIUU Revision] (e.g. 15.59.0.212-jeiuu.2, 15.59.0.212-jeiuu.4-beta1)
+[Upstream JEI Version]-jeiuu.[JEIUU Revision] (e.g. 15.59.0.212-jeiuu.2, 15.59.0.212-jeiuu.4-beta3)
 - **Upstream JEI Version** (15.59.0.212): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
-- **JEIUU Revision** (jeiuu.4-beta1): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+- **JEIUU Revision** (jeiuu.4-beta3): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta3] - 2026-11-12 (Beta)
+#### Fixed
+- **Fixed Ingredient Rendering in Crafting Tree GUI**:
+  - Added proper `PoseStack` coordinate translation (`translate(x, y, 100)`) and dynamic zoom scaling (`scale`) in `renderTypedIngredient`. Fixed an issue where ingredients were drawn at `(0, 0)` off-screen instead of inside their respective slot boundaries.
+  - Adjusted quantity text Z-layer to 300 to strictly prevent clipping behind rendered item stacks.
+- **Fixed Recipe Chain Keyboard Trigger (Shift+B / T) Being Consumed**:
+  - Replaced the restrictive `InputType.EXECUTE` check in `GroupInputHandler` with `!input.isSimulate()`, allowing immediate keyboard inputs (`InputType.IMMEDIATE`) to correctly launch `CraftingTreeScreen` directly from recipe chains.
+- **Prevented Missing Ingredient Instances from Recipe Chains**:
+  - Enhanced `TreeChainBridge` to query `BookmarkList.getRecipeChainInputs`, ensuring `ITypedIngredient` instances are fully preserved and populated across all chain nodes. Added dynamic recipe lookup fallback for manually assigned intermediate recipes.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta2] - 2026-11-12 (Beta)
+#### Fixed & Added
+- **Fixed Crafting Tree Opening from Chains and Bookmarks**:
+  - Rebuilt input handling so `Shift + B`, `T`, or **mouse middle-click** reliably opens `CraftingTreeScreen` from any bookmark slot item, recipe chain, or group header.
+  - Removed obsolete `RecipeTreeScreen` hooks that blocked event propagation.
+- **Direct Tree Creation from Outside Chains (Item List, Recipes GUI, Inventory)**:
+  - Hovering over any item in JEI ingredient list, recipe screen (`RecipesGui`), or player inventory and pressing `Shift + B` or `T` now immediately generates and opens a brand-new crafting tree rooted at that item.
+- **Manual Root Calculation and Crafting Path Exploration from Scratch**:
+  - Start from a target item and right-click intermediate ingredient nodes to choose specific recipes, expanding sub-ingredients dynamically into deeper tree branches.
+  - Supports reverting back to raw ingredients, pruning branches via node deletion, and manual quantity overrides.
+  - Export custom manually-built trees directly into new bookmark crafting chain groups via the "Save to Chain" button.
 
 ---
 

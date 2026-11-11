@@ -126,7 +126,7 @@ public final class TreeMath {
 
 			TreeSlot rootSlot = buildNode(
 				key,
-				rootInput.selectedIngredient(),
+				rootInput.selectedIngredient() != null ? rootInput.selectedIngredient() : key.typedIngredient(),
 				rootInput.metadata().recipeUid(),
 				rootInput.metadata().recipeTypeUid(),
 				BigInteger.valueOf(rootInput.metadata().multiplier()).max(BigInteger.ONE),
@@ -261,11 +261,28 @@ public final class TreeMath {
 				if (inKey != null) {
 					results.add(new RecipeChildIngredient(
 						inKey,
-						input.selectedIngredient(),
+						input.selectedIngredient() != null ? input.selectedIngredient() : inKey.typedIngredient(),
 						meta.bigAmount().max(BigInteger.ONE),
 						BigInteger.ONE,
 						null,
 						meta.recipeTypeUid()
+					));
+				}
+			}
+		}
+
+		if (results.isEmpty()) {
+			TreeRecipeBuilder.RecipeInfo<?> info = TreeRecipeBuilder.findRecipe(recipeUid, parentIngredient);
+			if (info != null) {
+				for (mezz.jei.api.ingredients.ITypedIngredient<?> inIng : info.inputs()) {
+					BookmarkIngredientKey inKey = mezz.jei.gui.bookmarks.BookmarkItemMetadataFactory.createPermutationKey(inIng, mezz.jei.common.Internal.getJeiRuntime().getIngredientManager());
+					results.add(new RecipeChildIngredient(
+						inKey,
+						inIng,
+						BigInteger.ONE,
+						BigInteger.valueOf(info.outputFactor()),
+						null,
+						info.categoryUid()
 					));
 				}
 			}

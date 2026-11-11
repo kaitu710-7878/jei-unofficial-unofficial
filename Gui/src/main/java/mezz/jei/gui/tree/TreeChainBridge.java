@@ -37,7 +37,10 @@ public final class TreeChainBridge {
 		int groupId,
 		Map<BookmarkIngredientKey, BigInteger> inventory
 	) {
-		List<RecipeChainInput> inputs = bookmarks.getGroupRecipeInputs(groupId);
+		List<RecipeChainInput> inputs = bookmarks.getRecipeChainInputs(groupId);
+		if (inputs.isEmpty()) {
+			inputs = bookmarks.getGroupRecipeInputs(groupId);
+		}
 		TreeMath treeMath = new TreeMath(inputs, inventory);
 
 		Optional<BookmarkGroup> groupOpt = bookmarks.getGroup(groupId);

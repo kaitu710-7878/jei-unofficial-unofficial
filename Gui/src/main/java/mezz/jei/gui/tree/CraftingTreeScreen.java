@@ -422,11 +422,11 @@ public final class CraftingTreeScreen extends Screen {
 			Optional<ITypedIngredient<?>> typedOpt = slot.getTypedIngredient();
 			if (typedOpt.isPresent()) {
 				ITypedIngredient<?> typed = typedOpt.get();
-				int itemPad = Math.max(1, (scaledSlotSize - 16) / 2);
-				renderTypedIngredient(g, typed, screenX + itemPad, screenY + itemPad);
+				float scale = (float) scaledSlotSize / (float) TreeLayout.SLOT_SIZE;
+				int itemPad = Math.max(0, (scaledSlotSize - Math.round(16 * scale)) / 2);
+				renderTypedIngredient(g, typed, screenX + itemPad, screenY + itemPad, scale);
 			}
 
-			// Render BigInteger Quantity Text
 			renderSlotAmount(g, slot, screenX, screenY, scaledSlotSize);
 
 			// Draw Collapse/Expand Button if node has children
@@ -466,9 +466,16 @@ public final class CraftingTreeScreen extends Screen {
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T> void renderTypedIngredient(GuiGraphics g, ITypedIngredient<T> typed, int x, int y) {
+	private <T> void renderTypedIngredient(GuiGraphics g, ITypedIngredient<T> typed, int x, int y, float scale) {
 		IIngredientRenderer<T> renderer = ingredientManager.getIngredientRenderer(typed.getType());
+		com.mojang.blaze3d.vertex.PoseStack pose = g.pose();
+		pose.pushPose();
+		pose.translate(x, y, 100);
+		if (scale != 1.0f) {
+			pose.scale(scale, scale, 1.0f);
+		}
 		renderer.render(g, typed.getIngredient());
+		pose.popPose();
 	}
 
 	private <T> List<Component> getIngredientTooltip(ITypedIngredient<T> typed) {
@@ -487,7 +494,7 @@ public final class CraftingTreeScreen extends Screen {
 		int textY = screenY + scaledSlotSize - 8;
 
 		g.pose().pushPose();
-		g.pose().translate(0, 0, 200);
+		g.pose().translate(0, 0, 300);
 		g.drawString(font, text, textX, textY, 0xFFFFFFFF, true);
 		g.pose().popPose();
 	}
@@ -521,14 +528,14 @@ public final class CraftingTreeScreen extends Screen {
 			// Render Ingredient
 			TreeStats.Row row = placed.getRow();
 			if (row.getKey() != null && row.getKey().typedIngredient() != null) {
-				renderTypedIngredient(g, row.getKey().typedIngredient(), slotScreenX + 1, drawY + 1);
+				renderTypedIngredient(g, row.getKey().typedIngredient(), slotScreenX + 1, drawY + 1, 1.0f);
 			}
 
 			// Render Row Amount
 			if (row.getAmount().compareTo(BigInteger.ONE) > 0) {
 				String amtText = BookmarkAmountFormatter.formatItemAmount(row.getAmount());
 				g.pose().pushPose();
-				g.pose().translate(0, 0, 200);
+				g.pose().translate(0, 0, 300);
 				g.drawString(font, amtText, slotScreenX + 1, drawY + 9, 0xFFE0E0E0, true);
 				g.pose().popPose();
 			}

@@ -106,7 +106,7 @@ public final class BookmarkOverlayInputHandlers {
 			if (target.isEmpty()) {
 				return Optional.empty();
 			}
-			if (input.getInputType() == InputType.EXECUTE) {
+			if (!input.isSimulate()) {
 				int groupId = target.get().groupId();
 				boolean collapsed = overlay.getBookmarkList().getBookmarkGroups().stream()
 					.filter(group -> group.id() == groupId)
@@ -138,7 +138,7 @@ public final class BookmarkOverlayInputHandlers {
 			if (isTreeKey) {
 				Optional<Integer> pullGid = overlay.getPullGroupIdUnderMouse(input.getMouseX(), input.getMouseY());
 				if (pullGid.isPresent()) {
-					if (input.getInputType() == InputType.EXECUTE) {
+					if (!input.isSimulate()) {
 						mezz.jei.gui.tree.CraftingTreeScreen.open(screen, overlay.getBookmarkList(), pullGid.get());
 						playClickSound();
 					}
@@ -146,7 +146,7 @@ public final class BookmarkOverlayInputHandlers {
 				}
 				Optional<mezz.jei.gui.input.IClickableIngredientInternal<?>> clickedIng = overlay.getIngredientUnderMouse(input.getMouseX(), input.getMouseY()).findFirst();
 				if (clickedIng.isPresent()) {
-					if (input.getInputType() == InputType.EXECUTE) {
+					if (!input.isSimulate()) {
 						mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, overlay.getBookmarkList(), clickedIng.get().getTypedIngredient(), mezz.jei.common.Internal.getJeiRuntime().getIngredientManager());
 						playClickSound();
 					}
@@ -162,7 +162,7 @@ public final class BookmarkOverlayInputHandlers {
 			if (mouseButton == InputConstants.MOUSE_BUTTON_MIDDLE) {
 				Optional<Integer> pullGid = overlay.getPullGroupIdUnderMouse(input.getMouseX(), input.getMouseY());
 				if (pullGid.isPresent()) {
-					if (input.getInputType() == InputType.EXECUTE) {
+					if (!input.isSimulate()) {
 						mezz.jei.gui.tree.CraftingTreeScreen.open(screen, overlay.getBookmarkList(), pullGid.get());
 						playClickSound();
 					}
@@ -170,7 +170,7 @@ public final class BookmarkOverlayInputHandlers {
 				}
 				Optional<mezz.jei.gui.input.IClickableIngredientInternal<?>> clickedIng = overlay.getIngredientUnderMouse(input.getMouseX(), input.getMouseY()).findFirst();
 				if (clickedIng.isPresent()) {
-					if (input.getInputType() == InputType.EXECUTE) {
+					if (!input.isSimulate()) {
 						mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, overlay.getBookmarkList(), clickedIng.get().getTypedIngredient(), mezz.jei.common.Internal.getJeiRuntime().getIngredientManager());
 						playClickSound();
 					}
@@ -182,7 +182,7 @@ public final class BookmarkOverlayInputHandlers {
 				if (mouseButton != InputConstants.MOUSE_BUTTON_RIGHT) {
 					return Optional.empty();
 				}
-				if (input.getInputType() == InputType.EXECUTE) {
+				if (!input.isSimulate()) {
 					overlay.getScrollStep().reset();
 					overlay.getScrollStepField().syncFromScrollStep();
 					playClickSound();
@@ -209,7 +209,7 @@ public final class BookmarkOverlayInputHandlers {
 				if (action.isEmpty()) {
 					return Optional.empty();
 				}
-				if (input.getInputType() == InputType.EXECUTE) {
+				if (!input.isSimulate()) {
 					if (applyGroupClickAction(BookmarkGroupManager.DEFAULT_GROUP_ID, action.get())) {
 						playClickSound();
 					}
@@ -235,7 +235,7 @@ public final class BookmarkOverlayInputHandlers {
 			}
 
 			if (action.get() == BookmarkHotkeyAction.GROUP_TOGGLE_COLLAPSED) {
-				if (input.getInputType() == InputType.EXECUTE) {
+				if (!input.isSimulate()) {
 					if (applyGroupClickAction(slot.get().groupId(), action.get())) {
 						playClickSound();
 					}
