@@ -9,7 +9,6 @@
 package mezz.jei.gui.bookmarks;
 
 import mezz.jei.common.util.BigIntMath;
-import mezz.jei.common.util.SaturatedMath;
 import net.minecraft.resources.ResourceLocation;
 
 import java.math.BigInteger;

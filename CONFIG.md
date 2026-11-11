@@ -32,6 +32,22 @@ JEIUUの設定は主に以下のファイルで管理されます：
 - **レシピツリー自動生成**: デフォルト `Shift + F` キー（複数段階のクラフト工程をツリー表示）
 - **ブックマークチェーン結合**: ブックマーク欄の括弧をドラッグして複数レシピを合成・倍率計算
 
+#### 4. クラフトツリー（Crafting Tree）操作ガイド
+- **ツリーの起動**:
+  - ブックマーク一覧内のアイテム/チェーン上で `Shift + B` または `T` キー（あるいは **マウス中クリック**）
+- **ナビゲーション**:
+  - **視点移動（パン）**: 画面背景を左ドラッグ
+  - **ズーム拡大・縮小**: マウスホイール（0.2倍 〜 5.0倍）
+  - **ノードの折りたたみ / 展開**: スロット横の `[+]` / `[-]` ボタンをクリック
+  - **全展開 / 全折りたたみ**: 画面右上の `[+]` / `[-]` ボタン
+- **手動調整・レシピ指定**:
+  - **代替レシピの選択**: 材料ノードを **右クリック** してレシピ候補ダイアログから選択
+  - **数量・倍率の手動調整**: 材料ノードを `Shift + 左クリック` または `中クリック` して数量編集・強制クラフト切替・ノード削除
+- **統計パネルとチェーン連携**:
+  - **インベントリ在庫引当**: 画面上部のトグルボタンで手持ちインベントリのアイテムをツリー要求から自動差し引き
+  - **チェーン保存**: 「チェーン保存」ボタンでツリーのクラフト手順をそのままブックマーク欄へ反映
+  - **統計パネル**: 画面下部で不足原材料、手持ち原材料、中間作成物、副産物、必要な機械・作業台の数量をリアルタイム集計表示（横スクロール対応）
+
 ---
 
 <a name="english"></a>
@@ -61,3 +77,19 @@ JEIUU settings are primarily stored in:
 - **Favorite Recipe**: Default key `F` (on recipe screen)
 - **Recipe Tree Generation**: Default key `Shift + F` (visualizes multi-stage craft chains)
 - **Bookmark Chaining**: Drag bookmark brackets to merge crafting steps and compute material multipliers.
+
+#### 4. Crafting Tree Controls & Guide
+- **Opening the Tree**:
+  - Hover over a bookmark item or chain and press `Shift + B` or `T` (or **Middle-click**).
+- **Navigation**:
+  - **Pan Camera**: Click and drag on empty canvas background.
+  - **Zoom In / Out**: Mouse wheel (0.2x to 5.0x scale).
+  - **Collapse / Expand Subtree**: Click the `[+]` / `[-]` toggle badge beside any node.
+  - **Expand All / Collapse All**: Use the top-right `[+]` / `[-]` toolbar buttons.
+- **Recipe Selection & Manual Adjustments**:
+  - **Select Alternative Recipe**: **Right-click** any ingredient node to choose from available recipe alternatives.
+  - **Adjust Quantity / Multiplier**: `Shift + Left-click` or `Middle-click` any node to open the quantity adjustment dialog (supports direct BigInteger input, multiplier adjustment, force craft toggling, and node pruning).
+- **Statistics & Chain Integration**:
+  - **Inventory Deduction Toggle**: Click "Inventory: Use / Ignore" in top toolbar to subtract player inventory items from needed materials.
+  - **Save to Chain**: Click "Save to Chain" to export current tree into bookmark groups.
+  - **Analytics Panel**: Bottom bar provides real-time summary of missing raw materials, held materials, intermediate crafts, byproducts, and required crafting stations/machines.

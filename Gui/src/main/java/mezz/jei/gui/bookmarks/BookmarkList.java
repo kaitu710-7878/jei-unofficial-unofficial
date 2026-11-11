@@ -2196,6 +2196,10 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 		return true;
 	}
 
+	public Optional<BookmarkGroup> getGroup(int groupId) {
+		return bookmarkGroups.getGroup(groupId);
+	}
+
 	public boolean isEmpty() {
 		return bookmarksSet.isEmpty();
 	}

@@ -144,8 +144,10 @@ public final class RecipeChainItem {
 
 	@Override
 	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
 		RecipeChainItem that = (RecipeChainItem) o;
 		return sourceIndex == that.sourceIndex &&
 			metadata.equals(that.metadata) &&

@@ -1,6 +1,5 @@
 package mezz.jei.test.gui.bookmarks;
 
-import mezz.jei.common.util.BigIntMath;
 import mezz.jei.gui.bookmarks.BookmarkIngredientKey;
 import mezz.jei.gui.bookmarks.BookmarkItemMetadata;
 import mezz.jei.gui.bookmarks.BookmarkItemType;

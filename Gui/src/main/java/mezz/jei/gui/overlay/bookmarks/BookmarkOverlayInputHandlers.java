@@ -132,13 +132,30 @@ public final class BookmarkOverlayInputHandlers {
 
 		@Override
 		public Optional<IUserInputHandler> handleUserInput(Screen screen, UserInput input, IInternalKeyMappings keyBindings) {
+			if (keyBindings.getShowRecipeTree().isActiveAndMatches(input.getKey())) {
+				Optional<GroupPanelSlot> groupSlot = overlay.getGroupPanelSlotUnderMouse(input.getMouseX(), input.getMouseY());
+				int targetGroupId = groupSlot.map(GroupPanelSlot::groupId).orElse(BookmarkGroupManager.DEFAULT_GROUP_ID);
+				if (input.getInputType() == InputType.EXECUTE) {
+					mezz.jei.gui.tree.CraftingTreeScreen.open(screen, overlay.getBookmarkList(), targetGroupId);
+					playClickSound();
+				}
+				return Optional.of(this);
+			}
+
 			if (input.getKey().getType() != InputConstants.Type.MOUSE) {
 				return Optional.empty();
 			}
 
 			int mouseButton = input.getKey().getValue();
-			if (mouseButton != InputConstants.MOUSE_BUTTON_LEFT && mouseButton != InputConstants.MOUSE_BUTTON_RIGHT) {
-				return Optional.empty();
+			if (mouseButton == InputConstants.MOUSE_BUTTON_MIDDLE) {
+				Optional<GroupPanelSlot> groupSlot = overlay.getGroupPanelSlotUnderMouse(input.getMouseX(), input.getMouseY());
+				if (groupSlot.isPresent()) {
+					if (input.getInputType() == InputType.EXECUTE) {
+						mezz.jei.gui.tree.CraftingTreeScreen.open(screen, overlay.getBookmarkList(), groupSlot.get().groupId());
+						playClickSound();
+					}
+					return Optional.of(this);
+				}
 			}
 
 			if (overlay.getScrollStepArea().contains(input.getMouseX(), input.getMouseY())) {

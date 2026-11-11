@@ -1,8 +1,6 @@
 package mezz.jei.common.util;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 
 /**
  * High-performance, overflow-safe BigInteger math utilities and constants for JEI recipe chain calculations.
@@ -87,14 +85,18 @@ public final class BigIntMath {
 	}
 
 	public static BigInteger min(BigInteger a, BigInteger b) {
-		if (a == null) return b == null ? ZERO : b;
-		if (b == null) return a;
+		if (a == null)
+			return b == null ? ZERO : b;
+		if (b == null)
+			return a;
 		return a.compareTo(b) <= 0 ? a : b;
 	}
 
 	public static BigInteger max(BigInteger a, BigInteger b) {
-		if (a == null) return b == null ? ZERO : b;
-		if (b == null) return a;
+		if (a == null)
+			return b == null ? ZERO : b;
+		if (b == null)
+			return a;
 		return a.compareTo(b) >= 0 ? a : b;
 	}
 

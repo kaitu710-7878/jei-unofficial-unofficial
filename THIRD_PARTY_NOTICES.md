@@ -21,9 +21,16 @@ Portions of this project are adapted from this software and are covered by
 the GNU Lesser General Public License v3.0 or later.
 See LICENSES/LGPL-3.0.txt and LICENSES/GPL-3.0.txt.
 
+## NEI Features for JEI (adapted portions)
+
+Copyright (c) 2024-2026
+https://www.curseforge.com/minecraft/mc-mods/nei-features-for-jei
+Portions of the crafting tree system (located in `mezz.jei.gui.tree`: `CraftingTreeScreen`, `TreeLayout`, `TreeCamera`, `TreeStats`, `TreeSlot`, `TreeGraph`) are ported and heavily adapted/refactored from NEI Features for JEI and GTNH NotEnoughItems, covered by the GNU Lesser General Public License v3.0 or later.
+See LICENSES/LGPL-3.0.txt and LICENSES/GPL-3.0.txt.
+
 ## Additional modifications
 
-Copyright (c) 2026 StardustMINUS and the Stellar Remnants Team
+Copyright (c) 2026 StardustMINUS and the Stellar Remnants Team, and Antigravity
 
 Original additions are primarily located in:
 
@@ -34,8 +41,8 @@ Original additions are primarily located in:
 - mezz.jei.gui.overlay.elements (placeholder and projected bookmark elements)
 - mezz.jei.common.network.packets (crafting-grid and bookmark pull transport)
 - mezz.jei.gui.bookmarks.chain.RecipeChainGraph, RecipeChainPlan and BookmarkPullPlanner (recipe chain graph and planning)
+- mezz.jei.gui.tree (Crafting Tree system, BigInteger math calculation, manual recipe selector, manual quantity adjustment, and bidirectional bookmark chain conversion)
 
-Note: mezz.jei.gui.bookmarks.chain.RecipeChainMath contains portions adapted
-from GTNH NEI (see the GTNewHorizons NotEnoughItems section above), while its
-graph-based chain computation (via RecipeChainGraph and RecipeChainPlan) is an
-original addition.
+Note: mezz.jei.gui.bookmarks.chain.RecipeChainMath and mezz.jei.gui.tree contain portions adapted
+from GTNH NEI and NEI Features for JEI (see the sections above), while its
+graph-based chain computation, bidirectional conversion, BigInteger math, manual adjustments, and layout caching are original additions.
