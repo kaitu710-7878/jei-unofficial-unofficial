@@ -2,6 +2,7 @@
   "_comment": "Debug (for a debug mode, do not need translation)",
   "jei.tooltip.config": "JEI Config",
   "key.jei.showRecipeTree": "View Crafting Tree",
+  "key.jei.openCraftingTree": "Open/Resume Crafting Tree",
   "jei.tree.title": "Recipe Tree",
   "jei.tree.search": "Search tree",
   "jei.tree.demand_view": "Actual branch demand",

@@ -122,6 +122,7 @@ public class BookmarkInputHandler implements IUserInputHandler {
 			}
 		}
 		boolean isTreeTrigger = input.is(keyBindings.getShowRecipeTree()) ||
+			input.is(keyBindings.getOpenCraftingTree()) ||
 			(input.getKey().getType() == com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_T) ||
 			(input.getKey().getType() == com.mojang.blaze3d.platform.InputConstants.Type.MOUSE && input.getKey().getValue() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_MIDDLE);
 
@@ -159,6 +160,13 @@ public class BookmarkInputHandler implements IUserInputHandler {
 				}
 				return Optional.of(this);
 			}
+
+			// 4. Nothing hovered! Open or resume active crafting tree session
+			if (!input.isSimulate()) {
+				mezz.jei.gui.tree.CraftingTreeScreen.openSessionOrNew(screen, bookmarkList, ingredientManager);
+				mezz.jei.common.util.JeiClientSoundUtil.playClickSound();
+			}
+			return Optional.of(this);
 		}
 		// 1.21.1 parity: with no modifier held, the bookmark key bookmarks the recipe under the
 		// mouse. It falls through to the ingredient path below when not hovering a recipe.

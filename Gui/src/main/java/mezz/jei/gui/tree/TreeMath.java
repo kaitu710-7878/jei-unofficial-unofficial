@@ -2,6 +2,7 @@ package mezz.jei.gui.tree;
 
 import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.common.util.BigIntMath;
+import mezz.jei.gui.bookmarks.BookmarkIngredientAmountResolver;
 import mezz.jei.gui.bookmarks.BookmarkIngredientKey;
 import mezz.jei.gui.bookmarks.BookmarkItemMetadata;
 import mezz.jei.gui.bookmarks.BookmarkItemType;
@@ -309,10 +310,7 @@ public final class TreeMath {
 				for (mezz.jei.api.ingredients.ITypedIngredient<?> inIng : info.inputs()) {
 					BookmarkIngredientKey inKey = mezz.jei.gui.bookmarks.BookmarkItemMetadataFactory.createPermutationKey(inIng, mezz.jei.common.Internal.getJeiRuntime().getIngredientManager());
 					RecipeChildIngredient existing = aggregated.get(inKey);
-					BigInteger count = BigInteger.ONE;
-					if (inIng.getItemStack().isPresent()) {
-						count = BigInteger.valueOf(Math.max(1, inIng.getItemStack().get().getCount()));
-					}
+					BigInteger count = BigInteger.valueOf(Math.max(1, BookmarkIngredientAmountResolver.getAmount(inIng, mezz.jei.common.Internal.getJeiRuntime().getIngredientManager())));
 					if (existing != null) {
 						aggregated.put(inKey, new RecipeChildIngredient(
 							inKey,

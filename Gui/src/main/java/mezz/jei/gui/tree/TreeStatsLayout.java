@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public final class TreeStatsLayout {
 	public static final int SLOT_SIZE = 18;
-	public static final int SLOT_SPACING = 2;
+	public static final int SLOT_SPACING = 4;
 	public static final int GROUP_SPACING = 12;
 	public static final int LABEL_SPACING = 4;
 	public static final int PADDING = 4;

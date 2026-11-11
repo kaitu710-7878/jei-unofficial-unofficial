@@ -2,6 +2,7 @@
   "_comment": "Debug (for a debug mode, do not need translation)",
   "jei.tooltip.config": "JEI配置",
   "key.jei.showRecipeTree": "查看书签配方树",
+  "key.jei.openCraftingTree": "打开/继续制作树",
   "jei.tree.title": "配方树",
   "jei.tree.search": "搜索配方树",
   "jei.tree.demand_view": "显示分支实际需求",

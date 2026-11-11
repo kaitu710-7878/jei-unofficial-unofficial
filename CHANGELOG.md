@@ -15,6 +15,19 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta7] - 2026-11-12 (Beta)
+#### 霑ｽ蜉繝ｻ謾ｹ蝟・(Added & Improved)
+- **繝・Μ繝ｼ蟆ら畑繧｢繧ｯ繧ｻ繧ｹ繧ｭ繝ｼ縺ｮ譁ｰ險ｭ縺ｨ繧ｻ繝・す繝ｧ繝ｳ菫晁ｭｷ (遨ｺ荳ｭ縺ｧT繧ｭ繝ｼ蜀埼幕)**:
+  - 逕ｻ髱｢蜀・・菴輔ｂ縺ｪ縺・ｴ謇・医∪縺溘・繧｢繧､繝・Β髱槭・繝舌・譎ゑｼ峨〒 T 繧ｭ繝ｼ繧呈款縺吶□縺代〒縲∫峩蜑阪∪縺ｧ菴懈･ｭ縺励※縺・◆繝・Μ繝ｼ繧偵◎縺ｮ縺ｾ縺ｾ遒ｺ螳溘↓蜀埼幕縺ｧ縺阪ｋ讖溯・繧定ｿｽ蜉縲・  - 繧｢繧､繝・Β繧偵・繝舌・縺励※髢九￥蠢・ｦ√′縺ｪ縺上↑縺｣縺溘◆繧√∵э蝗ｳ縺帙★莉悶・繧｢繧､繝・Β縺ｮ繝・Μ繝ｼ縺ｧ菫晏ｭ俶ｸ医∩菴懈･ｭ蜀・ｮｹ縺御ｸ頑嶌縺肴ｶ亥悉縺輔ｌ繧倶ｺ区腐繧貞ｮ悟・縺ｫ髦ｲ豁｢縲・  - 謫堺ｽ懆ｨｭ螳夲ｼ・ontrols・峨↓縲後け繝ｩ繝輔ヨ繝・Μ繝ｼ繧帝幕縺・蜀埼幕 (key.jei.openCraftingTree)縲阪く繝ｼ繝舌う繝ｳ繝峨ｒ譁ｰ險ｭ縺励∝･ｽ縺ｿ縺ｮ繧ｭ繝ｼ縺ｫ蜑ｲ繧雁ｽ薙※蜿ｯ閭ｽ縺ｫ縲・  - 繝悶ャ繧ｯ繝槭・繧ｯ繧ｰ繝ｫ繝ｼ繝励°繧蛾幕縺・◆繝・Μ繝ｼ繧ゅそ繝・す繝ｧ繝ｳ縺ｨ縺励※豌ｸ邯壻ｿ晄戟縺輔ｌ繧九ｈ縺・↓謾ｹ蝟・・- **WASD/遏｢蜊ｰ繧ｭ繝ｼ縺ｫ繧医ｋ繝・Μ繝ｼ繝代Φ謫堺ｽ懊・謾ｹ蝟・*:
+  - WASD繧・泙蜊ｰ繧ｭ繝ｼ縺檎判髱｢荳翫・繝懊ち繝ｳ驕ｸ謚槭ヵ繧ｩ繝ｼ繧ｫ繧ｹ縺ｫ蜷ｸ繧上ｌ縺ｦ縺・◆蝠城｡後ｒ隗｣豸医ゅヤ繝ｪ繝ｼ遘ｻ蜍輔く繝ｼ蜈･蜉帙ｒ譛蜆ｪ蜈医〒豸郁ｲｻ縺励∝ｿｫ驕ｩ縺ｪ繧ｭ繝ｼ繝懊・繝画桃菴懊ｒ螳溽樟縲・- **Shift + 繝槭え繧ｹ繝帙う繝ｼ繝ｫ縺ｫ繧医ｋ豌ｴ蟷ｳ繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ縺ｮ譛牙柑蛹・*:
+  - Shift繧ｭ繝ｼ繧呈款縺励↑縺後ｉ繝帙う繝ｼ繝ｫ繧貞屓縺吶％縺ｨ縺ｧ縲√ヤ繝ｪ繝ｼ逕ｻ髱｢繧貞ｷｦ蜿ｳ縺ｫ繧ｹ繝繝ｼ繧ｺ縺ｫ繝代Φ遘ｻ蜍輔〒縺阪ｋ繧医≧菫ｮ豁｣縲・
+#### 菫ｮ豁｣ (Fixed)
+- **邨ｱ險医ヱ繝阪Ν縺ｮ繝帙ヰ繝ｼ陦ｨ遉ｺ縺悟・驛ｨ蜷咲ｧｰ縺ｫ縺ｪ繧倶ｸ榊・蜷医・菫ｮ豁｣**:
+  - 邨ｱ險医ヱ繝阪Ν・・ummary Bar・峨・繧｢繧､繝・Β繧・ｵ∽ｽ薙↓繝槭え繧ｹ繝帙ヰ繝ｼ縺励◆髫帙∝・驛ｨID・・minecraft:iron_ingot 遲会ｼ峨〒縺ｯ縺ｪ縺乗ｭ｣蠑上↑繝ｭ繝ｼ繧ｫ繝ｩ繧､繧ｺ陦ｨ遉ｺ蜷阪♀繧医・隧ｳ邏ｰ繝・・繝ｫ繝√ャ繝励′陦ｨ遉ｺ縺輔ｌ繧九ｈ縺・ｿｮ豁｣縲・- **繝弱・繝我ｸ翫・邱乗ｶ郁ｲｻ驥上→繝ｬ繧ｷ繝碑ｦ∵ｱよ焚縺ｮ驥阪↑繧願ｧ｣豸・*:
+  - 繝弱・繝牙・縺ｫ謠冗判縺輔ｌ繧狗ｷ丞ｿ・ｦ・㍼・井ｾ・ 128・峨→縲√ヰ繝九Λ繝ｬ繝ｳ繝繝ｩ繝ｼ縺梧緒逕ｻ縺吶ｋ繧ｹ繧ｿ繝・け謨ｰ・井ｾ・ 8・峨′驥阪↑縺｣縺ｦ隱ｭ繧√↑縺上↑繧句撫鬘後ｒ隗｣豸医ゅヤ繝ｪ繝ｼ險育ｮ礼ｵ先棡縺ｮ邱乗焚驥上・縺ｿ縺悟承荳九↓鄒弱＠縺乗緒逕ｻ縺輔ｌ縲∝ｹ・′蠎・＞蝣ｴ蜷医ｂ閾ｪ蜍慕ｸｮ蟆上せ繧ｱ繝ｼ繝ｫ縺ｧ譫蜀・↓蜿弱∪繧九ｈ縺・隼蝟・・- **邨ｱ險医ヱ繝阪Ν縺ｮ謨ｰ驥剰｡ｨ遉ｺ縺ｮ驥阪↑繧願ｧ｣豸・*:
+  - 邨ｱ險医ヱ繝阪Ν縺ｮ繧ｹ繝ｭ繝・ヨ縺ｫ縺翫＞縺ｦ縲∵｡∵焚縺ｮ螟壹＞謨ｰ驥上ユ繧ｭ繧ｹ繝医′髫｣謗･繧ｹ繝ｭ繝・ヨ繧・い繧､繧ｳ繝ｳ縺ｫ縺ｯ縺ｿ蜃ｺ縺励※驥阪↑繧句撫鬘後ｒ菫ｮ豁｣縲ゅせ繝ｭ繝・ヨ蟷・↓蠢懊§縺溯・蜍輔せ繧ｱ繝ｼ繝ｫ邵ｮ蟆丞・逅・→繧ｹ繝ｭ繝・ヨ髢馴囈縺ｮ諡｡螟ｧ繧帝←逕ｨ縲・- **邨ｱ險医ヱ繝阪Ν縺ｧ蛻晄悄逕滓・譎ゅ↓豸ｲ菴薙・繧ｬ繧ｹ縺ｮ謨ｰ驥上′陦ｨ遉ｺ縺輔ｌ縺ｪ縺・撫鬘後・菫ｮ豁｣**:
+  - 繝・Μ繝ｼ蛻晄悄逕滓・譎ゅ↓ BookmarkIngredientAmountResolver 繧帝壹§縺ｦ豬∽ｽ薙ｄ繧ｬ繧ｹ縺ｮ隕∵ｱる㍼・・B・峨ｒ豁｣遒ｺ縺ｫ蜿門ｾ励・髮・ｨ医☆繧九ｈ縺・↓謾ｹ菫ｮ縲・mB遲峨・蝣ｴ蜷医〒繧ょ腰菴堺ｻ倥″・・B / B 遲会ｼ峨〒遒ｺ螳溘↓謠冗判縺輔ｌ繧九ｈ縺・弍豁｣縲・
+---
 ### [15.59.0.212-jeiuu.4-beta6] - 2026-11-12 (Beta)
 #### 追加・改善 (Added & Improved)
 - **JEI レシピビューワー画面との連携による直感的なレシピ選択**:
@@ -39,6 +52,42 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta7] - 2026-11-12 (Beta)
+#### 霑ｽ蜉繝ｻ謾ｹ蝟・(Added & Improved)
+- **繝・Μ繝ｼ蟆ら畑繧｢繧ｯ繧ｻ繧ｹ繧ｭ繝ｼ縺ｮ譁ｰ險ｭ縺ｨ繧ｻ繝・す繝ｧ繝ｳ菫晁ｭｷ (遨ｺ荳ｭ縺ｧT繧ｭ繝ｼ蜀埼幕)**:
+  - 逕ｻ髱｢蜀・・菴輔ｂ縺ｪ縺・ｴ謇・医∪縺溘・繧｢繧､繝・Β髱槭・繝舌・譎ゑｼ峨〒 T 繧ｭ繝ｼ繧呈款縺吶□縺代〒縲∫峩蜑阪∪縺ｧ菴懈･ｭ縺励※縺・◆繝・Μ繝ｼ繧偵◎縺ｮ縺ｾ縺ｾ遒ｺ螳溘↓蜀埼幕縺ｧ縺阪ｋ讖溯・繧定ｿｽ蜉縲・  - 繧｢繧､繝・Β繧偵・繝舌・縺励※髢九￥蠢・ｦ√′縺ｪ縺上↑縺｣縺溘◆繧√∵э蝗ｳ縺帙★莉悶・繧｢繧､繝・Β縺ｮ繝・Μ繝ｼ縺ｧ菫晏ｭ俶ｸ医∩菴懈･ｭ蜀・ｮｹ縺御ｸ頑嶌縺肴ｶ亥悉縺輔ｌ繧倶ｺ区腐繧貞ｮ悟・縺ｫ髦ｲ豁｢縲・  - 謫堺ｽ懆ｨｭ螳夲ｼ・ontrols・峨↓縲後け繝ｩ繝輔ヨ繝・Μ繝ｼ繧帝幕縺・蜀埼幕 (key.jei.openCraftingTree)縲阪く繝ｼ繝舌う繝ｳ繝峨ｒ譁ｰ險ｭ縺励∝･ｽ縺ｿ縺ｮ繧ｭ繝ｼ縺ｫ蜑ｲ繧雁ｽ薙※蜿ｯ閭ｽ縺ｫ縲・  - 繝悶ャ繧ｯ繝槭・繧ｯ繧ｰ繝ｫ繝ｼ繝励°繧蛾幕縺・◆繝・Μ繝ｼ繧ゅそ繝・す繝ｧ繝ｳ縺ｨ縺励※豌ｸ邯壻ｿ晄戟縺輔ｌ繧九ｈ縺・↓謾ｹ蝟・・- **WASD/遏｢蜊ｰ繧ｭ繝ｼ縺ｫ繧医ｋ繝・Μ繝ｼ繝代Φ謫堺ｽ懊・謾ｹ蝟・*:
+  - WASD繧・泙蜊ｰ繧ｭ繝ｼ縺檎判髱｢荳翫・繝懊ち繝ｳ驕ｸ謚槭ヵ繧ｩ繝ｼ繧ｫ繧ｹ縺ｫ蜷ｸ繧上ｌ縺ｦ縺・◆蝠城｡後ｒ隗｣豸医ゅヤ繝ｪ繝ｼ遘ｻ蜍輔く繝ｼ蜈･蜉帙ｒ譛蜆ｪ蜈医〒豸郁ｲｻ縺励∝ｿｫ驕ｩ縺ｪ繧ｭ繝ｼ繝懊・繝画桃菴懊ｒ螳溽樟縲・- **Shift + 繝槭え繧ｹ繝帙う繝ｼ繝ｫ縺ｫ繧医ｋ豌ｴ蟷ｳ繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ縺ｮ譛牙柑蛹・*:
+  - Shift繧ｭ繝ｼ繧呈款縺励↑縺後ｉ繝帙う繝ｼ繝ｫ繧貞屓縺吶％縺ｨ縺ｧ縲√ヤ繝ｪ繝ｼ逕ｻ髱｢繧貞ｷｦ蜿ｳ縺ｫ繧ｹ繝繝ｼ繧ｺ縺ｫ繝代Φ遘ｻ蜍輔〒縺阪ｋ繧医≧菫ｮ豁｣縲・
+#### 菫ｮ豁｣ (Fixed)
+- **邨ｱ險医ヱ繝阪Ν縺ｮ繝帙ヰ繝ｼ陦ｨ遉ｺ縺悟・驛ｨ蜷咲ｧｰ縺ｫ縺ｪ繧倶ｸ榊・蜷医・菫ｮ豁｣**:
+  - 邨ｱ險医ヱ繝阪Ν・・ummary Bar・峨・繧｢繧､繝・Β繧・ｵ∽ｽ薙↓繝槭え繧ｹ繝帙ヰ繝ｼ縺励◆髫帙∝・驛ｨID・・minecraft:iron_ingot 遲会ｼ峨〒縺ｯ縺ｪ縺乗ｭ｣蠑上↑繝ｭ繝ｼ繧ｫ繝ｩ繧､繧ｺ陦ｨ遉ｺ蜷阪♀繧医・隧ｳ邏ｰ繝・・繝ｫ繝√ャ繝励′陦ｨ遉ｺ縺輔ｌ繧九ｈ縺・ｿｮ豁｣縲・- **繝弱・繝我ｸ翫・邱乗ｶ郁ｲｻ驥上→繝ｬ繧ｷ繝碑ｦ∵ｱよ焚縺ｮ驥阪↑繧願ｧ｣豸・*:
+  - 繝弱・繝牙・縺ｫ謠冗判縺輔ｌ繧狗ｷ丞ｿ・ｦ・㍼・井ｾ・ 128・峨→縲√ヰ繝九Λ繝ｬ繝ｳ繝繝ｩ繝ｼ縺梧緒逕ｻ縺吶ｋ繧ｹ繧ｿ繝・け謨ｰ・井ｾ・ 8・峨′驥阪↑縺｣縺ｦ隱ｭ繧√↑縺上↑繧句撫鬘後ｒ隗｣豸医ゅヤ繝ｪ繝ｼ險育ｮ礼ｵ先棡縺ｮ邱乗焚驥上・縺ｿ縺悟承荳九↓鄒弱＠縺乗緒逕ｻ縺輔ｌ縲∝ｹ・′蠎・＞蝣ｴ蜷医ｂ閾ｪ蜍慕ｸｮ蟆上せ繧ｱ繝ｼ繝ｫ縺ｧ譫蜀・↓蜿弱∪繧九ｈ縺・隼蝟・・- **邨ｱ險医ヱ繝阪Ν縺ｮ謨ｰ驥剰｡ｨ遉ｺ縺ｮ驥阪↑繧願ｧ｣豸・*:
+  - 邨ｱ險医ヱ繝阪Ν縺ｮ繧ｹ繝ｭ繝・ヨ縺ｫ縺翫＞縺ｦ縲∵｡∵焚縺ｮ螟壹＞謨ｰ驥上ユ繧ｭ繧ｹ繝医′髫｣謗･繧ｹ繝ｭ繝・ヨ繧・い繧､繧ｳ繝ｳ縺ｫ縺ｯ縺ｿ蜃ｺ縺励※驥阪↑繧句撫鬘後ｒ菫ｮ豁｣縲ゅせ繝ｭ繝・ヨ蟷・↓蠢懊§縺溯・蜍輔せ繧ｱ繝ｼ繝ｫ邵ｮ蟆丞・逅・→繧ｹ繝ｭ繝・ヨ髢馴囈縺ｮ諡｡螟ｧ繧帝←逕ｨ縲・- **邨ｱ險医ヱ繝阪Ν縺ｧ蛻晄悄逕滓・譎ゅ↓豸ｲ菴薙・繧ｬ繧ｹ縺ｮ謨ｰ驥上′陦ｨ遉ｺ縺輔ｌ縺ｪ縺・撫鬘後・菫ｮ豁｣**:
+  - 繝・Μ繝ｼ蛻晄悄逕滓・譎ゅ↓ BookmarkIngredientAmountResolver 繧帝壹§縺ｦ豬∽ｽ薙ｄ繧ｬ繧ｹ縺ｮ隕∵ｱる㍼・・B・峨ｒ豁｣遒ｺ縺ｫ蜿門ｾ励・髮・ｨ医☆繧九ｈ縺・↓謾ｹ菫ｮ縲・mB遲峨・蝣ｴ蜷医〒繧ょ腰菴堺ｻ倥″・・B / B 遲会ｼ峨〒遒ｺ螳溘↓謠冗判縺輔ｌ繧九ｈ縺・弍豁｣縲・
+---
+### [15.59.0.212-jeiuu.4-beta7] - 2026-11-12 (Beta)
+#### Added & Improved
+- **Direct Tree Access Key & Session Protection (Resume In-Progress Tree in Empty Space)**:
+  - Pressing T (or the bound key) in an empty space without hovering over an item now directly resumes your saved working tree.
+  - Eliminates the need to hover an item to re-enter the tree screen, completely preventing accidental overwriting and loss of in-progress tree sessions.
+  - Added "Open/Resume Crafting Tree" (key.jei.openCraftingTree) key mapping in Minecraft Controls.
+  - Group-based crafting trees are now also persisted in active sessions across screen closes.
+- **Fixed WASD/Arrow Key Tree Panning**:
+  - Fixed WASD and Arrow key navigation getting captured by GUI button focus; keys are now cleanly consumed for smooth canvas panning.
+- **Fixed Shift + Mouse Wheel Horizontal Scrolling**:
+  - Shift + Wheel now reliably performs smooth horizontal panning across the tree view.
+
+#### Fixed
+- **Fixed Internal IDs in Statistics Hover Tooltips**:
+  - Hovering ingredients in the statistics summary bar now shows their proper localized names and rich tooltips instead of raw internal registry IDs.
+- **Resolved Number Overlaps on Tree Nodes**:
+  - Fixed recipe requirement count (e.g. 8) rendered by vanilla item decorators overlapping with the total tree demand count (e.g. 128). Single-count display items and auto-scaling now ensure crisp, legible quantity labels.
+- **Resolved Text Overlaps in Statistics Summary**:
+  - Fixed large amounts overflowing slot boundaries and colliding with adjacent slots; amounts now auto-scale to fit within the slot width.
+- **Fixed Missing Initial Fluid & Gas Amounts in Statistics**:
+  - Fixed fluid and gas inputs not computing amounts until sub-recipes were chosen by utilizing BookmarkIngredientAmountResolver during initial recipe extraction. Fluids and gases are now always displayed with correct units (mB, B).
+
+---
 ### [15.59.0.212-jeiuu.4-beta6] - 2026-11-12 (Beta)
 #### Added & Improved
 - **JEI Recipes GUI Integration for Recipe Selection (+ Button)**:

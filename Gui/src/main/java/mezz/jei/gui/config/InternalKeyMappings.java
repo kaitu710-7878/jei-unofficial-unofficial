@@ -47,6 +47,7 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 	private final IJeiKeyMapping craftItems;
 	private final IJeiKeyMapping encodeRecipeChainPatterns;
 	private final IJeiKeyMapping showRecipeTree;
+	private final IJeiKeyMapping openCraftingTree;
 	private final IJeiKeyMapping toggleBookmarkOverlay;
 	private final IJeiKeyMapping transferRecipeBookmark;
 	private final IJeiKeyMapping maxTransferRecipeBookmark;
@@ -141,6 +142,11 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 		toggleBookmarkOverlay = overlay.createMapping("key.jei.toggleBookmarkOverlay")
 			.setContext(JeiKeyConflictContext.GUI)
 			.buildUnbound()
+			.register(registerMethod);
+
+		openCraftingTree = overlay.createMapping("key.jei.openCraftingTree")
+			.setContext(JeiKeyConflictContext.GUI)
+			.buildKeyboardKey(GLFW.GLFW_KEY_T)
 			.register(registerMethod);
 
 		// Mouse Hover
@@ -572,6 +578,11 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 	@Override
 	public IJeiKeyMapping getShowRecipeTree() {
 		return showRecipeTree;
+	}
+
+	@Override
+	public IJeiKeyMapping getOpenCraftingTree() {
+		return openCraftingTree;
 	}
 
 	@Override

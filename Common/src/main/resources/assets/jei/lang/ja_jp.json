@@ -519,6 +519,7 @@
     "jei.tooltip.bookmarks.group.keys.ctrl_alt_scroll":  "Ctrl + Alt + スクロール",
     "gui.jei.recipe_navigation.forward.unavailable":  "次の検索はありません",
     "key.jei.showRecipeTree":  "クラフトツリーを表示",
+    "key.jei.openCraftingTree":  "クラフトツリーを開く/再開",
     "jei.tooltip.bookmarks.group.keys.left_drag":  "左クリック + ドラッグ",
     "jei.tooltip.recipe.favorite.add":  "このレシピをお気に入りに登録。",
     "jei.tooltip.favoriteRecipes.saveTree":  "レシピツリーを生成",

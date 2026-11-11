@@ -34,6 +34,7 @@ JEIUUの設定は主に以下のファイルで管理されます：
 
 #### 4. クラフトツリー（Crafting Tree）操作ガイド
 - **ツリーの起動**:
+  - **作業中ツリーの直接再開**: アイテムをホバーしていない何もない場所で `T` キー（または操作設定の「クラフトツリーを開く/再開」キー）を押すと、直前まで作業していたツリーを保存された状態のまま確実に再開できます（アイテムにホバーして上書きされる心配がありません）。
   - **ブックマーク欄**: アイテムまたはチェーン、グループヘッダー上で `Shift + B` または `T` キー（あるいは **マウス中クリック**）
   - **アイテムリスト / レシピ画面 / インベントリ**: 任意のアイテム上で `Shift + B` または `T` キーを押すと、そのアイテムを目標（ルート）とする新しいクラフトツリーを即座に作成・展開
 - **ナビゲーション**:
@@ -82,6 +83,7 @@ JEIUU settings are primarily stored in:
 
 #### 4. Crafting Tree Controls & Guide
 - **Opening the Tree**:
+  - **Direct Resume Working Tree**: Press `T` (or the configured `key.jei.openCraftingTree` key) in empty space without hovering over any item to directly resume your saved working tree without risking overwriting it with a new item tree.
   - **From Bookmarks**: Hover over any bookmark item, recipe chain, or group header and press `Shift + B` or `T` (or **Middle-click**).
   - **From Item List / Recipe GUI / Inventory**: Hover over any item and press `Shift + B` or `T` to immediately generate a new crafting tree rooted at that item.
 - **Navigation**:

@@ -10,6 +10,7 @@ import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import mezz.jei.api.runtime.IIngredientManager;
 import mezz.jei.common.Internal;
+import mezz.jei.gui.bookmarks.BookmarkIngredientAmountResolver;
 import mezz.jei.gui.bookmarks.BookmarkIngredientKey;
 import mezz.jei.gui.bookmarks.BookmarkItemMetadata;
 import mezz.jei.gui.bookmarks.BookmarkItemMetadataFactory;
@@ -137,9 +138,8 @@ public final class TreeRecipeBuilder {
 						(typed.getItemStack().isPresent() && targetIngredient.getItemStack().isPresent() &&
 						net.minecraft.world.item.ItemStack.isSameItem(typed.getItemStack().get(), targetIngredient.getItemStack().get()))
 					) {
-						if (typed.getItemStack().isPresent()) {
-							factor = Math.max(1, typed.getItemStack().get().getCount());
-						}
+						factor = Math.max(1, BookmarkIngredientAmountResolver.getAmount(typed, Internal.getJeiRuntime().getIngredientManager()));
+
 						break;
 					}
 				}
@@ -237,7 +237,7 @@ public final class TreeRecipeBuilder {
 				BookmarkItemMetadata rawMeta = new BookmarkItemMetadata(
 					-1,
 					BookmarkItemType.INGREDIENT,
-					1,
+					Math.max(1, BookmarkIngredientAmountResolver.getAmount(inputIng, ingredientManager)),
 					1,
 					BookmarkItemMetadata.CHANCE_FULL,
 					currentRecipe.categoryUid(),
