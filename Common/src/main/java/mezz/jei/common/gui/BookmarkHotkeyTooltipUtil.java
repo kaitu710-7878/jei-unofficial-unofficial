@@ -82,6 +82,7 @@ public final class BookmarkHotkeyTooltipUtil {
 		HotkeyTooltipLine.add(tooltip, keyBindings.getShowUses().getTranslatedKeyMessage(), "jei.tooltip.bookmarks.hotkeys.uses");
 		HotkeyTooltipLine.add(tooltip, HotkeyTooltipLine.prefixed("SHIFT + ", keyBindings.getBookmark().getTranslatedKeyMessage()), "jei.tooltip.bookmarks.hotkeys.add_with_recipe");
 		HotkeyTooltipLine.add(tooltip, HotkeyTooltipLine.prefixed("CTRL + SHIFT + ", keyBindings.getBookmark().getTranslatedKeyMessage()), "jei.tooltip.bookmarks.hotkeys.add_with_recipe_and_count");
+		HotkeyTooltipLine.add(tooltip, keyBindings.getShowRecipeTree().getTranslatedKeyMessage(), "jei.tree.open");
 		if (showToggleInputCatalyst) {
 			HotkeyTooltipLine.add(
 				tooltip,
@@ -225,6 +226,7 @@ public final class BookmarkHotkeyTooltipUtil {
 		Component bookmarkKey = keyBindings.getBookmark().getTranslatedKeyMessage();
 		HotkeyTooltipLine.add(tooltip, bookmarkKey, "jei.tooltip.favoriteRecipes.remove");
 		HotkeyTooltipLine.add(tooltip, HotkeyTooltipLine.prefixed("SHIFT + ", bookmarkKey), "jei.tooltip.favoriteRecipes.saveTree");
+		HotkeyTooltipLine.add(tooltip, keyBindings.getShowRecipeTree().getTranslatedKeyMessage(), "jei.tree.open");
 	}
 
 	public static void addFavoriteRecipeRowHotkeys(ITooltipBuilder tooltip) {

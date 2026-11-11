@@ -15,6 +15,39 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta4] - 2026-11-12 (Beta)
+#### 追加・改善 (Added & Improved)
+- **操作設定およびAltショートカット一覧へのツリー操作表示**:
+  - アイテムホバー時およびお気に入りレシピの Alt キーヘルプ一覧に「クラフトツリーを開く（`Shift + B` / `T`）」を追加。
+  - Minecraft の操作設定画面（Options > Controls > Key Binds）における表示名を「クラフトツリーを表示」に明確化。
+- **統計パネルの項目名常時表示モード（常時ラベル / ツールチップ）の追加**:
+  - 画面下部統計バーに「完成目標物:」「不足原材料:」「必要中間クラフト:」「機械・ハンドラ:」などのセクション見出しを常時インライン表示するモード（`Lbl:ON`）と、アイテムのみをコンパクトに並べてツールチップで確認するモード（`Lbl:OFF`）のトグル切り替えボタンを追加。
+  - セクションごとのアイテムが一目で直感的に判別可能に向上。
+
+#### 修正 (Fixed)
+- **全ノードの展開/折りたたみ（`+/-` ボタン）のトグル復帰不具合の修正**:
+  - 一括折りたたみ後に再度ボタンを押しても展開されなかったバグを修正。折りたたみ状態レシピの同期と全展開処理を是正し、一括展開と一括折りたたみが交互に正常動作するよう改修。
+- **手動ツリー拡張時のレシピ指定で新規ツリーとして分裂・独立する不具合の修正**:
+  - 手動探索モードで中間素材に代替レシピを割り当てた際、親レシピの入力（原料）として消費される中間ノードが誤って新規ルート（独立ツリー）として扱われていたバグを解消。親ノードの枝として正しく接続・子ノードが展開されるよう修正。
+
+---
+
+### [15.59.0.212-jeiuu.4-beta4] - 2026-11-12 (Beta)
+#### Added & Improved
+- **Tree Shortcuts in Controls and Alt Hotkey Tooltips**:
+  - Added "Open Crafting Tree (`Shift + B` / `T`)" to the Alt hotkey cheatsheet tooltips for both hovered ingredients and favorite recipes.
+  - Refined the key mapping label in Minecraft Controls screen to "View Crafting Tree".
+- **Statistics Section Labels Mode (Always Visible Labels vs Compact Tooltips)**:
+  - Added a toggle button (`Lbl:ON` / `Lbl:OFF`) to the crafting tree top bar to switch between inline section headers (e.g., "Final Results:", "Missing Raw Ingredients:", "Operations by Machine:") and compact icon-only tooltip mode.
+
+#### Fixed
+- **Fixed Expand/Collapse All Nodes Toggle**:
+  - Fixed a logic bug where re-pressing the `+/-` toggle button after collapsing all nodes failed to re-expand them. Nodes and collapsed recipe sets are now properly cleared and refreshed upon toggling.
+- **Fixed Sub-Ingredient Branch Splitting into Independent New Trees**:
+  - Fixed an issue where manually assigning an alternate recipe to an intermediate ingredient caused it to be treated as a new top-level root tree instead of branching under its parent node. Consumed ingredients are now correctly preserved as branch nodes.
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta3] - 2026-11-12 (Beta)
 #### 修正 (Fixed)
 - **クラフトツリー内のアイテム描画が正常に行われない不具合の修正**:

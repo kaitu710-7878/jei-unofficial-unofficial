@@ -95,17 +95,47 @@ public final class TreeMath {
 		graph.clear();
 		allocatedInventory.clear();
 
-		// Filter output items as roots
+		// 1. Identify all ingredient keys consumed as inputs by any recipe in rootInputs
+		Set<BookmarkIngredientKey> consumedKeys = new HashSet<>();
+		for (RecipeChainInput input : rootInputs) {
+			BookmarkItemMetadata meta = input.metadata();
+			if (meta.type().isGraphInput() || meta.type() == BookmarkItemType.INGREDIENT) {
+				BookmarkIngredientKey inKey = input.selectedKey();
+				if (inKey == null && !meta.permutations().isEmpty()) {
+					inKey = meta.permutations().iterator().next();
+				}
+				if (inKey != null) {
+					consumedKeys.add(inKey);
+				}
+			}
+		}
+
+		// 2. Filter output items as roots (only those that are NOT consumed by any parent recipe)
 		List<RecipeChainInput> roots = new ArrayList<>();
 		for (RecipeChainInput input : rootInputs) {
 			BookmarkItemMetadata meta = input.metadata();
 			if (meta.type().isGraphOutput() || meta.type() == BookmarkItemType.ITEM) {
-				roots.add(input);
+				BookmarkIngredientKey key = input.selectedKey();
+				if (key == null && !meta.permutations().isEmpty()) {
+					key = meta.permutations().iterator().next();
+				}
+				if (key != null && !consumedKeys.contains(key)) {
+					roots.add(input);
+				}
 			}
 		}
 
+		// Fallback: if all outputs are consumed (cyclic) or none found, pick the first output or first input
 		if (roots.isEmpty() && !rootInputs.isEmpty()) {
-			roots.addAll(rootInputs);
+			for (RecipeChainInput input : rootInputs) {
+				if (input.metadata().type().isGraphOutput() || input.metadata().type() == BookmarkItemType.ITEM) {
+					roots.add(input);
+					break;
+				}
+			}
+			if (roots.isEmpty()) {
+				roots.add(rootInputs.get(0));
+			}
 		}
 
 		Set<ResourceLocation> visitedRecipes = new HashSet<>();

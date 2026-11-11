@@ -518,7 +518,7 @@
     "jei.bookmark.scrollStep.oneStack":  "1スタック",
     "jei.tooltip.bookmarks.group.keys.ctrl_alt_scroll":  "Ctrl + Alt + スクロール",
     "gui.jei.recipe_navigation.forward.unavailable":  "次の検索はありません",
-    "key.jei.showRecipeTree":  "ブックマークのレシピツリーを表示",
+    "key.jei.showRecipeTree":  "クラフトツリーを表示",
     "jei.tooltip.bookmarks.group.keys.left_drag":  "左クリック + ドラッグ",
     "jei.tooltip.recipe.favorite.add":  "このレシピをお気に入りに登録。",
     "jei.tooltip.favoriteRecipes.saveTree":  "レシピツリーを生成",
@@ -566,5 +566,8 @@
   "jei.tree.stats.craft_available": "所持中間アイテム",
   "jei.tree.stats.result": "完成目標物",
   "jei.tree.stats.remainder": "副産物・返却容器",
-  "jei.tree.stats.handler": "機械・ハンドラ別実行数"
+  "jei.tree.stats.handler": "機械・ハンドラ別実行数",
+  "jei.tree.stats_mode_toggle": "統計パネルの項目名常時表示切替 (常時ラベル / ツールチップ)",
+  "jei.tree.stats_mode.labels": "項目名: 表示",
+  "jei.tree.stats_mode.tooltips": "項目名: 非表示"
 }

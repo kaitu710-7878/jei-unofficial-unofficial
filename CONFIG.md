@@ -95,3 +95,4 @@ JEIUU settings are primarily stored in:
   - **Inventory Deduction Toggle**: Click "Inventory: Use / Ignore" in top toolbar to subtract player inventory items from needed materials.
   - **Save to Chain**: Click "Save to Chain" to export current tree into bookmark groups.
   - **Analytics Panel**: Bottom bar provides real-time summary of missing raw materials, held materials, intermediate crafts, byproducts, and required crafting stations/machines.
+  - **Statistics Label Display Toggle**: Click `Lbl:ON` / `Lbl:OFF` in the toolbar to toggle between inline section headers ("Final Results:", "Missing Raw Ingredients:") and compact icon-only tooltip mode.

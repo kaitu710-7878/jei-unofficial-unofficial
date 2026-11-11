@@ -74,6 +74,7 @@ public final class CraftingTreeScreen extends Screen {
 
 	private boolean checkInventory = true;
 	private boolean showStats = true;
+	private boolean statsLabelMode = true;
 	private String searchQuery = "";
 	private @Nullable EditBox searchBox;
 
@@ -157,7 +158,7 @@ public final class CraftingTreeScreen extends Screen {
 		this.graph = treeMath.calculate();
 		this.layout.recalculate(graph, null);
 		this.stats = TreeStats.compute(graph);
-		this.statsLayout.recalculate(stats);
+		this.statsLayout.recalculate(stats, font != null ? font : Minecraft.getInstance().font, statsLabelMode);
 	}
 
 	private Map<BookmarkIngredientKey, BigInteger> readInventory() {
@@ -235,12 +236,25 @@ public final class CraftingTreeScreen extends Screen {
 			.tooltip(Tooltip.create(Component.translatable("jei.tree.stats_toggle")))
 			.build());
 
+		// Stats Labels Mode Toggle Button
+		addRenderableWidget(Button.builder(
+				Component.literal(statsLabelMode ? "Lbl:ON" : "Lbl:OFF"),
+				b -> {
+					statsLabelMode = !statsLabelMode;
+					b.setMessage(Component.literal(statsLabelMode ? "Lbl:ON" : "Lbl:OFF"));
+					statsLayout.recalculate(stats, font, statsLabelMode);
+				}
+			)
+			.bounds(192, 5, 48, 20)
+			.tooltip(Tooltip.create(Component.translatable("jei.tree.stats_mode_toggle")))
+			.build());
+
 		// Save/Export to Chain Button
 		addRenderableWidget(Button.builder(
 				Component.translatable("jei.tree.save_chain"),
 				b -> exportToBookmarkChain()
 			)
-			.bounds(192, 5, 52, 20)
+			.bounds(242, 5, 48, 20)
 			.tooltip(Tooltip.create(Component.translatable("jei.tree.save_chain.tooltip")))
 			.build());
 
@@ -258,7 +272,7 @@ public final class CraftingTreeScreen extends Screen {
 		this.graph = treeMath.calculate();
 		this.layout.recalculate(graph, anchor);
 		this.stats = TreeStats.compute(graph);
-		this.statsLayout.recalculate(stats);
+		this.statsLayout.recalculate(stats, font != null ? font : Minecraft.getInstance().font, statsLabelMode);
 	}
 
 	private void fitToView() {
@@ -281,18 +295,22 @@ public final class CraftingTreeScreen extends Screen {
 			}
 		}
 
-		boolean nextCollapsed = anyExpanded;
-		for (TreeSlot node : graph.getItems()) {
-			if (graph.hasChildren(node)) {
-				node.setCollapsed(nextCollapsed);
-				if (node.getRecipeUid() != null) {
-					if (nextCollapsed) {
-						treeMath.toggleRecipeCollapsed(node.getRecipeUid());
-					} else {
-						treeMath.getCollapsedRecipes();
+		if (anyExpanded) {
+			Set<ResourceLocation> toCollapse = new HashSet<>();
+			for (TreeSlot node : graph.getItems()) {
+				if (graph.hasChildren(node)) {
+					node.setCollapsed(true);
+					if (node.getRecipeUid() != null) {
+						toCollapse.add(node.getRecipeUid());
 					}
 				}
 			}
+			treeMath.setCollapsedRecipes(toCollapse);
+		} else {
+			for (TreeSlot node : graph.getItems()) {
+				node.setCollapsed(false);
+			}
+			treeMath.setCollapsedRecipes(java.util.Collections.emptySet());
 		}
 		recalculateTree(null);
 	}
@@ -507,6 +525,14 @@ public final class CraftingTreeScreen extends Screen {
 		hoveredStatsSlot = null;
 		int drawX = 6 - statsScrollOffset;
 		int drawY = barY + 4;
+
+		// Render section labels if label mode is enabled
+		for (TreeStatsLayout.PlacedLabel placedLabel : statsLayout.getPlacedLabels()) {
+			int labelScreenX = drawX + placedLabel.getX();
+			if (labelScreenX + font.width(placedLabel.getLabel()) >= 0 && labelScreenX < width) {
+				g.drawString(font, placedLabel.getLabel(), labelScreenX, drawY + (TreeStatsLayout.SLOT_SIZE - font.lineHeight) / 2, 0xFFFFAA00, true);
+			}
+		}
 
 		for (TreeStatsLayout.PlacedSlot placed : statsLayout.getPlacedSlots()) {
 			int slotScreenX = drawX + placed.getX();
