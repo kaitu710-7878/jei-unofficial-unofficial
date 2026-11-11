@@ -294,7 +294,7 @@ public final class TreeMath {
 						input.selectedIngredient() != null ? input.selectedIngredient() : inKey.typedIngredient(),
 						meta.bigAmount().max(BigInteger.ONE),
 						BigInteger.ONE,
-						null,
+						manualRecipeOverrides.get(inKey),
 						meta.recipeTypeUid()
 					));
 				}
@@ -302,19 +302,38 @@ public final class TreeMath {
 		}
 
 		if (results.isEmpty()) {
-			TreeRecipeBuilder.RecipeInfo<?> info = TreeRecipeBuilder.findRecipe(recipeUid, parentIngredient);
+			ITypedIngredient<?> matchTarget = parentIngredient != null ? parentIngredient : parentKey.typedIngredient();
+			TreeRecipeBuilder.RecipeInfo<?> info = TreeRecipeBuilder.findRecipe(recipeUid, matchTarget);
 			if (info != null) {
+				Map<BookmarkIngredientKey, RecipeChildIngredient> aggregated = new java.util.LinkedHashMap<>();
 				for (mezz.jei.api.ingredients.ITypedIngredient<?> inIng : info.inputs()) {
 					BookmarkIngredientKey inKey = mezz.jei.gui.bookmarks.BookmarkItemMetadataFactory.createPermutationKey(inIng, mezz.jei.common.Internal.getJeiRuntime().getIngredientManager());
-					results.add(new RecipeChildIngredient(
-						inKey,
-						inIng,
-						BigInteger.ONE,
-						BigInteger.valueOf(info.outputFactor()),
-						null,
-						info.categoryUid()
-					));
+					RecipeChildIngredient existing = aggregated.get(inKey);
+					BigInteger count = BigInteger.ONE;
+					if (inIng.getItemStack().isPresent()) {
+						count = BigInteger.valueOf(Math.max(1, inIng.getItemStack().get().getCount()));
+					}
+					if (existing != null) {
+						aggregated.put(inKey, new RecipeChildIngredient(
+							inKey,
+							existing.typedIngredient(),
+							existing.amount().add(count),
+							existing.outputAmount(),
+							existing.defaultRecipeUid(),
+							existing.recipeTypeUid()
+						));
+					} else {
+						aggregated.put(inKey, new RecipeChildIngredient(
+							inKey,
+							inIng,
+							count,
+							BigInteger.valueOf(info.outputFactor()),
+							manualRecipeOverrides.get(inKey),
+							info.categoryUid()
+						));
+					}
 				}
+				results.addAll(aggregated.values());
 			}
 		}
 

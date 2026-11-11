@@ -117,23 +117,31 @@ public final class TreeRecipeBuilder {
 
 		List<ITypedIngredient<?>> inputs = new ArrayList<>();
 		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.INPUT)) {
-			slot.getDisplayedIngredient().ifPresent(inputs::add);
+			Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
+			ingOpt.ifPresent(inputs::add);
 		}
 
 		List<ITypedIngredient<?>> outputs = new ArrayList<>();
 		long factor = 1;
 		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.OUTPUT)) {
-			slot.getDisplayedIngredient().ifPresent(output -> {
-				outputs.add(output);
-			});
+			Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
+			ingOpt.ifPresent(outputs::add);
 		}
 
 		if (targetIngredient != null) {
 			for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.OUTPUT)) {
-				Optional<ITypedIngredient<?>> disp = slot.getDisplayedIngredient();
-				if (disp.isPresent() && disp.get().getIngredient().equals(targetIngredient.getIngredient())) {
-					factor = Math.max(1, slot.getAllIngredients().count());
-					break;
+				Optional<ITypedIngredient<?>> disp = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
+				if (disp.isPresent()) {
+					ITypedIngredient<?> typed = disp.get();
+					if (typed.getIngredient().equals(targetIngredient.getIngredient()) ||
+						(typed.getItemStack().isPresent() && targetIngredient.getItemStack().isPresent() &&
+						net.minecraft.world.item.ItemStack.isSameItem(typed.getItemStack().get(), targetIngredient.getItemStack().get()))
+					) {
+						if (typed.getItemStack().isPresent()) {
+							factor = Math.max(1, typed.getItemStack().get().getCount());
+						}
+						break;
+					}
 				}
 			}
 		}
@@ -225,34 +233,23 @@ public final class TreeRecipeBuilder {
 					subRecipe = findRecipe(subRecipeUid, inputIng);
 				}
 
+				// Always register inputKey as an INGREDIENT of currentRecipe
+				BookmarkItemMetadata rawMeta = new BookmarkItemMetadata(
+					-1,
+					BookmarkItemType.INGREDIENT,
+					1,
+					1,
+					BookmarkItemMetadata.CHANCE_FULL,
+					currentRecipe.categoryUid(),
+					currentRecipe.recipeUid(),
+					Set.of(inputKey)
+				);
+				inputs.add(new RecipeChainInput(indexCounter++, rawMeta, inputKey, inputIng));
+
 				if (subRecipe != null && !visited.contains(inputKey)) {
-					// Sub-ingredient has a manually selected recipe: treat it as intermediate RESULT
+					// Sub-ingredient has a manually selected recipe: expand it
 					visited.add(inputKey);
-					BookmarkItemMetadata subMeta = new BookmarkItemMetadata(
-						-1,
-						BookmarkItemType.RESULT,
-						1,
-						subRecipe.outputFactor(),
-						BookmarkItemMetadata.CHANCE_FULL,
-						subRecipe.categoryUid(),
-						subRecipe.recipeUid(),
-						Set.of(inputKey)
-					);
-					inputs.add(new RecipeChainInput(indexCounter++, subMeta, inputKey, inputIng));
 					recipeQueue.add(subRecipe);
-				} else {
-					// Raw ingredient or unexpanded sub-item
-					BookmarkItemMetadata rawMeta = new BookmarkItemMetadata(
-						-1,
-						BookmarkItemType.INGREDIENT,
-						1,
-						1,
-						BookmarkItemMetadata.CHANCE_FULL,
-						currentRecipe.categoryUid(),
-						currentRecipe.recipeUid(),
-						Set.of(inputKey)
-					);
-					inputs.add(new RecipeChainInput(indexCounter++, rawMeta, inputKey, inputIng));
 				}
 			}
 		}

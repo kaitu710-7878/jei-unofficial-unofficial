@@ -15,6 +15,24 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta5] - 2026-11-12 (Beta)
+#### 修正 (Fixed)
+- **手動レシピ選択時に子ノード（原料）が下に展開されない不具合の根本修正**:
+  - `TreeRecipeBuilder.extractRecipeInfo` において、`IRecipeSlotView.getDisplayedIngredient()` が空の場合に `getAllIngredients().findFirst()` をフォールバック取得するよう修正。フォーカスなしレイアウト描画時でもレシピの全入力材料が確実に抽出されるように改善。
+  - `CraftingTreeScreen.rebuildTreeMath` において、手動選択された代替レシピ（`manualRecipes`）を新しくインスタンス化された `TreeMath` に確実に引き継ぎ・同期するよう修正。
+  - `TreeMath.findRecipeInputs` において、動的レシピ探索結果の入力アイテムを同一材料ごとに集約（例: 木材4個で作業台を作る場合に4個として正しく合算）し、選択された代替レシピの子原料ノードが親ノードの下に確実に展開・接続されるよう改修。
+
+---
+
+### [15.59.0.212-jeiuu.4-beta5] - 2026-11-12 (Beta)
+#### Fixed
+- **Fixed Sub-Nodes Not Expanding Downward Upon Manual Recipe Selection**:
+  - In `TreeRecipeBuilder.extractRecipeInfo`, added a fallback to `IRecipeSlotView.getAllIngredients().findFirst()` when `getDisplayedIngredient()` returns empty, guaranteeing that all recipe inputs are successfully extracted even under unfocused recipe layout drawables.
+  - In `CraftingTreeScreen.rebuildTreeMath`, properly synchronized user-selected manual recipes (`manualRecipes`) into newly constructed `TreeMath` instances.
+  - In `TreeMath.findRecipeInputs`, aggregated identical child ingredients by item count and resolved child nodes recursively, ensuring that newly chosen recipes expand downward properly into branching sub-nodes.
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta4] - 2026-11-12 (Beta)
 #### 追加・改善 (Added & Improved)
 - **操作設定およびAltショートカット一覧へのツリー操作表示**:

@@ -155,6 +155,8 @@ public final class CraftingTreeScreen extends Screen {
 		} else {
 			this.treeMath = TreeChainBridge.createTreeMathFromGroup(bookmarks, groupId, stock);
 		}
+		// Synchronize all manually assigned recipes into treeMath
+		this.manualRecipes.forEach(this.treeMath::setManualRecipe);
 		this.graph = treeMath.calculate();
 		this.layout.recalculate(graph, null);
 		this.stats = TreeStats.compute(graph);
@@ -642,15 +644,15 @@ public final class CraftingTreeScreen extends Screen {
 				// Open Recipe Selector Dialog
 				TreeSlot target = hoveredNode;
 				Minecraft.getInstance().setScreen(new TreeRecipeSelectorScreen(this, target, selectedRecipe -> {
+					if (selectedRecipe == null) {
+						this.manualRecipes.remove(target.getKey());
+					} else {
+						this.manualRecipes.put(target.getKey(), selectedRecipe);
+					}
+
 					if (targetIngredient != null) {
 						if (target.equals(graph.getRootSlot())) {
 							this.targetRecipeOverride = selectedRecipe;
-						} else {
-							if (selectedRecipe == null) {
-								this.manualRecipes.remove(target.getKey());
-							} else {
-								this.manualRecipes.put(target.getKey(), selectedRecipe);
-							}
 						}
 						rebuildTreeMath();
 					} else {
