@@ -37,7 +37,8 @@ JEIUUの設定は主に以下のファイルで管理されます：
   - **ブックマーク欄**: アイテムまたはチェーン、グループヘッダー上で `Shift + B` または `T` キー（あるいは **マウス中クリック**）
   - **アイテムリスト / レシピ画面 / インベントリ**: 任意のアイテム上で `Shift + B` または `T` キーを押すと、そのアイテムを目標（ルート）とする新しいクラフトツリーを即座に作成・展開
 - **ナビゲーション**:
-  - **視点移動（パン）**: 画面背景を左ドラッグ
+  - **視点移動（パン）**: 画面背景を左ドラッグ、または **Shift + マウスホイール** で左右スクロール、矢印キー（←/→/↑/↓）や WASD キーで高速移動
+  - **親項目への移動**: ツールバーの `H` ボタン（または `H` / `Home` キー）で一番上の目標アイテムに即座にセンタリング
   - **ズーム拡大・縮小**: マウスホイール（0.2倍 〜 5.0倍）
   - **ノードの折りたたみ / 展開**: スロット横の `[+]` / `[-]` ボタンをクリック
   - **全展開 / 全折りたたみ**: 画面右上の `[+]` / `[-]` ボタン
@@ -84,15 +85,17 @@ JEIUU settings are primarily stored in:
   - **From Bookmarks**: Hover over any bookmark item, recipe chain, or group header and press `Shift + B` or `T` (or **Middle-click**).
   - **From Item List / Recipe GUI / Inventory**: Hover over any item and press `Shift + B` or `T` to immediately generate a new crafting tree rooted at that item.
 - **Navigation**:
-  - **Pan Camera**: Click and drag on empty canvas background.
+  - **Pan Camera**: Click and drag on background, scroll horizontally with **Shift + Mouse Wheel**, or use Arrow / WASD keys.
+  - **Center on Target**: Click `H` in the toolbar (or press `H` / `Home` key) to instantly center camera on the root target item.
   - **Zoom In / Out**: Mouse wheel (0.2x to 5.0x scale).
   - **Collapse / Expand Subtree**: Click the `[+]` / `[-]` toggle badge beside any node.
   - **Expand All / Collapse All**: Use the top-right `[+]` / `[-]` toolbar buttons.
 - **Recipe Selection & Manual Adjustments**:
-  - **Select Alternative Recipe**: **Right-click** any ingredient node to choose from available recipe alternatives.
+  - **Select Alternative Recipe**: **Right-click** any ingredient node to open the full JEI Recipes GUI, and click the "+" button on your desired recipe to select it for the tree node.
   - **Adjust Quantity / Multiplier**: `Shift + Left-click` or `Middle-click` any node to open the quantity adjustment dialog (supports direct BigInteger input, multiplier adjustment, force craft toggling, and node pruning).
 - **Statistics & Chain Integration**:
   - **Inventory Deduction Toggle**: Click "Inventory: Use / Ignore" in top toolbar to subtract player inventory items from needed materials.
   - **Save to Chain**: Click "Save to Chain" to export current tree into bookmark groups.
   - **Analytics Panel**: Bottom bar provides real-time summary of missing raw materials, held materials, intermediate crafts, byproducts, and required crafting stations/machines.
   - **Statistics Label Display Toggle**: Click `Lbl:ON` / `Lbl:OFF` in the toolbar to toggle between inline section headers ("Final Results:", "Missing Raw Ingredients:") and compact icon-only tooltip mode.
+  - **Persistent Tree Session**: In-progress crafting trees are automatically preserved across screen closes. Click `New` (Reset) in the toolbar whenever you want to wipe and start fresh.

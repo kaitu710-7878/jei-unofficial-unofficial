@@ -56,6 +56,16 @@ public final class TreeCamera {
 		return scrollY;
 	}
 
+	public void pan(float dx, float dy) {
+		this.scrollX += dx;
+		this.scrollY += dy;
+	}
+
+	public void setScroll(float x, float y) {
+		this.scrollX = x;
+		this.scrollY = y;
+	}
+
 	public float getZoomLevel() {
 		return zoomLevel;
 	}

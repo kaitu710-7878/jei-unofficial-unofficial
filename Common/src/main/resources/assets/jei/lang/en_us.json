@@ -575,5 +575,9 @@
   "jei.tree.stats.handler": "Operations by Machine / Handler",
   "jei.tree.stats_mode_toggle": "Toggle Statistics Labels (Always Show / Tooltip)",
   "jei.tree.stats_mode.labels": "Labels: ON",
-  "jei.tree.stats_mode.tooltips": "Labels: OFF"
+  "jei.tree.stats_mode.tooltips": "Labels: OFF",
+  "jei.tree.home": "Center View on Root Target (Home/H)",
+  "jei.tree.reset": "Reset",
+  "jei.tree.reset.tooltip": "Reset working tree to initial state",
+  "jei.tree.hint.right_click_recipe_jei": "Right-Click: Open in JEI Recipes GUI (Press + to select)"
 }

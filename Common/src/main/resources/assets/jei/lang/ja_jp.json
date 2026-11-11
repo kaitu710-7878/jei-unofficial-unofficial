@@ -569,5 +569,9 @@
   "jei.tree.stats.handler": "機械・ハンドラ別実行数",
   "jei.tree.stats_mode_toggle": "統計パネルの項目名常時表示切替 (常時ラベル / ツールチップ)",
   "jei.tree.stats_mode.labels": "項目名: 表示",
-  "jei.tree.stats_mode.tooltips": "項目名: 非表示"
+  "jei.tree.stats_mode.tooltips": "項目名: 非表示",
+  "jei.tree.home": "親項目 (目標アイテム) にカメラを移動 (Home/H)",
+  "jei.tree.reset": "リセット",
+  "jei.tree.reset.tooltip": "作業中のツリーを初期状態にリセット",
+  "jei.tree.hint.right_click_recipe_jei": "右クリック: レシピ画面を開く (+でツリーに選択)"
 }

@@ -15,9 +15,9 @@ import java.util.TreeMap;
  */
 public final class TreeLayout {
 	public static final int SLOT_SIZE = 18;
-	public static final int X_SPACING = 24;
-	public static final int Y_SPACING = 20;
-	public static final int ROOT_SPACING = 36;
+	public static final int X_SPACING = 30;
+	public static final int Y_SPACING = 24;
+	public static final int ROOT_SPACING = 42;
 
 	public static final class Point {
 		public int x;
@@ -135,10 +135,10 @@ public final class TreeLayout {
 		}
 
 		List<int[]> result = new ArrayList<>();
-		result.add(new int[]{parentX, parentX + SLOT_SIZE});
+		result.add(new int[]{0, SLOT_SIZE});
 
 		for (int[] interval : combined) {
-			result.add(new int[]{interval[0], interval[1]});
+			result.add(new int[]{interval[0] - parentX, interval[1] - parentX});
 		}
 		return result;
 	}
@@ -167,6 +167,7 @@ public final class TreeLayout {
 			int end = interval[1] + shift;
 
 			if (i < contour.size()) {
+				contour.get(i)[0] = Math.min(contour.get(i)[0], start);
 				contour.get(i)[1] = Math.max(contour.get(i)[1], end);
 			} else {
 				contour.add(new int[]{start, end});

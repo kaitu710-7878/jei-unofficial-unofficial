@@ -1,5 +1,7 @@
 package mezz.jei.gui.recipes;
 
+import net.minecraft.resources.ResourceLocation;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
@@ -53,7 +55,7 @@ public class RecipeTransferButtonController implements IIconButtonController {
 
 	@Override
 	public void updateState(IButtonState state) {
-		if (treeTarget().isPresent()) {
+		if (craftingTreeTarget().isPresent() || treeTarget().isPresent()) {
 			recipeTransferError = null;
 			state.setActive(true);
 			state.setVisible(true);
@@ -86,6 +88,18 @@ public class RecipeTransferButtonController implements IIconButtonController {
 
 	@Override
 	public boolean onPress(IJeiUserInput input) {
+		var craftingTree = craftingTreeTarget();
+		if (craftingTree.isPresent()) {
+			if (!input.isSimulate()) {
+				ResourceLocation recipeUid = getRecipeUid(recipeLayout);
+				if (recipeUid != null) {
+					craftingTree.get().applySelectedRecipe(recipeUid);
+					recipesGui.onClose();
+				}
+			}
+			return true;
+		}
+
 		var tree = treeTarget();
 		if (tree.isPresent()) {
 			if (!input.isSimulate() && tree.get().addRecipe(recipeLayout,
@@ -119,11 +133,21 @@ public class RecipeTransferButtonController implements IIconButtonController {
 
 	@Override
 	public void getTooltips(ITooltipBuilder tooltip) {
-		if (treeTarget().isPresent()) {
+		if (craftingTreeTarget().isPresent() || treeTarget().isPresent()) {
 			tooltip.add(Component.translatable("jei.tree.add_recipe"));
 			return;
 		}
 		getTooltips(this.recipeTransferError, tooltip);
+	}
+
+	private static <T> @Nullable ResourceLocation getRecipeUid(IRecipeLayoutDrawable<T> layout) {
+		return layout.getRecipeCategory().getRegistryName(layout.getRecipe());
+	}
+
+	private Optional<mezz.jei.gui.tree.CraftingTreeScreen> craftingTreeTarget() {
+		return Optional.ofNullable(recipesGui).flatMap(RecipesGui::getParentScreen)
+			.filter(mezz.jei.gui.tree.CraftingTreeScreen.class::isInstance)
+			.map(mezz.jei.gui.tree.CraftingTreeScreen.class::cast);
 	}
 
 	private Optional<mezz.jei.gui.bookmarks.tree.RecipeTreeScreen> treeTarget() {

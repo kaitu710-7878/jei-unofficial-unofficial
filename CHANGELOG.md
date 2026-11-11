@@ -15,6 +15,52 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta6] - 2026-11-12 (Beta)
+#### 追加・改善 (Added & Improved)
+- **JEI レシピビューワー画面との連携による直感的なレシピ選択**:
+  - ノード右クリック時に専用ダイアログではなく、JEI の標準レシピ画面（`RecipesGui`）を開くよう変更。
+  - レシピ画面内の「＋（プラス）」ボタンを押すことで、そのレシピをツリーのノードに即座に選択・採用してツリー画面に自動復帰するシームレスなUIを実現。
+- **作業中ツリーのセッション保持（ツリーを閉じても消えない機能）**:
+  - 手動探索やカスタマイズ作業中のツリー状態（目標アイテム、選択レシピ、数量、折りたたみ状態、カメラ位置）をセッションとして永続保持。
+  - 画面を閉じてインベントリ作業やレシピ確認を行った後でも、作業途中のツリーがそのまま完全に復元されます。
+  - トップバーに「リセット（`New`）」ボタンを追加し、いつでもワンクリックで初期状態に戻せるよう改善。
+- **大規模ツリーの左右移動・ナビゲーションの劇的快適化**:
+  - `Shift + マウスホイール` によるスムーズな水平パン（左右スクロール）を実装。
+  - キーボードの矢印キー（←/→/↑/↓）および WASD による自由なパン操作に対応。
+  - トップバーに「親項目（目標アイテム）にカメラ移動（`H`）」ボタンを追加（`Home` キーまたは `H` キーでも瞬時にセンタリング可能）。
+
+#### 修正 (Fixed)
+- **大規模ツリーにおけるノード重なり・衝突の解消**:
+  - `TreeLayout` におけるサブツリー輪郭計算の正規化ロジックを修正。親ノードを中心とした完璧な相対座標系で輪郭を合成・照合するように改修し、階層が深くなったり分岐が増えてもノードが一切重ならないよう是正。
+  - ノード間隔（X/Y間隔）を最適化し、密集時の視認性を向上。
+- **折りたたみ・展開時の親項目（目標アイテム）の座標ズレ防止**:
+  - レイアウト再計算時に目標アイテム（ルートノード）の変位をカメラ位置へ即座にフィードバック追従（アンカー補正）させるよう改善。
+  - ノードの開閉や拡張を行っても、画面上での目標アイテムの位置が一切動かずピタッと静止するよう修正。
+
+---
+
+### [15.59.0.212-jeiuu.4-beta6] - 2026-11-12 (Beta)
+#### Added & Improved
+- **JEI Recipes GUI Integration for Recipe Selection (+ Button)**:
+  - Right-clicking any tree node now directly opens the full JEI Recipes GUI.
+  - Clicking the "+" (transfer/select) button in the recipe view now immediately selects that recipe for the tree node and returns to the crafting tree smoothly.
+- **Persistent Tree Session (Preserving In-Progress Trees Across GUI Closes)**:
+  - Working tree states (target ingredient, customized recipes, overrides, collapsed nodes, and camera transform) are now preserved across screen closes.
+  - Added a "Reset" (`New`) toolbar button to easily wipe and restart a tree from scratch whenever desired.
+- **Enhanced Large Tree Navigation (Horizontal Wheel & Keyboard Panning)**:
+  - Added horizontal panning via `Shift + Mouse Wheel`.
+  - Added arrow keys and WASD navigation for smooth, high-speed camera panning across massive trees.
+  - Added a "Home / Center on Root" (`H`) toolbar button (also mapped to `Home` and `H` keys) to instantly refocus on the top-level target item.
+
+#### Fixed
+- **Eliminated Node Overlap and Collisions in Large Trees**:
+  - Fixed an offset normalization flaw in `TreeLayout` subtree contour calculation, aligning actual node coordinates with boundary contour checks so complex trees no longer collide or overlap.
+  - Widened horizontal and vertical node spacing for superior readability.
+- **Fixed Root Target Jumping / Shifting upon Node Collapse or Expansion**:
+  - Implemented camera anchor tracking in `recalculateTree`. When the tree shifts horizontally during layout recalculation, camera pan is instantly compensated so the target root item remains rock-solid in screen position.
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta5] - 2026-11-12 (Beta)
 #### 修正 (Fixed)
 - **手動レシピ選択時に子ノード（原料）が下に展開されない不具合の根本修正**:
