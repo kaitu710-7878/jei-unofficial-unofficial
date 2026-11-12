@@ -144,7 +144,7 @@ public final class TreeRecipeBuilder {
 				for (Object recipe : recipes) {
 					ResourceLocation uid = category.getRegistryName(cast(recipe));
 					if (recipeUid.equals(uid)) {
-						return extractRecipeInfo(category, recipe, uid, matchTarget);
+						return extractRecipeInfo(category, recipe, uid, matchTarget, false);
 					}
 				}
 				return null;
@@ -154,15 +154,14 @@ public final class TreeRecipeBuilder {
 			.orElse(null);
 
 		if (baseInfo == null && matchTarget != null) {
-			// Fallback: search without target filter if category does not expose exact output match,
-			// but verify if matchTarget is an output
+			// Fallback: search without target filter if category does not expose exact output match
 			baseInfo = categories.parallelStream()
 				.<RecipeInfo<?>>map(category -> {
 					List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().toList();
 					for (Object recipe : recipes) {
 						ResourceLocation uid = category.getRegistryName(cast(recipe));
 						if (recipeUid.equals(uid)) {
-							return extractRecipeInfo(category, recipe, uid, null);
+							return extractRecipeInfo(category, recipe, uid, null, false);
 						}
 					}
 					return null;
@@ -173,11 +172,7 @@ public final class TreeRecipeBuilder {
 
 			if (baseInfo != null) {
 				long factor = calculateOutputFactor(baseInfo, matchTarget, ingredientManager);
-				if (factor > 0) {
-					baseInfo = baseInfo.withFactor(factor);
-				} else {
-					baseInfo = null; // Do NOT use recipe if output does not match matchTarget
-				}
+				baseInfo = baseInfo.withFactor(Math.max(1, factor));
 			}
 		}
 
@@ -195,11 +190,11 @@ public final class TreeRecipeBuilder {
 		BookmarkIngredientKey matchKey = BookmarkItemMetadataFactory.createPermutationKey(matchTarget, ingredientManager);
 		for (ITypedIngredient<?> out : info.outputs()) {
 			BookmarkIngredientKey outKey = BookmarkItemMetadataFactory.createPermutationKey(out, ingredientManager);
-			if (matchKey.equals(outKey)) {
+			if (matchKey.equals(outKey) || matchKey.matchesCraftingAvailable(outKey)) {
 				return Math.max(1, BookmarkIngredientAmountResolver.getAmount(out, ingredientManager));
 			}
 		}
-		return -1;
+		return 1;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -208,6 +203,17 @@ public final class TreeRecipeBuilder {
 		Object rawRecipe,
 		ResourceLocation recipeUid,
 		@Nullable ITypedIngredient<?> targetIngredient
+	) {
+		return extractRecipeInfo(rawCategory, rawRecipe, recipeUid, targetIngredient, true);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <T> @Nullable RecipeInfo<T> extractRecipeInfo(
+		IRecipeCategory<?> rawCategory,
+		Object rawRecipe,
+		ResourceLocation recipeUid,
+		@Nullable ITypedIngredient<?> targetIngredient,
+		boolean requireTargetMatch
 	) {
 		IRecipeCategory<T> category = (IRecipeCategory<T>) rawCategory;
 		T recipe = (T) rawRecipe;
@@ -243,7 +249,7 @@ public final class TreeRecipeBuilder {
 			for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.OUTPUT)) {
 				for (ITypedIngredient<?> slotIng : slot.getAllIngredients().toList()) {
 					BookmarkIngredientKey slotKey = BookmarkItemMetadataFactory.createPermutationKey(slotIng, ingredientManager);
-					if (targetKey.equals(slotKey)) {
+					if (targetKey.equals(slotKey) || targetKey.matchesCraftingAvailable(slotKey)) {
 						factor = Math.max(1, BookmarkIngredientAmountResolver.getAmount(slotIng, ingredientManager));
 						matched = true;
 						break;
@@ -254,8 +260,8 @@ public final class TreeRecipeBuilder {
 				}
 			}
 
-			// If recipe does not produce the specified target ingredient, discard it
-			if (!matched) {
+			// If recipe does not produce the specified target ingredient and match is strictly required, discard it
+			if (!matched && requireTargetMatch) {
 				return null;
 			}
 		}

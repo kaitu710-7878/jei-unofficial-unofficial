@@ -325,22 +325,28 @@ public final class TreeMath {
 	) {
 		List<RecipeChildIngredient> results = new ArrayList<>();
 
-		// Check if inputs are available from rootInputs metadata
-		for (RecipeChainInput input : rootInputs) {
-			BookmarkItemMetadata meta = input.metadata();
-			if (recipeUid.equals(meta.recipeUid()) && (meta.type().isGraphInput() || meta.type() == BookmarkItemType.NONCONSUMABLE || meta.type() == BookmarkItemType.INGREDIENT)) {
-				BookmarkIngredientKey inKey = input.selectedKey();
-				if (inKey == null && !meta.permutations().isEmpty()) {
-					inKey = meta.permutations().iterator().next();
-				}
-				if (inKey != null && !prunedKeys.contains(inKey)) {
-					results.add(new RecipeChildIngredient(
-						inKey,
-						input.selectedIngredient() != null ? input.selectedIngredient() : inKey.typedIngredient(),
-						meta.bigAmount().max(BigInteger.ONE),
-						manualRecipeOverrides.get(inKey),
-						meta.recipeTypeUid()
-					));
+		// If manual recipe override was explicitly assigned for this parent node, prioritize JEI live recipes
+		// over stale rootInputs from the initial bookmark chain!
+		boolean hasManualOverride = manualRecipeOverrides.containsKey(parentKey);
+
+		if (!hasManualOverride) {
+			// Check if inputs are available from rootInputs metadata
+			for (RecipeChainInput input : rootInputs) {
+				BookmarkItemMetadata meta = input.metadata();
+				if (recipeUid.equals(meta.recipeUid()) && (meta.type().isGraphInput() || meta.type() == BookmarkItemType.NONCONSUMABLE || meta.type() == BookmarkItemType.INGREDIENT)) {
+					BookmarkIngredientKey inKey = input.selectedKey();
+					if (inKey == null && !meta.permutations().isEmpty()) {
+						inKey = meta.permutations().iterator().next();
+					}
+					if (inKey != null && !prunedKeys.contains(inKey)) {
+						results.add(new RecipeChildIngredient(
+							inKey,
+							input.selectedIngredient() != null ? input.selectedIngredient() : inKey.typedIngredient(),
+							meta.bigAmount().max(BigInteger.ONE),
+							manualRecipeOverrides.get(inKey),
+							meta.recipeTypeUid()
+						));
+					}
 				}
 			}
 		}

@@ -15,6 +15,22 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta13] - 2026-11-12 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **枝削除後のレシピ再選択・ツリー反映の正常化（動的アンプレーン機能）**:
+  - 間違ったノードや枝を削除した後に、親ノードまたは目的ノードで正しいレシピを選択して再構築しようとしても、削除時に登録された剪定除外キー（`prunedKeys`）に阻まれて新しいレシピの材料がツリーに反映されない不具合を解決。
+  - レシピを選択した際、対象ノードおよび新規選択レシピが必要とする入力材料群（および設定済み子孫）を `prunedKeys` から自動的に解除（アンプレーン）する機構を導入し、修正した枝が正しくツリーへ展開・反映されるよう改善。
+- **レシピの確実な上書き・適用保証（出力マッチング判定の緩和 & 手動優先）**:
+  - ツリー上のノードを削除せずに別のレシピへ変更しようとしても、JEIレシピ探索エンジン（`findRecipe`）における出力の完全一致判定（NBTやタグ差異）に阻まれてレシピ取得が null と判定され、上書きできない問題を解決。
+  - 出力判定に `matchesCraftingAvailable` を導入し、さらにユーザーが手動選択したレシピについては出力照合失敗時でも最低限 `factor = 1` で有効レシピとして採用。
+  - ブックマークグループ（`groupId >= 0`）から開いたツリーにおいても、手動選択レシピをブックマークチェーンの古いメタデータより最優先で適用し、100%確実にレシピが上書きされるよう改善。
+  - レシピ適用後に保留中ターゲット（`pendingRecipeTarget`）を正常にクリアし、後続の不正上書きを防止。
+- **ゲーム再起動時の削除状態の完全永続化 & セッション復元の堅牢化**:
+  - ゲーム再起動時に `TypedIngredientSerializer` が `UidContext.Recipe` 起因でデシリアライズに失敗し、セッション全体のロードが破棄されて削除した項目がすべて復活してしまう不具合を根本修正。
+  - 目標アイテムのシリアライズに `BookmarkIngredientKeySerializer`（SNBT・型・UID完全保持）を導入し、起動直後でも確実に同一アイテムとして認識・復元。削除状態（`prunedKeys`）が再起動後も完全に保持され、削除した項目が勝手に復活しないよう徹底。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta12] - 2026-11-12 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **ゲーム再起動時のツリーセッション自動保存・完全復元（永続化）**:
@@ -149,6 +165,22 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta13] - 2026-11-12 (Beta)
+#### Fixed & Improved
+- **Dynamic Branch Unpruning on Recipe Re-Selection**:
+  - Fixed an issue where correcting mistakes by pruning unwanted branches and picking a replacement recipe failed to reflect new ingredients because previously pruned keys remained blocked in `prunedKeys`.
+  - Automatically unprunes the modified node and the input ingredients (plus any configured descendant recipes) required by the newly chosen recipe upon applying it, ensuring corrected recipe branches expand and render seamlessly.
+- **Guaranteed Recipe Override & Output Match Relaxation**:
+  - Fixed an issue where modifying a node's recipe without pruning failed to overwrite due to strict output matching checks in `findRecipe` rejecting valid recipes.
+  - Implemented relaxed output matching using `matchesCraftingAvailable` and guaranteed fallback to `factor = 1` for user-chosen recipes, preventing user actions from being silently discarded.
+  - Prioritized manual recipe overrides directly over stale bookmark chain inputs in group trees (`groupId >= 0`), guaranteeing 100% reliable recipe overrides.
+  - Cleared `pendingRecipeTarget` immediately after recipe application to prevent erroneous subsequent overrides.
+- **Robust Session Persistence Across Game Restarts**:
+  - Fixed an issue where `TypedIngredientSerializer` failed deserialization during game launch due to `UidContext.Recipe`, causing the entire session to be discarded and restoring all previously pruned items.
+  - Migrated target ingredient persistence to `BookmarkIngredientKeySerializer` (full SNBT, type, and UID preservation) with `matchesCraftingAvailable` compatibility matching, ensuring pruned node states and customized trees persist accurately across game restarts without pruned nodes resurrecting.
 
 ---
 

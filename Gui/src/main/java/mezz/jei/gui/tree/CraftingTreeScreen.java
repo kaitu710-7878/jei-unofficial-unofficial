@@ -95,6 +95,7 @@ public final class CraftingTreeScreen extends Screen {
 	public static final class TreeSession {
 		public int groupId = -1;
 		public @Nullable ITypedIngredient<?> targetIngredient;
+		public @Nullable BookmarkIngredientKey targetIngredientKey;
 		public BigInteger targetAmount = BigInteger.ONE;
 		public @Nullable ResourceLocation targetRecipeOverride;
 		public final Map<BookmarkIngredientKey, ResourceLocation> manualRecipes = new LinkedHashMap<>();
@@ -122,6 +123,12 @@ public final class CraftingTreeScreen extends Screen {
 				root.addProperty("targetAmount", targetAmount.toString());
 				if (targetRecipeOverride != null) {
 					root.addProperty("targetRecipeOverride", targetRecipeOverride.toString());
+				}
+				if (targetIngredientKey != null) {
+					root.add("targetIngredientKey", BookmarkIngredientKeySerializer.serialize(targetIngredientKey));
+				} else if (targetIngredient != null) {
+					BookmarkIngredientKey key = BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager);
+					root.add("targetIngredientKey", BookmarkIngredientKeySerializer.serialize(key));
 				}
 				if (targetIngredient != null) {
 					TypedIngredientSerializer serializer = new TypedIngredientSerializer(ingredientManager);
@@ -175,10 +182,18 @@ public final class CraftingTreeScreen extends Screen {
 				if (root.has("targetRecipeOverride")) {
 					session.targetRecipeOverride = new ResourceLocation(root.get("targetRecipeOverride").getAsString());
 				}
-				if (root.has("targetIngredient")) {
+				if (root.has("targetIngredientKey")) {
+					BookmarkIngredientKey key = BookmarkIngredientKeySerializer.deserialize(root.get("targetIngredientKey"));
+					session.targetIngredientKey = key;
+					session.targetIngredient = key.resolveIngredient(ingredientManager).orElse(null);
+				}
+				if (session.targetIngredient == null && root.has("targetIngredient")) {
 					TypedIngredientSerializer serializer = new TypedIngredientSerializer(ingredientManager);
 					var res = serializer.deserialize(root.get("targetIngredient").getAsString());
 					session.targetIngredient = res.getResult().orElse(null);
+					if (session.targetIngredient != null && session.targetIngredientKey == null) {
+						session.targetIngredientKey = BookmarkItemMetadataFactory.createPermutationKey(session.targetIngredient, ingredientManager);
+					}
 				}
 				if (root.has("manualRecipes") && root.get("manualRecipes").isJsonArray()) {
 					for (JsonElement elem : root.getAsJsonArray("manualRecipes")) {
@@ -214,7 +229,7 @@ public final class CraftingTreeScreen extends Screen {
 				if (root.has("cameraZoom")) {
 					session.cameraZoom = root.get("cameraZoom").getAsFloat();
 				}
-				if (session.targetIngredient != null || session.groupId >= 0) {
+				if (session.targetIngredient != null || session.targetIngredientKey != null || session.groupId >= 0) {
 					return session;
 				}
 			} catch (Throwable ignored) {}
@@ -358,10 +373,12 @@ public final class CraftingTreeScreen extends Screen {
 		this.targetRecipeOverride = targetRecipeOverride;
 
 		// Restore session if working on the same target ingredient
-		if (activeSession != null && activeSession.targetIngredient != null) {
-			BookmarkIngredientKey activeKey = BookmarkItemMetadataFactory.createPermutationKey(activeSession.targetIngredient, ingredientManager);
+		if (activeSession != null) {
+			BookmarkIngredientKey activeKey = activeSession.targetIngredientKey != null
+				? activeSession.targetIngredientKey
+				: (activeSession.targetIngredient != null ? BookmarkItemMetadataFactory.createPermutationKey(activeSession.targetIngredient, ingredientManager) : null);
 			BookmarkIngredientKey currentKey = BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager);
-			if (activeKey.equals(currentKey)) {
+			if (activeKey != null && (activeKey.equals(currentKey) || activeKey.matchesCraftingAvailable(currentKey))) {
 				this.manualRecipes.putAll(activeSession.manualRecipes);
 				this.prunedKeys.addAll(activeSession.prunedKeys);
 				if (activeSession.targetRecipeOverride != null) {
@@ -388,6 +405,7 @@ public final class CraftingTreeScreen extends Screen {
 		}
 		activeSession.groupId = this.groupId;
 		activeSession.targetIngredient = this.targetIngredient;
+		activeSession.targetIngredientKey = this.targetIngredient != null ? BookmarkItemMetadataFactory.createPermutationKey(this.targetIngredient, this.ingredientManager) : null;
 		activeSession.targetAmount = this.targetAmount;
 		activeSession.targetRecipeOverride = this.targetRecipeOverride;
 		activeSession.manualRecipes.clear();
@@ -610,17 +628,45 @@ public final class CraftingTreeScreen extends Screen {
 
 	public void applySelectedRecipe(ResourceLocation recipeUid) {
 		if (pendingRecipeTarget != null) {
+			BookmarkIngredientKey targetKey = pendingRecipeTarget.getKey();
 			if (pendingRecipeTarget.equals(graph.getRootSlot())) {
 				this.targetRecipeOverride = recipeUid;
 			}
-			this.manualRecipes.put(pendingRecipeTarget.getKey(), recipeUid);
+			this.manualRecipes.put(targetKey, recipeUid);
+
+			// Unprune this target node if it was previously pruned
+			this.prunedKeys.remove(targetKey);
+
+			// Unprune the direct and recursive inputs of the newly selected recipe
+			// so that correcting a recipe actually expands the new branch!
+			ITypedIngredient<?> matchTarget = pendingRecipeTarget.getTypedIngredient().orElse(null);
+			TreeRecipeBuilder.RecipeInfo<?> newRecipeInfo = TreeRecipeBuilder.findRecipe(recipeUid, matchTarget);
+			if (newRecipeInfo != null) {
+				unpruneSubtreeInputs(newRecipeInfo);
+			}
+
 			if (targetIngredient != null) {
 				rebuildTreeMath(pendingRecipeTarget);
 			} else {
-				treeMath.setManualRecipe(pendingRecipeTarget.getKey(), recipeUid);
+				treeMath.setManualRecipe(targetKey, recipeUid);
 				recalculateTree(pendingRecipeTarget);
 			}
 			saveSession();
+			this.pendingRecipeTarget = null;
+		}
+	}
+
+	private void unpruneSubtreeInputs(TreeRecipeBuilder.RecipeInfo<?> recipeInfo) {
+		for (ITypedIngredient<?> input : recipeInfo.inputs()) {
+			BookmarkIngredientKey key = BookmarkItemMetadataFactory.createPermutationKey(input, ingredientManager);
+			prunedKeys.remove(key);
+			ResourceLocation subRec = manualRecipes.get(key);
+			if (subRec != null) {
+				TreeRecipeBuilder.RecipeInfo<?> subInfo = TreeRecipeBuilder.findRecipe(subRec, input);
+				if (subInfo != null) {
+					unpruneSubtreeInputs(subInfo);
+				}
+			}
 		}
 	}
 
@@ -971,6 +1017,9 @@ public final class CraftingTreeScreen extends Screen {
 		prunedKeys.addAll(subtree);
 		for (BookmarkIngredientKey k : subtree) {
 			manualRecipes.remove(k);
+		}
+		if (target.equals(graph.getRootSlot())) {
+			this.targetRecipeOverride = null;
 		}
 		rebuildTreeMath();
 	}
