@@ -15,6 +15,17 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta11] - 2026-11-12 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **吹込み変換レシピおよび冶金吹込み機レシピの完全正常化**:
+  - レシピ解析エンジンを安定していた beta8 ベースの設計に巻き戻し、Mekanismの「Extra」スロットのみを精密に除外する方式へ改修。
+  - ガスタンクや不要な吹込み変換アイテムが冶金吹込み機のクラフト入力に混ざる不具合を解消。
+  - 機械内部で行われる「アイテムから吹き込み素材への変換レシピ（Infusion Conversion）」が登録できなくなっていた不具合を完全解決。
+- **副作用のない吹込み素材クラフト回数計算の適用**:
+  - ノード自身が選んだレシピの生産量（`outputFactor`、例: 80mb）に基づいて自身のクラフト回数を計算し、子ノードには親の数値を引き継がせない（初期値1）ことで、吹込み素材A・素材B・素材Cの多段階層でも必要素材数が異常増殖しない本質的な修正を実装。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta10] - 2026-11-12 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **補填情報アイテム（ガスタンク等）のツリー材料除外**:
@@ -124,6 +135,17 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta11] - 2026-11-12 (Beta)
+#### Fixed & Improved
+- **Full Restoration & Normalization of Infusion Conversion & Metallurgic Infuser Recipes**:
+  - Reverted recipe parsing core to the stable beta8 architecture and strictly filtered only Mekanism's "extra" display slots.
+  - Resolved extraneous gas tanks and rotation display items leaking into metallurgical infusing recipe inputs.
+  - Fixed internal machine recipes ("Infusion Conversion", converting items to chemical infuse types) failing to register.
+- **Side-Effect-Free Recipe Execution Calculation**:
+  - Accurately calculates craft execution multiplier directly from the node's selected recipe yield (outputFactor) without polluting child nodes with parent yield values, ensuring nested conversions (A -> B -> C) calculate exact demanded quantities without distortion.
 
 ---
 

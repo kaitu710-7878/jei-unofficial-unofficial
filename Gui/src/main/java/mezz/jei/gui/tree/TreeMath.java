@@ -1,6 +1,7 @@
 package mezz.jei.gui.tree;
 
 import mezz.jei.api.ingredients.ITypedIngredient;
+import mezz.jei.common.Internal;
 import mezz.jei.common.util.BigIntMath;
 import mezz.jei.gui.bookmarks.BookmarkIngredientAmountResolver;
 import mezz.jei.gui.bookmarks.BookmarkIngredientKey;
@@ -17,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -96,6 +98,16 @@ public final class TreeMath {
 		this.collapsedRecipes.addAll(collapsed);
 	}
 
+	private static boolean isNonConsumable(BookmarkIngredientKey key) {
+		String uid = key.ingredientUid().toLowerCase(Locale.ROOT);
+		return uid.contains("press")
+			|| uid.contains("mold")
+			|| uid.contains("cast")
+			|| uid.contains("die")
+			|| uid.contains("stamp")
+			|| uid.contains("programmed_circuit");
+	}
+
 	/**
 	 * Executes full tree calculation and builds the TreeGraph.
 	 */
@@ -127,7 +139,7 @@ public final class TreeMath {
 				if (key == null && !meta.permutations().isEmpty()) {
 					key = meta.permutations().iterator().next();
 				}
-				if (key != null && !consumedKeys.contains(key)) {
+				if (key != null && !consumedKeys.contains(key) && !prunedKeys.contains(key)) {
 					roots.add(input);
 				}
 			}
@@ -250,7 +262,7 @@ public final class TreeMath {
 			inheritAmount,
 			requestedAmount,
 			producedAmount,
-			BigInteger.ZERO,
+			usedStock,
 			remainingToCraft,
 			multiplier,
 			false
@@ -269,15 +281,18 @@ public final class TreeMath {
 
 			List<RecipeChildIngredient> subIngredients = findRecipeInputs(chosenRecipe, key, typedIngredient);
 			for (RecipeChildIngredient sub : subIngredients) {
-				// Non-consumable ingredients (molds, presses, catalysts) are NOT multiplied by craft multiplier!
-				BigInteger subRequested = sub.isNonConsumable() ? sub.amount() : sub.amount().multiply(multiplier);
+				if (prunedKeys.contains(sub.key())) {
+					continue;
+				}
+				// Non-consumable items (molds, circuits) stay fixed at base amount without multiplier
+				BigInteger subRequested = isNonConsumable(sub.key()) ? sub.amount() : sub.amount().multiply(multiplier);
 
 				TreeSlot childSlot = buildNode(
 					sub.key(),
 					sub.typedIngredient(),
 					sub.defaultRecipeUid(),
 					sub.recipeTypeUid(),
-					BigInteger.ONE,
+					BigInteger.ONE, // Child node's base factor starts at 1, will use child recipe's own factor if configured
 					BigInteger.ZERO,
 					subRequested,
 					visitedRecipes,
@@ -299,7 +314,6 @@ public final class TreeMath {
 		BookmarkIngredientKey key,
 		@Nullable ITypedIngredient<?> typedIngredient,
 		BigInteger amount,
-		boolean isNonConsumable,
 		@Nullable ResourceLocation defaultRecipeUid,
 		@Nullable ResourceLocation recipeTypeUid
 	) {}
@@ -314,7 +328,7 @@ public final class TreeMath {
 		// Check if inputs are available from rootInputs metadata
 		for (RecipeChainInput input : rootInputs) {
 			BookmarkItemMetadata meta = input.metadata();
-			if (recipeUid.equals(meta.recipeUid()) && (meta.type().isGraphInput() || meta.type() == BookmarkItemType.NONCONSUMABLE)) {
+			if (recipeUid.equals(meta.recipeUid()) && (meta.type().isGraphInput() || meta.type() == BookmarkItemType.NONCONSUMABLE || meta.type() == BookmarkItemType.INGREDIENT)) {
 				BookmarkIngredientKey inKey = input.selectedKey();
 				if (inKey == null && !meta.permutations().isEmpty()) {
 					inKey = meta.permutations().iterator().next();
@@ -324,7 +338,6 @@ public final class TreeMath {
 						inKey,
 						input.selectedIngredient() != null ? input.selectedIngredient() : inKey.typedIngredient(),
 						meta.bigAmount().max(BigInteger.ONE),
-						meta.type().isNonConsumable(),
 						manualRecipeOverrides.get(inKey),
 						meta.recipeTypeUid()
 					));
@@ -337,21 +350,18 @@ public final class TreeMath {
 			TreeRecipeBuilder.RecipeInfo<?> info = TreeRecipeBuilder.findRecipe(recipeUid, matchTarget);
 			if (info != null) {
 				Map<BookmarkIngredientKey, RecipeChildIngredient> aggregated = new java.util.LinkedHashMap<>();
-				for (TreeRecipeBuilder.RecipeInput in : info.inputs()) {
-					ITypedIngredient<?> inIng = in.ingredient();
-					boolean nonConsumable = in.isNonConsumable();
-					BookmarkIngredientKey inKey = BookmarkItemMetadataFactory.createPermutationKey(inIng, mezz.jei.common.Internal.getJeiRuntime().getIngredientManager());
+				for (ITypedIngredient<?> inIng : info.inputs()) {
+					BookmarkIngredientKey inKey = BookmarkItemMetadataFactory.createPermutationKey(inIng, Internal.getJeiRuntime().getIngredientManager());
 					if (prunedKeys.contains(inKey)) {
 						continue;
 					}
 					RecipeChildIngredient existing = aggregated.get(inKey);
-					BigInteger count = BigInteger.valueOf(Math.max(1, BookmarkIngredientAmountResolver.getAmount(inIng, mezz.jei.common.Internal.getJeiRuntime().getIngredientManager())));
+					BigInteger count = BigInteger.valueOf(Math.max(1, BookmarkIngredientAmountResolver.getAmount(inIng, Internal.getJeiRuntime().getIngredientManager())));
 					if (existing != null) {
 						aggregated.put(inKey, new RecipeChildIngredient(
 							inKey,
 							existing.typedIngredient(),
 							existing.amount().add(count),
-							existing.isNonConsumable() || nonConsumable,
 							existing.defaultRecipeUid(),
 							existing.recipeTypeUid()
 						));
@@ -360,7 +370,6 @@ public final class TreeMath {
 							inKey,
 							inIng,
 							count,
-							nonConsumable,
 							manualRecipeOverrides.get(inKey),
 							info.categoryUid()
 						));

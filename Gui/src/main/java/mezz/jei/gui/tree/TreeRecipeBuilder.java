@@ -17,7 +17,6 @@ import mezz.jei.gui.bookmarks.BookmarkItemMetadataFactory;
 import mezz.jei.gui.bookmarks.BookmarkItemType;
 import mezz.jei.gui.bookmarks.chain.RecipeChainInput;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigInteger;
@@ -25,7 +24,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -41,17 +39,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class TreeRecipeBuilder {
 	private TreeRecipeBuilder() {}
 
-	public record RecipeInput(
-		ITypedIngredient<?> ingredient,
-		boolean isNonConsumable
-	) {}
-
 	public record RecipeInfo<T>(
 		IRecipeCategory<T> category,
 		T recipe,
 		ResourceLocation recipeUid,
 		ResourceLocation categoryUid,
-		List<RecipeInput> inputs,
+		List<ITypedIngredient<?>> inputs,
 		List<ITypedIngredient<?>> outputs,
 		long outputFactor
 	) {
@@ -73,6 +66,11 @@ public final class TreeRecipeBuilder {
 	 * Finds all recipes that produce the given ingredient using parallel search across recipe categories.
 	 */
 	public static List<RecipeInfo<?>> findRecipesFor(ITypedIngredient<?> targetIngredient) {
+		try {
+			Internal.getJeiRuntime();
+		} catch (Throwable ignored) {
+			return List.of();
+		}
 		IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
 		BookmarkIngredientKey targetKey = BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager);
 
@@ -148,136 +146,36 @@ public final class TreeRecipeBuilder {
 				.findFirst()
 				.orElse(null);
 
-			if (baseInfo != null) {
-				RECIPE_UID_CACHE.put(recipeUid, baseInfo);
+			if (baseInfo == null) {
+				return null;
 			}
-		}
-
-		if (baseInfo == null) {
-			return null;
 		}
 
 		if (matchTarget == null) {
 			return baseInfo;
 		}
 
-		// Strictly verify that the recipe produces matchTarget with identical ingredient type & UID
-		BookmarkIngredientKey targetKey = BookmarkItemMetadataFactory.createPermutationKey(matchTarget, ingredientManager);
-		long factor = calculateMatchingOutputFactor(baseInfo, targetKey, ingredientManager);
+		// Re-evaluate output factor specifically against matchTarget
+		long factor = calculateOutputFactor(baseInfo, matchTarget, ingredientManager);
 		if (factor <= 0) {
-			// Recipe does not produce the target ingredient type or UID
-			return null;
+			factor = 1;
 		}
-
 		return baseInfo.withFactor(factor);
 	}
 
-	private static long calculateMatchingOutputFactor(RecipeInfo<?> info, BookmarkIngredientKey targetKey, IIngredientManager ingredientManager) {
-		for (ITypedIngredient<?> output : info.outputs()) {
-			BookmarkIngredientKey outKey = BookmarkItemMetadataFactory.createPermutationKey(output, ingredientManager);
-			if (targetKey.equals(outKey)) {
-				return Math.max(1, BookmarkIngredientAmountResolver.getAmount(output, ingredientManager));
+	private static long calculateOutputFactor(
+		RecipeInfo<?> info,
+		ITypedIngredient<?> matchTarget,
+		IIngredientManager ingredientManager
+	) {
+		BookmarkIngredientKey matchKey = BookmarkItemMetadataFactory.createPermutationKey(matchTarget, ingredientManager);
+		for (ITypedIngredient<?> out : info.outputs()) {
+			BookmarkIngredientKey outKey = BookmarkItemMetadataFactory.createPermutationKey(out, ingredientManager);
+			if (matchKey.equals(outKey)) {
+				return Math.max(1, BookmarkIngredientAmountResolver.getAmount(out, ingredientManager));
 			}
 		}
 		return -1;
-	}
-
-	public static boolean isSupplementaryInfoSlot(
-		IRecipeSlotView slotView,
-		ITypedIngredient<?> input,
-		List<IRecipeSlotView> allInputSlots,
-		IIngredientManager ingredientManager
-	) {
-		// 1. Check JEI slot name (extra, container, info, fuel, charge, etc.)
-		Optional<String> slotNameOpt = slotView.getSlotName();
-		if (slotNameOpt.isPresent()) {
-			String slotName = slotNameOpt.get().toLowerCase(Locale.ROOT);
-			if (slotName.contains("extra")
-				|| slotName.contains("fuel")
-				|| slotName.contains("charge")
-				|| slotName.contains("energy")
-				|| slotName.contains("power")
-				|| slotName.contains("container")
-				|| slotName.contains("supplementary")
-				|| slotName.contains("guide")
-				|| slotName.contains("info")
-			) {
-				return true;
-			}
-		}
-
-		BookmarkIngredientKey inKey = BookmarkItemMetadataFactory.createPermutationKey(input, ingredientManager);
-		String uid = inKey.ingredientUid().toLowerCase(Locale.ROOT);
-
-		// 2. Check if this is an item that acts as a tank/container for chemicals or fluids
-		boolean isTankOrContainer = uid.contains("chemical_tank")
-			|| uid.contains("gas_tank")
-			|| uid.contains("fluid_tank")
-			|| uid.contains("gauge_dropper")
-			|| uid.contains("canister")
-			|| uid.contains("capsule");
-
-		if (isTankOrContainer) {
-			// If the recipe already has a chemical (gas, infusion, pigment, slurry) or fluid input,
-			// the tank/container is strictly a display guide for machine filling, NOT a craft ingredient.
-			boolean hasChemicalOrFluidInput = allInputSlots.stream()
-				.flatMap(IRecipeSlotView::getAllIngredients)
-				.anyMatch(ing -> {
-					String t = ing.getType().getUid().toString().toLowerCase(Locale.ROOT);
-					return t.contains("chemical") || t.contains("gas") || t.contains("infus")
-						|| t.contains("pigment") || t.contains("slurry") || t.contains("fluid");
-				});
-
-			if (hasChemicalOrFluidInput) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	public static boolean isNonConsumable(
-		ITypedIngredient<?> input,
-		List<ITypedIngredient<?>> outputs,
-		IRecipeSlotView slotView,
-		IIngredientManager ingredientManager
-	) {
-		// 1. Explicit Catalyst Role
-		if (slotView.getRole() == RecipeIngredientRole.CATALYST) {
-			return true;
-		}
-
-		BookmarkIngredientKey inKey = BookmarkItemMetadataFactory.createPermutationKey(input, ingredientManager);
-
-		// 2. Output contains the exact same ingredient key (not consumed)
-		for (ITypedIngredient<?> out : outputs) {
-			BookmarkIngredientKey outKey = BookmarkItemMetadataFactory.createPermutationKey(out, ingredientManager);
-			if (inKey.equals(outKey)) {
-				return true;
-			}
-		}
-
-		// 3. Known mold / press / cast / circuit / tool items that are not consumed (e.g. AE2 inscriber press, GregTech circuit)
-		String uid = inKey.ingredientUid().toLowerCase(Locale.ROOT);
-		if (uid.contains("press") ||
-			uid.contains("mold") ||
-			uid.contains("cast") ||
-			uid.contains("die") ||
-			uid.contains("stamp") ||
-			uid.contains("programmed_circuit")
-		) {
-			return true;
-		}
-
-		// 4. Vanilla/Forge crafting remainder (e.g. buckets, reusable tools)
-		if (input.getItemStack().isPresent()) {
-			ItemStack stack = input.getItemStack().get();
-			if (stack.getItem().hasCraftingRemainingItem()) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -301,30 +199,21 @@ public final class TreeRecipeBuilder {
 			return null;
 		}
 
+		List<ITypedIngredient<?>> inputs = new ArrayList<>();
+		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.INPUT)) {
+			// Skip Mekanism extra slot (e.g. infuser charging / display slot) so it doesn't mix with actual craft inputs
+			Optional<String> slotName = slot.getSlotName();
+			if (slotName.isPresent() && "extra".equalsIgnoreCase(slotName.get())) {
+				continue;
+			}
+			Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
+			ingOpt.ifPresent(inputs::add);
+		}
+
 		List<ITypedIngredient<?>> outputs = new ArrayList<>();
 		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.OUTPUT)) {
 			Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
 			ingOpt.ifPresent(outputs::add);
-		}
-
-		List<RecipeInput> inputs = new ArrayList<>();
-		List<IRecipeSlotView> inputSlotViews = slotsView.getSlotViews(RecipeIngredientRole.INPUT);
-		for (IRecipeSlotView slot : inputSlotViews) {
-			Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
-			if (ingOpt.isPresent()) {
-				ITypedIngredient<?> in = ingOpt.get();
-				if (isSupplementaryInfoSlot(slot, in, inputSlotViews, ingredientManager)) {
-					continue;
-				}
-				boolean nonConsumable = isNonConsumable(in, outputs, slot, ingredientManager);
-				inputs.add(new RecipeInput(in, nonConsumable));
-			}
-		}
-		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.CATALYST)) {
-			Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
-			if (ingOpt.isPresent()) {
-				inputs.add(new RecipeInput(ingOpt.get(), true));
-			}
 		}
 
 		long factor = 1;
@@ -379,6 +268,11 @@ public final class TreeRecipeBuilder {
 		Set<BookmarkIngredientKey> prunedKeys,
 		IIngredientManager ingredientManager
 	) {
+		try {
+			Internal.getJeiRuntime();
+		} catch (Throwable ignored) {
+			return List.of();
+		}
 		List<RecipeChainInput> inputs = new ArrayList<>();
 		Set<BookmarkIngredientKey> visited = new HashSet<>();
 		int indexCounter = 0;
@@ -430,8 +324,7 @@ public final class TreeRecipeBuilder {
 		while (!recipeQueue.isEmpty()) {
 			RecipeInfo<?> currentRecipe = recipeQueue.poll();
 
-			for (RecipeInput inputWrapper : currentRecipe.inputs()) {
-				ITypedIngredient<?> inputIng = inputWrapper.ingredient();
+			for (ITypedIngredient<?> inputIng : currentRecipe.inputs()) {
 				BookmarkIngredientKey inputKey = BookmarkItemMetadataFactory.createPermutationKey(inputIng, ingredientManager);
 				if (prunedKeys.contains(inputKey)) {
 					continue;
@@ -443,10 +336,10 @@ public final class TreeRecipeBuilder {
 					subRecipe = findRecipe(subRecipeUid, inputIng);
 				}
 
-				BookmarkItemType itemType = inputWrapper.isNonConsumable() ? BookmarkItemType.NONCONSUMABLE : BookmarkItemType.INGREDIENT;
+				// Always register inputKey as an INGREDIENT of currentRecipe
 				BookmarkItemMetadata rawMeta = new BookmarkItemMetadata(
 					-1,
-					itemType,
+					BookmarkItemType.INGREDIENT,
 					Math.max(1, BookmarkIngredientAmountResolver.getAmount(inputIng, ingredientManager)),
 					1,
 					BookmarkItemMetadata.CHANCE_FULL,
