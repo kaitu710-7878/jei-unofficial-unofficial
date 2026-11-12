@@ -15,6 +15,17 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta10] - 2026-11-12 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **補填情報アイテム（ガスタンク等）のツリー材料除外**:
+  - Mekanismの冶金注入器や各種化学機械において、吹込み素材や気体・流体を機械に補填するための補助表示（"Extra" スロット、ガスタンク・ケミカルタンク等）がクラフトツリーの入力材料として誤って組み込まれる問題を修正。
+  - レシピ内に該当する気体・吹込み素材・流体等のケミカル入力が存在する場合、またはJEIスロット名が補助/充填用（extra, container, info, charge, fuel等）である場合、これらのコンテナ・補填用アイテムをツリーのクラフト材料から自動除外。
+- **「このノードとその枝を削除」の確実な実行と再発防止**:
+  - `TreeMath` の計算エンジン内部に剪定除外キー（`prunedKeys`）の追跡機構を導入。
+  - ルート選定、ノード構築（`buildNode`）、動的レシピ展開（`findRecipeInputs`）の全フェーズで徹底した剪定ガードを適用し、削除したノードやその枝が再計算や動的探索によってツリーに再生成・復活してしまうバグを根本解決。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta9] - 2026-11-12 (Beta)
 #### 追加・改善 (Added & Improved)
 - **核廃棄物・吹込み素材・全ケミカルのmb表記統一**:
@@ -113,6 +124,17 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta10] - 2026-11-12 (Beta)
+#### Fixed & Improved
+- **Exclusion of Supplementary Display Items (Gas Tanks / Chemical Tanks)**:
+  - Fixed an issue where supplementary container items (such as Mekanism's "Extra" slot gas tanks and chemical tanks used to supply internal machine buffers) were mistakenly included as craft ingredients in the crafting tree.
+  - Automatically identifies and filters out display guide slots (e.g. slots named extra, container, info, fuel, charge) and tank items when the recipe already contains the corresponding gas, infusion, or fluid ingredient.
+- **Reliable Node & Branch Pruning ("Remove Node and Branch")**:
+  - Integrated `prunedKeys` tracking directly into the `TreeMath` calculation engine.
+  - Enforced pruning checks across root selection, recursive node construction (`buildNode`), and dynamic recipe lookup (`findRecipeInputs`), completely preventing pruned nodes from re-spawning during recalculation or tree updates.
 
 ---
 

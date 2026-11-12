@@ -182,6 +182,60 @@ public final class TreeRecipeBuilder {
 		return -1;
 	}
 
+	public static boolean isSupplementaryInfoSlot(
+		IRecipeSlotView slotView,
+		ITypedIngredient<?> input,
+		List<IRecipeSlotView> allInputSlots,
+		IIngredientManager ingredientManager
+	) {
+		// 1. Check JEI slot name (extra, container, info, fuel, charge, etc.)
+		Optional<String> slotNameOpt = slotView.getSlotName();
+		if (slotNameOpt.isPresent()) {
+			String slotName = slotNameOpt.get().toLowerCase(Locale.ROOT);
+			if (slotName.contains("extra")
+				|| slotName.contains("fuel")
+				|| slotName.contains("charge")
+				|| slotName.contains("energy")
+				|| slotName.contains("power")
+				|| slotName.contains("container")
+				|| slotName.contains("supplementary")
+				|| slotName.contains("guide")
+				|| slotName.contains("info")
+			) {
+				return true;
+			}
+		}
+
+		BookmarkIngredientKey inKey = BookmarkItemMetadataFactory.createPermutationKey(input, ingredientManager);
+		String uid = inKey.ingredientUid().toLowerCase(Locale.ROOT);
+
+		// 2. Check if this is an item that acts as a tank/container for chemicals or fluids
+		boolean isTankOrContainer = uid.contains("chemical_tank")
+			|| uid.contains("gas_tank")
+			|| uid.contains("fluid_tank")
+			|| uid.contains("gauge_dropper")
+			|| uid.contains("canister")
+			|| uid.contains("capsule");
+
+		if (isTankOrContainer) {
+			// If the recipe already has a chemical (gas, infusion, pigment, slurry) or fluid input,
+			// the tank/container is strictly a display guide for machine filling, NOT a craft ingredient.
+			boolean hasChemicalOrFluidInput = allInputSlots.stream()
+				.flatMap(IRecipeSlotView::getAllIngredients)
+				.anyMatch(ing -> {
+					String t = ing.getType().getUid().toString().toLowerCase(Locale.ROOT);
+					return t.contains("chemical") || t.contains("gas") || t.contains("infus")
+						|| t.contains("pigment") || t.contains("slurry") || t.contains("fluid");
+				});
+
+			if (hasChemicalOrFluidInput) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	public static boolean isNonConsumable(
 		ITypedIngredient<?> input,
 		List<ITypedIngredient<?>> outputs,
@@ -254,10 +308,14 @@ public final class TreeRecipeBuilder {
 		}
 
 		List<RecipeInput> inputs = new ArrayList<>();
-		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.INPUT)) {
+		List<IRecipeSlotView> inputSlotViews = slotsView.getSlotViews(RecipeIngredientRole.INPUT);
+		for (IRecipeSlotView slot : inputSlotViews) {
 			Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
 			if (ingOpt.isPresent()) {
 				ITypedIngredient<?> in = ingOpt.get();
+				if (isSupplementaryInfoSlot(slot, in, inputSlotViews, ingredientManager)) {
+					continue;
+				}
 				boolean nonConsumable = isNonConsumable(in, outputs, slot, ingredientManager);
 				inputs.add(new RecipeInput(in, nonConsumable));
 			}

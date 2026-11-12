@@ -273,7 +273,7 @@ public final class CraftingTreeScreen extends Screen {
 				prunedKeys,
 				ingredientManager
 			);
-			this.treeMath = new TreeMath(inputs, stock);
+			this.treeMath = new TreeMath(inputs, stock, prunedKeys);
 		} else {
 			this.treeMath = TreeChainBridge.createTreeMathFromGroup(bookmarks, groupId, stock, prunedKeys);
 		}
@@ -808,6 +808,9 @@ public final class CraftingTreeScreen extends Screen {
 			TreeSlot current = queue.poll();
 			if (current.getKey() != null) {
 				result.add(current.getKey());
+			}
+			if (current.getTypedIngredient().isPresent()) {
+				result.add(BookmarkItemMetadataFactory.createPermutationKey(current.getTypedIngredient().get(), ingredientManager));
 			}
 			for (TreeSlot child : graph.getChildren(current)) {
 				queue.add(child);

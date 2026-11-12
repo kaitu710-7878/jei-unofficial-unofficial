@@ -55,7 +55,7 @@ public final class TreeChainBridge {
 				.filter(in -> !prunedKeys.contains(in.selectedKey()))
 				.toList();
 		}
-		TreeMath treeMath = new TreeMath(inputs, inventory);
+		TreeMath treeMath = new TreeMath(inputs, inventory, prunedKeys);
 
 		Optional<BookmarkGroup> groupOpt = bookmarks.getGroup(groupId);
 		groupOpt.ifPresent(group -> {

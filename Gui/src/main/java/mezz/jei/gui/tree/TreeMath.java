@@ -38,11 +38,17 @@ public final class TreeMath {
 	private final Set<BookmarkIngredientKey> forceCraftOverrides = new HashSet<>();
 	private final Set<ResourceLocation> collapsedRecipes = new HashSet<>();
 
+	private final Set<BookmarkIngredientKey> prunedKeys;
 	private final TreeGraph graph = new TreeGraph();
 
 	public TreeMath(List<RecipeChainInput> rootInputs, Map<BookmarkIngredientKey, BigInteger> inventory) {
+		this(rootInputs, inventory, Set.of());
+	}
+
+	public TreeMath(List<RecipeChainInput> rootInputs, Map<BookmarkIngredientKey, BigInteger> inventory, Set<BookmarkIngredientKey> prunedKeys) {
 		this.rootInputs = new ArrayList<>(rootInputs);
 		this.inventory = new HashMap<>(inventory);
+		this.prunedKeys = new HashSet<>(prunedKeys);
 	}
 
 	public TreeGraph getGraph() {
@@ -106,7 +112,7 @@ public final class TreeMath {
 				if (inKey == null && !meta.permutations().isEmpty()) {
 					inKey = meta.permutations().iterator().next();
 				}
-				if (inKey != null) {
+				if (inKey != null && !prunedKeys.contains(inKey)) {
 					consumedKeys.add(inKey);
 				}
 			}
@@ -147,7 +153,7 @@ public final class TreeMath {
 			if (key == null && !rootInput.metadata().permutations().isEmpty()) {
 				key = rootInput.metadata().permutations().iterator().next();
 			}
-			if (key == null) {
+			if (key == null || prunedKeys.contains(key)) {
 				continue;
 			}
 
@@ -170,14 +176,16 @@ public final class TreeMath {
 				0
 			);
 
-			graph.addRoot(rootSlot);
+			if (rootSlot != null) {
+				graph.addRoot(rootSlot);
+			}
 		}
 
 		graph.updateCaches();
 		return graph;
 	}
 
-	private TreeSlot buildNode(
+	private @Nullable TreeSlot buildNode(
 		BookmarkIngredientKey key,
 		@Nullable ITypedIngredient<?> typedIngredient,
 		@Nullable ResourceLocation defaultRecipeUid,
@@ -188,6 +196,9 @@ public final class TreeMath {
 		Set<ResourceLocation> visitedRecipes,
 		int depth
 	) {
+		if (prunedKeys.contains(key)) {
+			return null;
+		}
 		boolean force = forceCraftOverrides.contains(key);
 		BigInteger totalDemand = inheritAmount.add(requestedAmount);
 
@@ -273,7 +284,9 @@ public final class TreeMath {
 					depth + 1
 				);
 
-				graph.addChild(node, childSlot);
+				if (childSlot != null) {
+					graph.addChild(node, childSlot);
+				}
 			}
 
 			visitedRecipes.remove(chosenRecipe);
@@ -306,7 +319,7 @@ public final class TreeMath {
 				if (inKey == null && !meta.permutations().isEmpty()) {
 					inKey = meta.permutations().iterator().next();
 				}
-				if (inKey != null) {
+				if (inKey != null && !prunedKeys.contains(inKey)) {
 					results.add(new RecipeChildIngredient(
 						inKey,
 						input.selectedIngredient() != null ? input.selectedIngredient() : inKey.typedIngredient(),
@@ -328,6 +341,9 @@ public final class TreeMath {
 					ITypedIngredient<?> inIng = in.ingredient();
 					boolean nonConsumable = in.isNonConsumable();
 					BookmarkIngredientKey inKey = BookmarkItemMetadataFactory.createPermutationKey(inIng, mezz.jei.common.Internal.getJeiRuntime().getIngredientManager());
+					if (prunedKeys.contains(inKey)) {
+						continue;
+					}
 					RecipeChildIngredient existing = aggregated.get(inKey);
 					BigInteger count = BigInteger.valueOf(Math.max(1, BookmarkIngredientAmountResolver.getAmount(inIng, mezz.jei.common.Internal.getJeiRuntime().getIngredientManager())));
 					if (existing != null) {

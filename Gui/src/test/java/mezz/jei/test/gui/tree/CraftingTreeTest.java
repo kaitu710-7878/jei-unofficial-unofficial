@@ -206,4 +206,42 @@ public class CraftingTreeTest {
 		TreeStats.Row neededRow = stats.getSection(TreeStats.Kind.INGREDIENT_NEEDED).get(0);
 		Assertions.assertEquals(BigInteger.valueOf(5), neededRow.getAmount());
 	}
+	@Test
+	public void testPrunedKeysNodeRemoval() {
+		BookmarkIngredientKey sword = BookmarkIngredientKey.of("minecraft:item", "minecraft:iron_sword");
+		BookmarkIngredientKey iron = BookmarkIngredientKey.of("minecraft:item", "minecraft:iron_ingot");
+		BookmarkIngredientKey stick = BookmarkIngredientKey.of("minecraft:item", "minecraft:stick");
+
+		ResourceLocation swordRecipe = new ResourceLocation("minecraft", "iron_sword");
+
+		BookmarkItemMetadata swordMeta = new BookmarkItemMetadata(
+			1, BookmarkItemType.RESULT, 1, 1, BookmarkItemMetadata.CHANCE_FULL,
+			new ResourceLocation("minecraft", "crafting"), swordRecipe, Set.of(sword)
+		);
+		BookmarkItemMetadata ironMeta = new BookmarkItemMetadata(
+			1, BookmarkItemType.INGREDIENT, 2, 1, BookmarkItemMetadata.CHANCE_FULL,
+			new ResourceLocation("minecraft", "crafting"), swordRecipe, Set.of(iron)
+		);
+		BookmarkItemMetadata stickMeta = new BookmarkItemMetadata(
+			1, BookmarkItemType.INGREDIENT, 1, 1, BookmarkItemMetadata.CHANCE_FULL,
+			new ResourceLocation("minecraft", "crafting"), swordRecipe, Set.of(stick)
+		);
+
+		List<RecipeChainInput> inputs = List.of(
+			new RecipeChainInput(0, swordMeta, sword),
+			new RecipeChainInput(1, ironMeta, iron),
+			new RecipeChainInput(2, stickMeta, stick)
+		);
+
+		// When stick is pruned, the tree must contain only sword and iron
+		TreeMath math = new TreeMath(inputs, Map.of(), Set.of(stick));
+		TreeGraph graph = math.calculate();
+
+		Assertions.assertEquals(1, graph.getRoots().size());
+		TreeSlot root = graph.getRoots().get(0);
+		List<TreeSlot> children = graph.getChildren(root);
+
+		Assertions.assertEquals(1, children.size());
+		Assertions.assertEquals(iron, children.get(0).getKey());
+	}
 }
