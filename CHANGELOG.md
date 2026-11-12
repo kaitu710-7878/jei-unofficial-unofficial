@@ -15,6 +15,14 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta17] - 2026-11-12 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **ツリーからレシピチェーン変換時のレシピ出力順序を通常順（下位原料→完成品）に統一**:
+  - クラフトツリー画面の「保存」機能でツリーをブックマークのレシピチェーン（Bookmark Group）にエクスポートした際、ツリーの探索順（ルート完成品が先頭）のまま登録されてしまい、通常の手順で作成したレシピチェーンと上下が逆（反転）に出力されていた問題を修正。
+  - エクスポート時のレシピリストを反転させ、下位工程・原材料レシピから順に並び、最終成果物（完成品）が末尾に配置される通常チェーンと完全に同一の上下順序で登録されるよう改善。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta16] - 2026-11-12 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **流体・化学物質・ガスの数量単位表記をSI接頭辞+mbに完全統一**:
@@ -203,6 +211,14 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta17] - 2026-11-12 (Beta)
+#### Fixed & Improved
+- **Standardized Tree-to-Chain Export Recipe Order (Ingredients to Final Output)**:
+  - Fixed an issue where exporting a crafting tree into a bookmark recipe chain group via the "Save" button registered recipes in top-down tree traversal order (root product first), resulting in an inverted (upside down) recipe order compared to normally constructed recipe chains.
+  - Reversed the exported recipe layouts list so that lower-level raw materials and sub-assembly steps are listed first, culminating with the final product at the end, exactly matching standard bottom-up recipe chains.
 
 ---
 

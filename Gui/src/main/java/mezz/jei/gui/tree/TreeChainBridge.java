@@ -16,6 +16,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -107,6 +108,10 @@ public final class TreeChainBridge {
 		if (layouts.isEmpty()) {
 			return Optional.empty();
 		}
+
+		// Reverse layouts order so that lower-level ingredients come first and the final product is at the end,
+		// matching the normal recipe chain creation order.
+		Collections.reverse(layouts);
 
 		Optional<Integer> newGroupId = bookmarks.addRecipeLayoutProjectionBookmarkGroupInt(layouts, false);
 		newGroupId.ifPresent(gid -> {
