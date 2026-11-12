@@ -36,6 +36,7 @@ public final class TreeMath {
 
 	// Node customization overrides preserved across recalculations
 	private final Map<BookmarkIngredientKey, ResourceLocation> manualRecipeOverrides = new HashMap<>();
+	private final Map<BookmarkIngredientKey, List<ITypedIngredient<?>>> customRecipeInputs = new HashMap<>();
 	private final Map<BookmarkIngredientKey, BigInteger> manualAmountOverrides = new HashMap<>();
 	private final Set<BookmarkIngredientKey> forceCraftOverrides = new HashSet<>();
 	private final Set<ResourceLocation> collapsedRecipes = new HashSet<>();
@@ -62,6 +63,14 @@ public final class TreeMath {
 			manualRecipeOverrides.put(key, recipe);
 		} else {
 			manualRecipeOverrides.remove(key);
+		}
+	}
+
+	public void setCustomRecipeInputs(BookmarkIngredientKey key, @Nullable List<ITypedIngredient<?>> inputs) {
+		if (inputs != null && !inputs.isEmpty()) {
+			customRecipeInputs.put(key, new ArrayList<>(inputs));
+		} else {
+			customRecipeInputs.remove(key);
 		}
 	}
 
@@ -354,9 +363,14 @@ public final class TreeMath {
 		if (results.isEmpty()) {
 			ITypedIngredient<?> matchTarget = parentIngredient != null ? parentIngredient : parentKey.typedIngredient();
 			TreeRecipeBuilder.RecipeInfo<?> info = TreeRecipeBuilder.findRecipe(recipeUid, matchTarget);
-			if (info != null) {
+			List<ITypedIngredient<?>> effectiveInputs = customRecipeInputs.get(parentKey);
+			if (effectiveInputs == null && info != null) {
+				effectiveInputs = info.inputs();
+			}
+			if (effectiveInputs != null && !effectiveInputs.isEmpty()) {
 				Map<BookmarkIngredientKey, RecipeChildIngredient> aggregated = new java.util.LinkedHashMap<>();
-				for (ITypedIngredient<?> inIng : info.inputs()) {
+				ResourceLocation catUid = info != null ? info.categoryUid() : null;
+				for (ITypedIngredient<?> inIng : effectiveInputs) {
 					BookmarkIngredientKey inKey = BookmarkItemMetadataFactory.createPermutationKey(inIng, Internal.getJeiRuntime().getIngredientManager());
 					if (prunedKeys.contains(inKey)) {
 						continue;
@@ -377,7 +391,7 @@ public final class TreeMath {
 							inIng,
 							count,
 							manualRecipeOverrides.get(inKey),
-							info.categoryUid()
+							catUid
 						));
 					}
 				}

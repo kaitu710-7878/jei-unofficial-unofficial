@@ -15,6 +15,20 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta14] - 2026-11-12 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **タグレシピのスクロール選択材料の完全保持・ツリー反映**:
+  - タグ登録レシピ（色付きガラスや鉱石タグ等）において、レシピスロットをスクロールして特定の材料（赤色ガラス等）を表示させてプラスボタン（`+`）を押した際に、スクロール表示させたアイテムではなく常に先頭のデフォルト候補（白色ガラス等）が登録されてしまう不具合を修正。
+  - レシピ転送ボタンコントローラー（`RecipeTransferButtonController`）からレシピレイアウト（`IRecipeLayoutDrawable`）を直接受け取り、画面上にスクロール表示された正確な入力材料（`displayedIngredient`）を抽出・保持する `TreeRecipeBuilder.createFromLayout` および `customRecipeInputs` 管理機構を実装。
+  - スクロール選択された材料はツリーセッションファイル（`crafting_tree_session.json`）にも完全永続化され、ゲームを再起動しても選択した色や特定素材が初期化されず完全に復元・維持されるよう改善。
+- **枝削除後のノード存置と自由なレシピ再選択・再追加の実現**:
+  - 中間ノードや枝に対して「削除」を実行した際に対象ノード自身まで削除除外（`prunedKeys`）に登録されて画面から消滅し、二度と同じノードやレシピを追加できなくなっていた問題を解決。
+  - 子ノードの枝削除時は、対象ノード自身を除外とせず、その子孫（子供以降の枝）のみを剪定除外。対象ノード自身は「未加工素材（レシピ未割り当ての葉ノード）」としてツリー上に保持され、いつでも右クリックから同じレシピや別のレシピを何度でも自由に再選択・再構築できるよう修正。
+- **ノード削除を行わないレシピの上書き・変更の完全安定化**:
+  - ツリー上のノードを削除せずに別のレシピに変更する際、既存のカスタム入力材料と衝突せず即座に新しいレシピおよびその入力材料へスムーズに上書き更新されるよう改善。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta13] - 2026-11-12 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **枝削除後のレシピ再選択・ツリー反映の正常化（動的アンプレーン機能）**:
@@ -165,6 +179,20 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta14] - 2026-11-12 (Beta)
+#### Fixed & Improved
+- **Exact Displayed Ingredient Capture & Persistence for Tag / Cycling Recipes**:
+  - Fixed an issue where scrolling recipe slots to display a specific ingredient variant (e.g., colored glass or tag alternatives) and pressing the `+` transfer button mistakenly registered the default first candidate (e.g., white glass) instead of the user-selected variant.
+  - Passed `IRecipeLayoutDrawable` directly from `RecipeTransferButtonController` and extracted the exact active ingredient (`displayedIngredient`) via `TreeRecipeBuilder.createFromLayout`, storing it into `customRecipeInputs`.
+  - Persisted user-chosen custom recipe inputs into `config/jei/crafting_tree_session.json`, ensuring selected color variants and alternative materials remain faithfully intact across game restarts.
+- **Node Preservation and Freely Re-Assignable Recipes after Branch Deletion**:
+  - Fixed an issue where deleting an intermediate node or branch erroneously added the target node itself into `prunedKeys`, vanishing from the tree canvas and blocking identical or replacement recipes from being added.
+  - When deleting a child node's branch, pruning now only removes descendant branches while preserving the target node itself as an uncrafted leaf slot. Users can now freely right-click the preserved node to re-assign recipes or pick new alternatives without restriction.
+- **Seamless Recipe Overwrite & Replacement without Prior Node Deletion**:
+  - Ensured switching to a different recipe directly via the `+` button cleanly overrides existing custom input mappings and smoothly recalculates the new component tree without conflicts.
 
 ---
 

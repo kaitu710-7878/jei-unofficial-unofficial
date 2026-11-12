@@ -1,5 +1,6 @@
 package mezz.jei.gui.tree;
 
+import mezz.jei.api.gui.IRecipeLayoutDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotView;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.ingredients.ITypedIngredient;
@@ -50,6 +51,10 @@ public final class TreeRecipeBuilder {
 	) {
 		public RecipeInfo<T> withFactor(long factor) {
 			return new RecipeInfo<>(category, recipe, recipeUid, categoryUid, inputs, outputs, factor);
+		}
+
+		public RecipeInfo<T> withInputs(List<ITypedIngredient<?>> customInputs) {
+			return new RecipeInfo<>(category, recipe, recipeUid, categoryUid, customInputs, outputs, outputFactor);
 		}
 	}
 
@@ -182,6 +187,58 @@ public final class TreeRecipeBuilder {
 		return baseInfo;
 	}
 
+	public static <T> @Nullable RecipeInfo<T> createFromLayout(IRecipeLayoutDrawable<T> layout, @Nullable ITypedIngredient<?> targetIngredient) {
+		IRecipeCategory<T> category = layout.getRecipeCategory();
+		T recipe = layout.getRecipe();
+		ResourceLocation recipeUid = category.getRegistryName(recipe);
+		if (recipeUid == null) {
+			recipeUid = new ResourceLocation(category.getRecipeType().getUid().getNamespace(), category.getRecipeType().getUid().getPath() + "_" + Math.abs(System.identityHashCode(recipe)));
+		}
+		IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
+		IRecipeSlotsView slotsView = layout.getRecipeSlotsView();
+
+		List<ITypedIngredient<?>> inputs = new ArrayList<>();
+		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.INPUT)) {
+			// Extract the EXACT displayed ingredient chosen by the user (scrolled items like colored glass)!
+			Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
+			ingOpt.ifPresent(inputs::add);
+		}
+
+		List<ITypedIngredient<?>> outputs = new ArrayList<>();
+		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.OUTPUT)) {
+			Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
+			ingOpt.ifPresent(outputs::add);
+		}
+
+		long factor = 1;
+		if (targetIngredient != null) {
+			BookmarkIngredientKey targetKey = BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager);
+			for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.OUTPUT)) {
+				for (ITypedIngredient<?> slotIng : slot.getAllIngredients().toList()) {
+					BookmarkIngredientKey slotKey = BookmarkItemMetadataFactory.createPermutationKey(slotIng, ingredientManager);
+					if (targetKey.equals(slotKey) || targetKey.matchesCraftingAvailable(slotKey)) {
+						factor = Math.max(1, BookmarkIngredientAmountResolver.getAmount(slotIng, ingredientManager));
+						break;
+					}
+				}
+			}
+		}
+
+		RecipeInfo<T> info = new RecipeInfo<>(
+			category,
+			recipe,
+			recipeUid,
+			category.getRecipeType().getUid(),
+			inputs,
+			outputs,
+			factor
+		);
+
+		BookmarkIngredientKey targetKey = targetIngredient != null ? BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager) : null;
+		RECIPE_UID_CACHE.put(new RecipeTargetKey(recipeUid, targetKey), info);
+		return info;
+	}
+
 	private static long calculateOutputFactor(
 		RecipeInfo<?> info,
 		ITypedIngredient<?> matchTarget,
@@ -290,6 +347,18 @@ public final class TreeRecipeBuilder {
 		Set<BookmarkIngredientKey> prunedKeys,
 		IIngredientManager ingredientManager
 	) {
+		return buildInputsForTarget(targetIngredient, targetAmount, targetRecipeOverride, manualRecipes, Map.of(), prunedKeys, ingredientManager);
+	}
+
+	public static List<RecipeChainInput> buildInputsForTarget(
+		ITypedIngredient<?> targetIngredient,
+		BigInteger targetAmount,
+		@Nullable ResourceLocation targetRecipeOverride,
+		Map<BookmarkIngredientKey, ResourceLocation> manualRecipes,
+		Map<BookmarkIngredientKey, List<ITypedIngredient<?>>> customInputs,
+		Set<BookmarkIngredientKey> prunedKeys,
+		IIngredientManager ingredientManager
+	) {
 		try {
 			Internal.getJeiRuntime();
 		} catch (Throwable ignored) {
@@ -314,6 +383,10 @@ public final class TreeRecipeBuilder {
 			if (!candidates.isEmpty()) {
 				rootRecipe = candidates.get(0);
 			}
+		}
+
+		if (rootRecipe != null && customInputs.containsKey(rootKey)) {
+			rootRecipe = rootRecipe.withInputs(customInputs.get(rootKey));
 		}
 
 		// Create root entry (RESULT)
@@ -356,6 +429,9 @@ public final class TreeRecipeBuilder {
 				RecipeInfo<?> subRecipe = null;
 				if (subRecipeUid != null) {
 					subRecipe = findRecipe(subRecipeUid, inputIng);
+					if (subRecipe != null && customInputs.containsKey(inputKey)) {
+						subRecipe = subRecipe.withInputs(customInputs.get(inputKey));
+					}
 				}
 
 				// Always register inputKey as an INGREDIENT of currentRecipe

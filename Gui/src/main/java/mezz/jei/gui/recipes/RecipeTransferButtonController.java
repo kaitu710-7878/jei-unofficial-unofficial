@@ -91,11 +91,8 @@ public class RecipeTransferButtonController implements IIconButtonController {
 		var craftingTree = craftingTreeTarget();
 		if (craftingTree.isPresent()) {
 			if (!input.isSimulate()) {
-				ResourceLocation recipeUid = getRecipeUid(recipeLayout);
-				if (recipeUid != null) {
-					craftingTree.get().applySelectedRecipe(recipeUid);
-					recipesGui.onClose();
-				}
+				craftingTree.get().applySelectedRecipeLayout(recipeLayout);
+				recipesGui.onClose();
 			}
 			return true;
 		}
