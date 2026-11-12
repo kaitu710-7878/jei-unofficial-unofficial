@@ -3,7 +3,6 @@ package mezz.jei.gui.overlay.bookmarks;
 import mezz.jei.gui.bookmarks.BookmarkIngredientKey;
 import mezz.jei.common.platform.Services;
 import mezz.jei.common.util.BigIntMath;
-import mezz.jei.common.util.FluidAmountFormatter;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -129,67 +128,83 @@ public final class BookmarkAmountFormatter {
 	}
 
 	public static String formatFluidAmount(long amount) {
-		return formatFluidAmount(amount, getBucketVolume());
+		return formatFluidAmount(amount, 1_000L);
 	}
 
 	public static String formatFluidAmount(long amount, long bucketVolume) {
-		if (bucketVolume <= 0) {
-			bucketVolume = 1_000;
-		}
 		if (amount == 0) {
-			return "0";
+			return "0mb";
 		}
-		if (amount < bucketVolume) {
+		if (amount < 0) {
 			return amount + "mb";
 		}
-		if (amount < bucketVolume * 100) {
-			return FluidAmountFormatter.format(amount, bucketVolume) + "B";
+		if (amount < 1_000L) {
+			return amount + "mb";
 		}
-		if (amount < bucketVolume * 1_000_000L) {
-			return formatCompact(amount, bucketVolume * 1_000L, "bmb");
+		if (amount < 1_000_000L) {
+			return formatCompact(amount, 1_000L, "Kmb");
 		}
-		if (amount < bucketVolume * 1_000_000_000L) {
-			return formatCompact(amount, bucketVolume * 1_000_000L, "MB");
+		if (amount < 1_000_000_000L) {
+			return formatCompact(amount, 1_000_000L, "Mmb");
 		}
-		if (amount < bucketVolume * 1_000_000_000_000L) {
-			return formatCompact(amount, bucketVolume * 1_000_000_000L, "GB");
+		if (amount < 1_000_000_000_000L) {
+			return formatCompact(amount, 1_000_000_000L, "Gmb");
 		}
-		if (amount < bucketVolume * 1_000_000_000_000_000L) {
-			return formatCompact(amount, bucketVolume * 1_000_000_000_000L, "TB");
+		if (amount < 1_000_000_000_000_000L) {
+			return formatCompact(amount, 1_000_000_000_000L, "Tmb");
 		}
-		if (amount < bucketVolume * 1_000_000_000_000_000_000L) {
-			return formatCompact(amount, bucketVolume * 1_000_000_000_000_000L, "PB");
+		if (amount < 1_000_000_000_000_000_000L) {
+			return formatCompact(amount, 1_000_000_000_000_000L, "Pmb");
 		}
-		return formatCompact(amount, bucketVolume * 1_000_000_000_000_000_000L, "EB");
+		return formatCompact(amount, 1_000_000_000_000_000_000L, "Emb");
 	}
 
 	public static String formatFluidAmount(BigInteger amount) {
-		return formatFluidAmount(amount, getBucketVolume());
+		return formatFluidAmount(amount, 1_000L);
 	}
 
 	public static String formatFluidAmount(BigInteger amount, long bucketVolume) {
 		if (amount == null) {
-			return "0";
+			return "0mb";
 		}
 		if (BigIntMath.isLongExact(amount)) {
 			return formatFluidAmount(amount.longValue(), bucketVolume);
 		}
-		if (bucketVolume <= 0) {
-			bucketVolume = 1_000;
-		}
-		BigInteger bigBv = BigInteger.valueOf(bucketVolume);
 		if (amount.signum() == 0) {
-			return "0";
+			return "0mb";
 		}
-		if (amount.compareTo(bigBv) < 0) {
+		if (amount.compareTo(THOUSAND) < 0) {
 			return amount.toString() + "mb";
 		}
-		BigInteger oneBmb = bigBv.multiply(THOUSAND);
-		if (amount.compareTo(oneBmb.multiply(THOUSAND)) < 0) {
-			return formatCompactBigInt(amount, oneBmb, "bmb");
+		if (amount.compareTo(MILLION) < 0) {
+			return formatCompactBigInt(amount, THOUSAND, "Kmb");
 		}
-		BigInteger buckets = amount.divide(bigBv);
-		return formatItemAmount(buckets) + "B";
+		if (amount.compareTo(BILLION) < 0) {
+			return formatCompactBigInt(amount, MILLION, "Mmb");
+		}
+		if (amount.compareTo(TRILLION) < 0) {
+			return formatCompactBigInt(amount, BILLION, "Gmb");
+		}
+		if (amount.compareTo(QUADRILLION) < 0) {
+			return formatCompactBigInt(amount, TRILLION, "Tmb");
+		}
+		if (amount.compareTo(QUINTILLION) < 0) {
+			return formatCompactBigInt(amount, QUADRILLION, "Pmb");
+		}
+		if (amount.compareTo(SEXTILLION) < 0) {
+			return formatCompactBigInt(amount, QUINTILLION, "Emb");
+		}
+		if (amount.compareTo(SEPTILLION) < 0) {
+			return formatCompactBigInt(amount, SEXTILLION, "Zmb");
+		}
+		if (amount.compareTo(SEPTILLION.multiply(THOUSAND)) < 0) {
+			return formatCompactBigInt(amount, SEPTILLION, "Ymb");
+		}
+		// Super massive number: use scientific exponential notation e.g. "1.2e28mb"
+		BigDecimal bd = new BigDecimal(amount);
+		int exponent = bd.precision() - bd.scale() - 1;
+		BigDecimal mantissa = bd.movePointLeft(exponent).setScale(1, RoundingMode.HALF_UP);
+		return mantissa.stripTrailingZeros().toPlainString() + "e" + exponent + "mb";
 	}
 
 	public static String formatTypedAmount(long amount, Set<BookmarkIngredientKey> permutations) {

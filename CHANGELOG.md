@@ -15,6 +15,16 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta16] - 2026-11-12 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **流体・化学物質・ガスの数量単位表記をSI接頭辞+mbに完全統一**:
+  - これまで流体・ガス・化学物質（使用済み核廃棄物等）の数量表記において、`bmb`（1,000,000mb）、`kmb`（1,000mb）、`B`（バケツ）、`MB`（メガバケツ）等の表記が混在・混乱していた問題を全面的に是正。
+  - すべての流体・化学物質（Gas, Infusion, Pigment, Slurry等）の数量単位を **`mb`（ミリバケツ）基準** に統一。
+  - 1,000以上はK以降のSI接頭辞 + `mb`（`Kmb`, `Mmb`, `Gmb`, `Tmb`, `Pmb`, `Emb`, `Zmb`, `Ymb`）で一貫して表示。
+  - SI接頭辞（Yotta / 10^24）を超える超巨大数量については、レシピチェーンと同様に科学表記（例: `1.2e28mb`）で明確に表示。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta15] - 2026-11-12 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **Mekanism化学物質（Infusion / Gas等）および冶金吹込み機レシピの完全サポート & 消失防止**:
@@ -193,6 +203,16 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta16] - 2026-11-12 (Beta)
+#### Fixed & Improved
+- **Standardized Fluid, Chemical, and Gas Units to SI Prefix + mb**:
+  - Eliminated mixed and ambiguous unit notations (`bmb`, `kmb`, `B`, `MB`, etc.) across fluids, chemicals, and gases (such as Spent Nuclear Waste).
+  - Standardized all fluid and chemical amounts strictly to **`mb` (millibuckets)** as the base unit.
+  - Consistently formatted quantities >= 1,000 using standard SI prefixes + `mb` (`Kmb`, `Mmb`, `Gmb`, `Tmb`, `Pmb`, `Emb`, `Zmb`, `Ymb`).
+  - For astronomical amounts exceeding the SI prefix scale (Yotta / 10^24), adopted exponential scientific notation (e.g. `1.2e28mb`), fully aligned with the recipe chain system.
 
 ---
 

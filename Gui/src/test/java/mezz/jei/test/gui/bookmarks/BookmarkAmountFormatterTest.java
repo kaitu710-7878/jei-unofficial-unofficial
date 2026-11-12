@@ -114,17 +114,37 @@ public class BookmarkAmountFormatterTest {
 		BigInteger expectedAmount = BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.valueOf(5));
 		Assertions.assertEquals(expectedAmount, item.bigCalculatedAmount());
 
-		// And formatting it should not throw and output nicely formatted Exa units
+		// And formatting it should not throw and output nicely formatted Exa units (Emb)
 		String formattedAmount = BookmarkAmountFormatter.formatTypedAmount(item.bigCalculatedAmount(), Set.of(fluidKey));
 		Assertions.assertNotNull(formattedAmount);
-		Assertions.assertTrue(formattedAmount.endsWith("B") || formattedAmount.endsWith("EB"), "Formatted: " + formattedAmount);
+		Assertions.assertTrue(formattedAmount.endsWith("Emb"), "Formatted: " + formattedAmount);
 	}
+
 	@Test
-	public void testFluidBmdUnit() {
-		// 1,000 buckets = 1,000,000 mB = 1 bmb
-		Assertions.assertEquals("1bmb", BookmarkAmountFormatter.formatFluidAmount(1_000_000, 1_000));
-		Assertions.assertEquals("1.5bmb", BookmarkAmountFormatter.formatFluidAmount(1_500_000, 1_000));
-		Assertions.assertEquals("12bmb", BookmarkAmountFormatter.formatFluidAmount(12_000_000, 1_000));
-		Assertions.assertEquals("999bmb", BookmarkAmountFormatter.formatFluidAmount(999_000_000, 1_000));
+	public void testFluidUnits() {
+		Assertions.assertEquals("0mb", BookmarkAmountFormatter.formatFluidAmount(0));
+		Assertions.assertEquals("500mb", BookmarkAmountFormatter.formatFluidAmount(500));
+		Assertions.assertEquals("1Kmb", BookmarkAmountFormatter.formatFluidAmount(1_000));
+		Assertions.assertEquals("1.5Kmb", BookmarkAmountFormatter.formatFluidAmount(1_500));
+		Assertions.assertEquals("12.3Kmb", BookmarkAmountFormatter.formatFluidAmount(12_345));
+		Assertions.assertEquals("999Kmb", BookmarkAmountFormatter.formatFluidAmount(999_499));
+		Assertions.assertEquals("1Mmb", BookmarkAmountFormatter.formatFluidAmount(1_000_000));
+		Assertions.assertEquals("1.5Mmb", BookmarkAmountFormatter.formatFluidAmount(1_500_000));
+		Assertions.assertEquals("12Mmb", BookmarkAmountFormatter.formatFluidAmount(12_000_000));
+		Assertions.assertEquals("999Mmb", BookmarkAmountFormatter.formatFluidAmount(999_000_000));
+		Assertions.assertEquals("1Gmb", BookmarkAmountFormatter.formatFluidAmount(1_000_000_000L));
+		Assertions.assertEquals("1Tmb", BookmarkAmountFormatter.formatFluidAmount(1_000_000_000_000L));
+		Assertions.assertEquals("1Pmb", BookmarkAmountFormatter.formatFluidAmount(1_000_000_000_000_000L));
+		Assertions.assertEquals("1Emb", BookmarkAmountFormatter.formatFluidAmount(1_000_000_000_000_000_000L));
+
+		// BigInteger tests: Zetta, Yotta, and scientific notation
+		BigInteger zetta = new BigInteger("2500000000000000000000"); // 2.5 * 10^21
+		Assertions.assertEquals("2.5Zmb", BookmarkAmountFormatter.formatFluidAmount(zetta));
+
+		BigInteger yotta = new BigInteger("4200000000000000000000000"); // 4.2 * 10^24
+		Assertions.assertEquals("4.2Ymb", BookmarkAmountFormatter.formatFluidAmount(yotta));
+
+		BigInteger massive = new BigInteger("12000000000000000000000000000"); // 1.2 * 10^28
+		Assertions.assertEquals("1.2e28mb", BookmarkAmountFormatter.formatFluidAmount(massive));
 	}
 }
