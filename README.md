@@ -10,12 +10,12 @@
 ### 概要
 **JEI Unofficial Unofficial (JEIUU)** は、StardustMINUS氏による「JEI unofficial (JEIU)」をベースに、**Minecraft 1.20.1 Minecraft Forge 専用** に特化・最適化・更新した非公式フォークMODです。
 
-互換性が高く最低限の機能のJEIをベースに、NEI-GTNH等の便利機能を追加した設計思想を堅持し、基礎となるJEIの仕様やAPIを破壊することなく、1.20.1 Forge環境に最適化されたアップデート・バグ修正・BigInteger拡張・クラフトツリー機能を提供します。
+互換性が高く最低限の機能のJEIをベースに、NEI-GTNH等の便利機能を追加したJEIUの設計思想を継承し、基礎となるJEIの仕様やAPIを破壊することなく、1.20.1 Forge環境に最適化されたアップデート・バグ修正・BigInteger拡張、そしてJEIUのツリー機能をベースにNEI for JEI等の魅力的な要素を融合・発展させた高度な対話型クラフトツリー機能を提供します。
 
 ### 特徴
 - **Minecraft 1.20.1 Forge 専用設計**: 不要なマルチローダー依存性を排除し、ビルド構成および実行環境を軽量化。
-- **NEI Features for JEI 由来の高度なインタラクティブ・クラフトツリー**:
-  - `nei-features-for-jei` から本格的なクラフトツリー画面（Crafting Tree Screen）を移植・リファクタリング。
+- **JEIUツリーを基盤にNEI for JEI等の魅力的機能を取り入れた対話型クラフトツリー**:
+  - JEIU（JEI unofficial）のクラフトツリー機能をベースとしつつ、「NEI Features for JEI」などの優れたMODに着想を得て、特に魅力的で実用的な便利機能を積極的に取り入れ・発展させた高度なクラフトツリー画面（Crafting Tree Screen）を搭載。
   - **最適化・軽量化**: 画面外ノードや接続線のフラスタムカリング（描画スキップ）、幾何レイアウトキャッシュにより、大規模ツリーでも高速・軽快に動作。
   - **チェーンツリー間の双方向相互変換**: ブックマークグループ内のレシピチェーンから直接ツリーを展開でき、ツリー画面で編集したレシピや数量をそのままブックマークレシピチェーンへ保存・エクスポート可能。
   - **レシピ指定機能**: ツリー内の各ノードを右クリックすることで、代替レシピ一覧から好みのレシピを個別に指定・切り替え可能。
@@ -36,7 +36,7 @@
 - **専用アセット**: JEIUU専用のアイコンを同梱。
 
 ### クラフトツリー（レシピツリー）機能の使い方と詳細
-NEI-GTNH および `nei-features-for-jei` の優れた設計思想を取り入れた、高度な対話型クラフト計算ツリーです。
+本機能は、JEIU（JEI unofficial）のクラフトツリーを基礎とし、「NEI Features for JEI」や「NEI-GTNH」などの優れたレシピ支援MODを参考に、特に魅力的で実用的な便利機能を惜しみなく取り入れて拡張・統合された対話型クラフト計算ツリーです。
 
 #### 1. ツリーの起動
 - **キー操作**: アイテムやJEIのレシピ上で `Shift + F` を押すか、専用キーバインド（設定可能: `key.jei.openCraftingTree`）を押すことで、対象アイテムのクラフトツリー画面を開きます。
@@ -98,7 +98,7 @@ NEI-GTNH および `nei-features-for-jei` の優れた設計思想を取り入�
 - 原則ライセンス: GNU General Public License v3.0 (GPL-3.0)
 - JustEnoughItems 元部分: MIT License (c) 2014-2015 mezz
 - GTNH NotEnoughItems 移植部分: LGPL-3.0-or-later (c) 2019-2024 mitchej123 and the GTNH Team
-- NEI Features for JEI 移植部分: LGPL-3.0-or-later (c) 2024-2026
+- NEI Features for JEI 参考・着想部分: LGPL-3.0-or-later (c) 2024-2026
 - JEIU 追加部分: (c) 2026 StardustMINUS and the Stellar Remnants Team
 - JEIUU 追加・改変部分: (c) 2026 Antigravity / GPL-3.0
 
@@ -110,12 +110,12 @@ NEI-GTNH および `nei-features-for-jei` の優れた設計思想を取り入�
 ### Overview
 **JEI Unofficial Unofficial (JEIUU)** is an unofficial fork of "JEI unofficial (JEIU)" by StardustMINUS, dedicated, updated, and optimized exclusively for **Minecraft 1.20.1 Minecraft Forge**.
 
-Built on top of a highly compatible JEI foundation enriched with convenient GTNH NEI-style capabilities, JEIUU preserves the fundamental JEI core architecture without intrusive changes, while providing specialized Forge 1.20.1 bug fixes, BigInteger calculations, and a high-performance Crafting Tree system.
+Preserving JEIU's philosophy of providing rich GTNH NEI-inspired conveniences on top of a lightweight, highly compatible JEI core without breaking baseline APIs, JEIUU delivers specialized Forge 1.20.1 bug fixes, BigInteger calculations, and an advanced interactive Crafting Tree built on JEIU's foundation and enriched with the most compelling features inspired by NEI for JEI.
 
 ### Features
 - **1.20.1 Forge Dedicated**: Cleaned from multi-loader toolchains and optimized strictly for Forge 1.20.1.
-- **Advanced Interactive Crafting Tree (from NEI Features for JEI)**:
-  - Ported and thoroughly refactored from `nei-features-for-jei` into a modern 1.20.1 GUI canvas.
+- **Interactive Crafting Tree (JEIU-Tree Foundation with NEI for JEI Enhancements)**:
+  - Built upon JEIU's (JEI unofficial) recipe tree foundation, enriched by incorporating the most compelling and convenient features inspired by `NEI Features for JEI` and NEI-GTNH into an integrated, modern 1.20.1 GUI canvas.
   - **Optimization & Lightweight Rendering**: Frustum culling for off-screen nodes and lines, geometry caching, and minimal GC allocations.
   - **Bidirectional Chain-Tree Conversion**: Open crafting trees directly from bookmark recipe chains and save/export modified tree trees back into bookmark chains.
   - **Recipe Specification**: Right-click any node to select alternate crafting recipes from all available recipes producing that item.
@@ -135,7 +135,7 @@ Built on top of a highly compatible JEI foundation enriched with convenient GTNH
 - **Dedicated Assets**: Bundles dedicated JEIUU mod icons.
 
 ### Crafting Tree (Recipe Tree) Guide & Usage
-An advanced, interactive crafting tree calculator inspired by NEI-GTNH and `nei-features-for-jei`.
+Built upon the crafting tree foundation of JEIU (JEI unofficial), this feature incorporates attractive and highly practical workflow enhancements inspired by `NEI Features for JEI` and NEI-GTNH into an advanced, interactive crafting tree calculator.
 
 #### 1. Opening the Tree
 - **Keybindings**: Hover over an item or JEI recipe and press `Shift + F`, or press the dedicated keybinding (configurable: `key.jei.openCraftingTree`), to launch the crafting tree screen.
@@ -194,6 +194,6 @@ This project maintains a dual/multi-license structure:
 - Primary License: GNU General Public License v3.0 (GPL-3.0)
 - JustEnoughItems: MIT License (c) 2014-2015 mezz
 - GTNH NotEnoughItems: LGPL-3.0-or-later (c) 2019-2024 mitchej123 and the GTNH Team
-- NEI Features for JEI: LGPL-3.0-or-later (c) 2024-2026
+- NEI Features for JEI Inspirations: LGPL-3.0-or-later (c) 2024-2026
 - JEIU Additions: (c) 2026 StardustMINUS and the Stellar Remnants Team
 - JEIUU Additions & Modifications: (c) 2026 Antigravity / GPL-3.0
