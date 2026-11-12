@@ -82,7 +82,7 @@ public final class BookmarkHotkeyTooltipUtil {
 		HotkeyTooltipLine.add(tooltip, keyBindings.getShowUses().getTranslatedKeyMessage(), "jei.tooltip.bookmarks.hotkeys.uses");
 		HotkeyTooltipLine.add(tooltip, HotkeyTooltipLine.prefixed("SHIFT + ", keyBindings.getBookmark().getTranslatedKeyMessage()), "jei.tooltip.bookmarks.hotkeys.add_with_recipe");
 		HotkeyTooltipLine.add(tooltip, HotkeyTooltipLine.prefixed("CTRL + SHIFT + ", keyBindings.getBookmark().getTranslatedKeyMessage()), "jei.tooltip.bookmarks.hotkeys.add_with_recipe_and_count");
-		HotkeyTooltipLine.add(tooltip, keyBindings.getShowRecipeTree().getTranslatedKeyMessage(), "jei.tree.open");
+		HotkeyTooltipLine.add(tooltip, getTreeOpenHotkeyComponent(keyBindings), "jei.tree.open");
 		if (showToggleInputCatalyst) {
 			HotkeyTooltipLine.add(
 				tooltip,
@@ -188,7 +188,7 @@ public final class BookmarkHotkeyTooltipUtil {
 		boolean craftingMode
 	) {
 		if (craftingMode) {
-			HotkeyTooltipLine.add(tooltip, keyBindings.getShowRecipeTree().getTranslatedKeyMessage(), "jei.tree.open");
+			HotkeyTooltipLine.add(tooltip, getTreeOpenHotkeyComponent(keyBindings), "jei.tree.open");
 			HotkeyTooltipLine.add(
 				tooltip,
 				HotkeyTooltipLine.prefixed("ALT + ", keyBindings.getBookmarkPullItems().getTranslatedKeyMessage()),
@@ -226,7 +226,21 @@ public final class BookmarkHotkeyTooltipUtil {
 		Component bookmarkKey = keyBindings.getBookmark().getTranslatedKeyMessage();
 		HotkeyTooltipLine.add(tooltip, bookmarkKey, "jei.tooltip.favoriteRecipes.remove");
 		HotkeyTooltipLine.add(tooltip, HotkeyTooltipLine.prefixed("SHIFT + ", bookmarkKey), "jei.tooltip.favoriteRecipes.saveTree");
-		HotkeyTooltipLine.add(tooltip, keyBindings.getShowRecipeTree().getTranslatedKeyMessage(), "jei.tree.open");
+		HotkeyTooltipLine.add(tooltip, getTreeOpenHotkeyComponent(keyBindings), "jei.tree.open");
+	}
+
+	public static Component getTreeOpenHotkeyComponent(IInternalKeyMappings keyBindings) {
+		Component showTreeKey = keyBindings.getShowRecipeTree().getTranslatedKeyMessage();
+		Component openTreeKey = keyBindings.getOpenCraftingTree().getTranslatedKeyMessage();
+		String s1 = showTreeKey.getString();
+		String s2 = openTreeKey.getString();
+		if (s1.equalsIgnoreCase(s2) || s2.isEmpty()) {
+			return showTreeKey;
+		}
+		if (s1.isEmpty()) {
+			return openTreeKey;
+		}
+		return Component.literal(s1 + " / " + s2);
 	}
 
 	public static void addFavoriteRecipeRowHotkeys(ITooltipBuilder tooltip) {

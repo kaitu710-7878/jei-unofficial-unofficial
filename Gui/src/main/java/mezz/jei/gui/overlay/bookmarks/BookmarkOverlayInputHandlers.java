@@ -133,6 +133,7 @@ public final class BookmarkOverlayInputHandlers {
 		@Override
 		public Optional<IUserInputHandler> handleUserInput(Screen screen, UserInput input, IInternalKeyMappings keyBindings) {
 			boolean isTreeKey = keyBindings.getShowRecipeTree().isActiveAndMatches(input.getKey()) ||
+				keyBindings.getOpenCraftingTree().isActiveAndMatches(input.getKey()) ||
 				(input.getKey().getType() == InputConstants.Type.KEYSYM && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_T);
 
 			if (isTreeKey) {

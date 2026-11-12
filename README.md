@@ -39,7 +39,7 @@
 本機能は、JEIU（JEI unofficial）のクラフトツリーを基礎とし、「NEI Features for JEI」や「NEI-GTNH」などの優れたレシピ支援MODを参考に、特に魅力的で実用的な便利機能を惜しみなく取り入れて拡張・統合された対話型クラフト計算ツリーです。
 
 #### 1. ツリーの起動
-- **キー操作**: アイテムやJEIのレシピ上で `Shift + F` を押すか、専用キーバインド（設定可能: `key.jei.openCraftingTree`）を押すことで、対象アイテムのクラフトツリー画面を開きます。
+- **キー操作**: アイテムやJEIのレシピ上で **`Shift + B`** または **`T`** キーを押すことで、対象アイテムのクラフトツリー画面を直接展開・開くことができます（操作設定で変更可能: `key.jei.showRecipeTree` / `key.jei.openCraftingTree`）。
 - **ブックマークグループ連携**: ブックマーク一覧内のグループにあるクラフトモード（ツリーアイコン）ボタンを押すことで、ブックマークしたレシピチェーンから直接ツリーを展開できます。
 
 #### 2. キャンバスのナビゲーション
@@ -138,7 +138,7 @@ Preserving JEIU's philosophy of providing rich GTNH NEI-inspired conveniences on
 Built upon the crafting tree foundation of JEIU (JEI unofficial), this feature incorporates attractive and highly practical workflow enhancements inspired by `NEI Features for JEI` and NEI-GTNH into an advanced, interactive crafting tree calculator.
 
 #### 1. Opening the Tree
-- **Keybindings**: Hover over an item or JEI recipe and press `Shift + F`, or press the dedicated keybinding (configurable: `key.jei.openCraftingTree`), to launch the crafting tree screen.
+- **Keybindings**: Hover over an item or JEI recipe and press **`Shift + B`** or **`T`** to expand and launch the crafting tree screen (configurable in Controls: `key.jei.showRecipeTree` / `key.jei.openCraftingTree`).
 - **Bookmark Group Integration**: Click the crafting mode (tree icon) button in any bookmark group to directly expand the tree from your saved recipe chain.
 
 #### 2. Canvas Navigation

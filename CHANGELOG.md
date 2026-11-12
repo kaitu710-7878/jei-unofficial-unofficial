@@ -15,6 +15,15 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta18] - 2026-11-12 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **操作設定・ショートカットキー表示におけるツリー展開操作の複数キー（Shift+B / T）併記対応**:
+  - ゲーム内のアイテムやブックマーク、レシピ行にカーソルを合わせた際のツールチップにおいて、ツリー展開キー表示を `Shift + B / T` と併記表示するように改善。
+  - Minecraftの「設定 > 操作設定 > キー割り当て」画面におけるツリー関連のキー設定項目名を、「クラフトツリーを展開 (Shift+B)」および「クラフトツリーを展開/再開 (Tキー)」に改め、どちらのキーでもツリー展開操作が可能であることが一目でわかるよう明瞭化。
+  - フォーカス入力およびブックマークオーバーレイの入力ハンドラーを強化し、ユーザーが操作設定で割り当てた任意のキー（`openCraftingTree` / `showRecipeTree`）および標準の `T` / `Shift+B` のいずれでも確実にツリーが展開されるよう入力判定を統合。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta17] - 2026-11-12 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **ツリーからレシピチェーン変換時のレシピ出力順序を通常順（下位原料→完成品）に統一**:
@@ -211,6 +220,15 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta18] - 2026-11-12 (Beta)
+#### Fixed & Improved
+- **Dual Hotkey Display (Shift+B / T) for Crafting Tree in Controls and Tooltips**:
+  - Updated in-game item and bookmark tooltips to clearly display both tree-launch hotkeys (`Shift + B / T : Open recipe tree`).
+  - Clarified keybinding labels in Minecraft's Controls menu to "Expand Crafting Tree (Shift+B)" and "Expand/Resume Crafting Tree (T)" so players immediately understand both keys trigger the crafting tree.
+  - Enhanced input handlers across ingredient focus and bookmark overlay to uniformly accept either configured keybinding (`showRecipeTree` / `openCraftingTree`) or default key inputs (`Shift+B` and `T`).
 
 ---
 

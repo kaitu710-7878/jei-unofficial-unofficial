@@ -100,6 +100,7 @@ public class FocusInputHandler implements IUserInputHandler {
 		// 1.21.1 parity: while a tooltip is pinned by the pin key, the show-recipe and
 		// show-uses keys must still work even though the pin key is an extra modifier.
 		boolean isTreeTrigger = input.is(keyBindings.getShowRecipeTree()) ||
+			input.is(keyBindings.getOpenCraftingTree()) ||
 			(input.getKey().getType() == com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_T);
 		if (isTreeTrigger) {
 			var clicked = focusSource.getIngredientUnderMouse(input, keyBindings)
