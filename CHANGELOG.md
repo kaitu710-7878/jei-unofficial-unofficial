@@ -9,9 +9,27 @@
 
 ### バージョニング方針
 本MODでは、上流のJEI / JEIU のバージョンを追跡しやすくするため、以下の命名規則を採用しています：
-`[上流JEIバージョン]-jeiuu.[JEIUUリビジョン番号]` (例: `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta8`)
+`[上流JEIバージョン]-jeiuu.[JEIUUリビジョン番号]` (例: `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **上流JEIバージョン** (`15.59.0.212`): ベースとなっているJEI / JEIUの公式バージョンを表します。
-- **JEIUUリビジョン** (`jeiuu.4-beta8`): 本フォーク（JEIUU）独自で行われた機能追加・バグ修正・最適化の更新回数およびリリース種別（Alpha/Beta/Release）を表します。
+- **JEIUUリビジョン** (`jeiuu.4-beta9`): 本フォーク（JEIUU）独自で行われた機能追加・バグ修正・最適化の更新回数およびリリース種別（Alpha/Beta/Release）を表します。
+
+---
+
+### [15.59.0.212-jeiuu.4-beta9] - 2026-11-12 (Beta)
+#### 追加・改善 (Added & Improved)
+- **核廃棄物・吹込み素材・全ケミカルのmb表記統一**:
+  - 1,000mB未満の流体・ケミカル（Mekanism気体、核廃棄物、吹込み素材、顔料、スラリー等）が `.16` などの単位なし小数で表示されていた不具合を解消し、`160mb` や `80mb` と明確に「mb」表記されるよう統一。
+  - ツリー画面の全ツールチップ（ノードの要求総数、生産総数、統計バーの各数量）でも流体・ケミカルを単位付き（mb, B, bmb 等）で統一表示。
+- **レシピ選択時のカメラ位置・ズーム倍率の完全維持**:
+  - レシピ画面（`RecipesGui`）で「＋」ボタンを押してレシピを決定した際、拡大率（ズーム倍率）やカメラ位置が全体表示へリセットされていた問題を修正。作業していたノードの位置をアンカーとして追従し、元の場所・倍率をそのまま維持。
+- **非消費アイテム（AE2の金型、触媒、回路等）の要求数量固定**:
+  - レシピで消費されない金型（Applied Energistics 2の各種インスクライバー金型 `_press`、鋳型、ダイ、スタンプ、GregTech回路、クラフト残留アイテム、触媒スロット）を自動判定。
+  - クラフト実行回数が膨大になっても、非消費アイテムの要求数量を乗算せず「1個（または基本要求数）」に固定。
+
+#### 修正 (Fixed)
+- **吹込み素材変換レシピ等の必要素材数量計算バグの修正**:
+  - 親レシピの生産量（`outputFactor`、例: 80mb）が親ノードのクラフト実行回数計算（`multiplier`）に正しく反映されず、さらに親の生産量が子ノード自身の生産量へ誤って代入されていたバグを根本解決。
+  - 160mbの吹込み素材に対して80mb/個の変換レシピを割り当てた場合、消費素材が正しく「2個」と計算されるよう正常化。
 
 ---
 
@@ -92,9 +110,27 @@
 
 ### Versioning Policy
 To clearly trace the upstream JEI / JEIU base version, this mod adopts the following versioning scheme:
-`[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta8`)
+`[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
-- **JEIUU Revision** (`jeiuu.4-beta8`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+- **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta9] - 2026-11-12 (Beta)
+#### Added & Improved
+- **Unified "mb" Formatting for Nuclear Waste, Infusions & All Chemicals**:
+  - Fixed sub-bucket amounts (< 1,000 mB) displaying as bare decimals (e.g., `.16`) by standardizing on `mb` units (e.g., `160mb`, `80mb`).
+  - Standardized tooltips across the tree screen (required total, produced total, summary bar amounts) to always display typed units (mb, B, bmb, etc.).
+- **Camera Pan & Zoom Preservation on Recipe Selection**:
+  - Selecting a recipe in JEI via the `+` button now retains the active zoom level and anchors camera tracking to the modified node, eliminating jarring camera resets to fit-view.
+- **Non-Consumable Catalysts & Molds Handling (AE2 Presses, Molds, GT Circuits)**:
+  - Automatically identifies non-consumable items (AE2 inscriber presses, molds, casts, dies, stamps, GregTech circuits, crafting remainders, and catalyst slots).
+  - Keeps requirements fixed at 1 (or base requirement) without multiplying by recipe execution multiplier.
+
+#### Fixed
+- **Sub-Ingredient Multiplier Calculation for Partial Yield Recipes**:
+  - Fixed a math bug where parent recipe output factors (e.g. 80mb yield) were erroneously mapped onto child output amounts rather than parent craft multipliers.
+  - Correctly calculates input item demand (e.g. producing 160mb from an 80mb/item recipe accurately demands 2 items instead of 160).
 
 ---
 

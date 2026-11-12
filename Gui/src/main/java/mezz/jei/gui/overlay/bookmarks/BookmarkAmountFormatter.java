@@ -136,8 +136,11 @@ public final class BookmarkAmountFormatter {
 		if (bucketVolume <= 0) {
 			bucketVolume = 1_000;
 		}
+		if (amount == 0) {
+			return "0";
+		}
 		if (amount < bucketVolume) {
-			return FluidAmountFormatter.format(amount, bucketVolume);
+			return amount + "mb";
 		}
 		if (amount < bucketVolume * 100) {
 			return FluidAmountFormatter.format(amount, bucketVolume) + "B";
@@ -175,6 +178,12 @@ public final class BookmarkAmountFormatter {
 			bucketVolume = 1_000;
 		}
 		BigInteger bigBv = BigInteger.valueOf(bucketVolume);
+		if (amount.signum() == 0) {
+			return "0";
+		}
+		if (amount.compareTo(bigBv) < 0) {
+			return amount.toString() + "mb";
+		}
 		BigInteger oneBmb = bigBv.multiply(THOUSAND);
 		if (amount.compareTo(oneBmb.multiply(THOUSAND)) < 0) {
 			return formatCompactBigInt(amount, oneBmb, "bmb");
@@ -226,7 +235,20 @@ public final class BookmarkAmountFormatter {
 	}
 
 	public static boolean usesFluidAmountUnits(String ingredientTypeUid) {
-		return FLUID_AMOUNT_TYPE_UIDS.contains(ingredientTypeUid);
+		if (ingredientTypeUid == null) {
+			return false;
+		}
+		if (FLUID_AMOUNT_TYPE_UIDS.contains(ingredientTypeUid)) {
+			return true;
+		}
+		String lower = ingredientTypeUid.toLowerCase(java.util.Locale.ROOT);
+		return lower.contains("fluid") ||
+			lower.contains("chemical") ||
+			lower.contains("gas") ||
+			lower.contains("infus") ||
+			lower.contains("pigment") ||
+			lower.contains("slurry") ||
+			lower.contains("waste");
 	}
 
 	/**

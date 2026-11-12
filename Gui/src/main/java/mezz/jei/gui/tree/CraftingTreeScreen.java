@@ -67,6 +67,7 @@ public final class CraftingTreeScreen extends Screen {
 	private final Set<BookmarkIngredientKey> prunedKeys = new HashSet<>();
 
 	private final TreeCamera camera = new TreeCamera();
+	private boolean cameraInitialized = false;
 	private final TreeLayout layout = new TreeLayout();
 	private final TreeStatsLayout statsLayout = new TreeStatsLayout();
 
@@ -257,6 +258,10 @@ public final class CraftingTreeScreen extends Screen {
 	}
 
 	private void rebuildTreeMath() {
+		rebuildTreeMath(null);
+	}
+
+	private void rebuildTreeMath(@Nullable TreeSlot anchor) {
 		Map<BookmarkIngredientKey, BigInteger> stock = checkInventory ? readInventory() : Map.of();
 		TreeSlot prevRoot = graph != null ? graph.getRootSlot() : null;
 		if (targetIngredient != null) {
@@ -275,7 +280,7 @@ public final class CraftingTreeScreen extends Screen {
 		// Synchronize all manually assigned recipes into treeMath
 		this.manualRecipes.forEach(this.treeMath::setManualRecipe);
 		this.graph = treeMath.calculate();
-		TreeSlot anchorToTrack = prevRoot != null ? prevRoot : graph.getRootSlot();
+		TreeSlot anchorToTrack = anchor != null ? anchor : (prevRoot != null ? prevRoot : graph.getRootSlot());
 		int[] displacement = this.layout.recalculate(graph, anchorToTrack);
 		if (displacement != null) {
 			camera.pan(displacement[0], displacement[1]);
@@ -404,7 +409,10 @@ public final class CraftingTreeScreen extends Screen {
 		searchBox.setResponder(text -> this.searchQuery = text.trim().toLowerCase(Locale.ROOT));
 		addRenderableWidget(searchBox);
 
-		fitToView();
+		if (!cameraInitialized) {
+			fitToView();
+			cameraInitialized = true;
+		}
 	}
 
 	private void recalculateTree(@Nullable TreeSlot anchor) {
@@ -460,7 +468,7 @@ public final class CraftingTreeScreen extends Screen {
 			}
 			this.manualRecipes.put(pendingRecipeTarget.getKey(), recipeUid);
 			if (targetIngredient != null) {
-				rebuildTreeMath();
+				rebuildTreeMath(pendingRecipeTarget);
 			} else {
 				treeMath.setManualRecipe(pendingRecipeTarget.getKey(), recipeUid);
 				recalculateTree(pendingRecipeTarget);
@@ -829,8 +837,10 @@ public final class CraftingTreeScreen extends Screen {
 				}
 			}
 
-			tooltip.add(Component.translatable("jei.tree.tooltip.requested", hoveredNode.getRequestedAmount().toString()).withStyle(ChatFormatting.GRAY));
-			tooltip.add(Component.translatable("jei.tree.tooltip.produced", hoveredNode.getProducedAmount().toString())
+			String reqStr = hoveredNode.getKey() != null ? BookmarkAmountFormatter.formatTypedAmount(hoveredNode.getRequestedAmount(), hoveredNode.getKey().ingredientTypeUid()) : hoveredNode.getRequestedAmount().toString();
+			String prodStr = hoveredNode.getKey() != null ? BookmarkAmountFormatter.formatTypedAmount(hoveredNode.getProducedAmount(), hoveredNode.getKey().ingredientTypeUid()) : hoveredNode.getProducedAmount().toString();
+			tooltip.add(Component.translatable("jei.tree.tooltip.requested", reqStr).withStyle(ChatFormatting.GRAY));
+			tooltip.add(Component.translatable("jei.tree.tooltip.produced", prodStr)
 				.withStyle(hoveredNode.isResolved() ? ChatFormatting.GREEN : ChatFormatting.RED));
 
 			if (hoveredNode.hasRecipe()) {
@@ -863,7 +873,8 @@ public final class CraftingTreeScreen extends Screen {
 			} else if (row.getKey() != null) {
 				tooltip.add(Component.literal(row.getKey().ingredientUid()).withStyle(ChatFormatting.WHITE));
 			}
-			tooltip.add(Component.translatable("jei.tree.tooltip.amount", row.getAmount().toString()).withStyle(ChatFormatting.GRAY));
+			String amtStr = row.getKey() != null ? BookmarkAmountFormatter.formatTypedAmount(row.getAmount(), row.getKey().ingredientTypeUid()) : row.getAmount().toString();
+			tooltip.add(Component.translatable("jei.tree.tooltip.amount", amtStr).withStyle(ChatFormatting.GRAY));
 
 			if (row.getRecipeUid() != null) {
 				tooltip.add(Component.translatable("jei.tree.tooltip.recipe", row.getRecipeUid().getPath()).withStyle(ChatFormatting.DARK_AQUA));
