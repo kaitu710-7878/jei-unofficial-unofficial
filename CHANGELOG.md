@@ -15,6 +15,20 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta15] - 2026-11-12 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **Mekanism化学物質（Infusion / Gas等）および冶金吹込み機レシピの完全サポート & 消失防止**:
+  - Mekanismの冶金吹込み機（Metallurgic Infuser）等の化学物質（`InfusionStack`, `GasStack` 等）を入力材料に含むレシピにおいて、セッション永続化・復元時（`resolveIngredient`）にデシリアライズ不全が生じて吹込み素材（XPインフュージョン等）がツリーから消失してしまう問題を修正。
+  - `BookmarkIngredientKey.resolveIngredient` に `getAllTypedIngredients` および `getUniqueId` によるフォールバック走査機構を導入し、JEIレジストリに登録されたすべての特殊Ingredient（化学物質・非アイテム材料）が確実に復元・再構成されるよう強化。
+- **カスタム入力材料（`customRecipeInputs`）のスコープ適正化（固定機械レシピの保護）**:
+  - タグレシピ（色付きガラス等）のように複数候補を持つサイクリングスロットが存在する場合のみ `customRecipeInputs` を記録し、冶金吹込み機などの単一固定レシピでは余計な入力上書きを行わないよう制御。
+  - セッションファイル読み込み時、万一一部の材料が欠落した不完全なカスタム入力が存在しても、完全な正規レシピの入力材料リスト（`info.inputs()`）へ安全にフォールバックする保護機構を `TreeMath` および `TreeRecipeBuilder` の双方に実装。
+- **計算整合性 & 未加工葉ノードのレシピ割り当て強化**:
+  - `TreeMath.findRecipeInputs` の数量計算で `Math.max(1, ...)` を徹底し、吹込み素材等で数量0によるクラフト計算不全を防止。
+  - 枝削除後の未加工葉ノードに対し、機械レシピを含む任意のレシピを安定して再割り当て可能にした。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta14] - 2026-11-12 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **タグレシピのスクロール選択材料の完全保持・ツリー反映**:
@@ -179,6 +193,20 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta15] - 2026-11-12 (Beta)
+#### Fixed & Improved
+- **Full Support & Loss Prevention for Mekanism Chemicals (Infusion/Gas) & Metallurgic Infusion Recipes**:
+  - Fixed an issue where recipes using non-item ingredients (such as Mekanism's `InfusionStack` and `GasStack` in Metallurgic Infuser recipes) failed deserialization during session restoration (`resolveIngredient`), causing infusion inputs (e.g., XP infusion) to vanish from the crafting tree.
+  - Added fallback scanning via `getAllTypedIngredients` and `getUniqueId` in `BookmarkIngredientKey.resolveIngredient`, ensuring all registered custom ingredient types (chemicals and non-item ingredients) are reliably restored across sessions.
+- **Appropriate Scope for Custom Recipe Inputs (`customRecipeInputs`)**:
+  - Restricted `customRecipeInputs` capture strictly to recipes containing cycling/tag slots with multiple candidates (e.g., colored glass), preserving standard JEI recipe extraction for fixed machine recipes like Metallurgic Infusers without redundant overrides.
+  - Implemented a safety fallback in both `TreeMath` and `TreeRecipeBuilder` that automatically restores complete inputs from `info.inputs()` if a custom recipe input entry was truncated or lost ingredients.
+- **Calculation Consistency & Robust Leaf Node Recipe Assignment**:
+  - Enforced `Math.max(1, ...)` amount resolution in `TreeMath.findRecipeInputs` to prevent zero-amount inputs for infusion and special stacks.
+  - Allowed uncrafted leaf nodes created from pruned branches to be reliably assigned any recipe, including advanced machine recipes.
 
 ---
 

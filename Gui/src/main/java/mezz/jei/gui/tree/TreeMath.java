@@ -364,7 +364,9 @@ public final class TreeMath {
 			ITypedIngredient<?> matchTarget = parentIngredient != null ? parentIngredient : parentKey.typedIngredient();
 			TreeRecipeBuilder.RecipeInfo<?> info = TreeRecipeBuilder.findRecipe(recipeUid, matchTarget);
 			List<ITypedIngredient<?>> effectiveInputs = customRecipeInputs.get(parentKey);
-			if (effectiveInputs == null && info != null) {
+			if (effectiveInputs != null && info != null && !info.inputs().isEmpty() && effectiveInputs.size() < info.inputs().size()) {
+				effectiveInputs = info.inputs();
+			} else if (effectiveInputs == null && info != null) {
 				effectiveInputs = info.inputs();
 			}
 			if (effectiveInputs != null && !effectiveInputs.isEmpty()) {

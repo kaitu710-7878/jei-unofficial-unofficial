@@ -386,7 +386,10 @@ public final class TreeRecipeBuilder {
 		}
 
 		if (rootRecipe != null && customInputs.containsKey(rootKey)) {
-			rootRecipe = rootRecipe.withInputs(customInputs.get(rootKey));
+			List<ITypedIngredient<?>> customList = customInputs.get(rootKey);
+			if (customList != null && customList.size() >= rootRecipe.inputs().size()) {
+				rootRecipe = rootRecipe.withInputs(customList);
+			}
 		}
 
 		// Create root entry (RESULT)
@@ -430,7 +433,10 @@ public final class TreeRecipeBuilder {
 				if (subRecipeUid != null) {
 					subRecipe = findRecipe(subRecipeUid, inputIng);
 					if (subRecipe != null && customInputs.containsKey(inputKey)) {
-						subRecipe = subRecipe.withInputs(customInputs.get(inputKey));
+						List<ITypedIngredient<?>> customList = customInputs.get(inputKey);
+						if (customList != null && customList.size() >= subRecipe.inputs().size()) {
+							subRecipe = subRecipe.withInputs(customList);
+						}
 					}
 				}
 

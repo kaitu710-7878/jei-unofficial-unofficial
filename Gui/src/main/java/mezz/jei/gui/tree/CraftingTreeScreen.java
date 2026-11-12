@@ -12,6 +12,7 @@ import mezz.jei.common.Internal;
 import mezz.jei.gui.bookmarks.BookmarkIngredientKey;
 import mezz.jei.gui.bookmarks.BookmarkItemMetadataFactory;
 import mezz.jei.gui.bookmarks.BookmarkList;
+import mezz.jei.api.gui.ingredient.IRecipeSlotView;
 import mezz.jei.gui.bookmarks.chain.RecipeChainInput;
 import mezz.jei.gui.overlay.bookmarks.BookmarkAmountFormatter;
 import mezz.jei.gui.overlay.bookmarks.PlayerInventoryRecipeChainTooltipInventoryProvider;
@@ -235,11 +236,13 @@ public final class CraftingTreeScreen extends Screen {
 							BookmarkIngredientKey key = BookmarkIngredientKeySerializer.deserialize(obj.get("key"));
 							if (obj.has("inputs") && obj.get("inputs").isJsonArray()) {
 								List<ITypedIngredient<?>> resolvedList = new ArrayList<>();
-								for (JsonElement inElem : obj.getAsJsonArray("inputs")) {
+								JsonArray inArr = obj.getAsJsonArray("inputs");
+								for (JsonElement inElem : inArr) {
 									BookmarkIngredientKey inKey = BookmarkIngredientKeySerializer.deserialize(inElem);
 									inKey.resolveIngredient(ingredientManager).ifPresent(resolvedList::add);
 								}
-								if (!resolvedList.isEmpty()) {
+								// Only store custom inputs if all elements were safely resolved to prevent ingredient loss
+								if (!resolvedList.isEmpty() && resolvedList.size() == inArr.size()) {
 									session.customRecipeInputs.put(key, resolvedList);
 								}
 							}
@@ -681,7 +684,14 @@ public final class CraftingTreeScreen extends Screen {
 				this.targetRecipeOverride = recipeUid;
 			}
 			this.manualRecipes.put(targetKey, recipeUid);
-			if (!info.inputs().isEmpty()) {
+			boolean hasCyclingChoice = false;
+			for (IRecipeSlotView slot : layout.getRecipeSlotsView().getSlotViews(RecipeIngredientRole.INPUT)) {
+				if (slot.getAllIngredients().count() > 1) {
+					hasCyclingChoice = true;
+					break;
+				}
+			}
+			if (hasCyclingChoice && !info.inputs().isEmpty()) {
 				this.customRecipeInputs.put(targetKey, new ArrayList<>(info.inputs()));
 			} else {
 				this.customRecipeInputs.remove(targetKey);
@@ -697,7 +707,7 @@ public final class CraftingTreeScreen extends Screen {
 				rebuildTreeMath(pendingRecipeTarget);
 			} else {
 				treeMath.setManualRecipe(targetKey, recipeUid);
-				treeMath.setCustomRecipeInputs(targetKey, info.inputs());
+				treeMath.setCustomRecipeInputs(targetKey, hasCyclingChoice ? info.inputs() : null);
 				recalculateTree(pendingRecipeTarget);
 			}
 			saveSession();

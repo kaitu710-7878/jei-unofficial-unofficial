@@ -12,6 +12,7 @@ import mezz.jei.common.platform.IPlatformFluidHelperInternal;
 import mezz.jei.common.platform.Services;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.ingredients.IIngredientType;
+import mezz.jei.api.ingredients.subtypes.UidContext;
 import mezz.jei.api.runtime.IIngredientManager;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -90,8 +91,32 @@ public record BookmarkIngredientKey(
 			}
 		}
 		return manager.getIngredientTypeForUid(ingredientTypeUid)
-			.flatMap(type -> manager.getTypedIngredientByUid((IIngredientType) type, ingredientUid))
-			.map(value -> (ITypedIngredient<?>) value);
+			.flatMap(type -> {
+				Optional<ITypedIngredient<?>> direct = manager.getTypedIngredientByUid((IIngredientType) type, ingredientUid)
+					.map(value -> (ITypedIngredient<?>) value);
+				if (direct.isPresent()) {
+					return direct;
+				}
+				return findMatchingTypedIngredient(manager, (IIngredientType) type, ingredientUid);
+			});
+	}
+
+	private static <V> Optional<ITypedIngredient<?>> findMatchingTypedIngredient(
+		IIngredientManager manager,
+		IIngredientType<V> type,
+		String ingredientUid
+	) {
+		try {
+			var helper = manager.getIngredientHelper(type);
+			for (ITypedIngredient<V> cand : manager.getAllTypedIngredients(type)) {
+				V candObj = cand.getIngredient();
+				String candUid = helper.getUniqueId(candObj, UidContext.Ingredient);
+				if (ingredientUid.equals(candUid)) {
+					return Optional.of(cand);
+				}
+			}
+		} catch (Throwable ignored) {}
+		return Optional.empty();
 	}
 
 	private static <T> Optional<ITypedIngredient<?>> resolveFluidSnapshot(
