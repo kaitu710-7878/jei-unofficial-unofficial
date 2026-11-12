@@ -14,6 +14,15 @@ import mezz.jei.gui.bookmarks.BookmarkList;
 import mezz.jei.gui.bookmarks.chain.RecipeChainInput;
 import mezz.jei.gui.overlay.bookmarks.BookmarkAmountFormatter;
 import mezz.jei.gui.overlay.bookmarks.PlayerInventoryRecipeChainTooltipInventoryProvider;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import mezz.jei.common.config.file.serializers.TypedIngredientSerializer;
+import mezz.jei.gui.config.file.serializers.BookmarkIngredientKeySerializer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -96,6 +105,121 @@ public final class CraftingTreeScreen extends Screen {
 		public float cameraPanX = 0;
 		public float cameraPanY = 0;
 		public float cameraZoom = 1.0f;
+
+		public static Path getSessionFilePath() {
+			return Minecraft.getInstance().gameDirectory.toPath()
+				.resolve("config")
+				.resolve("jei")
+				.resolve("crafting_tree_session.json");
+		}
+
+		public void saveToFile(IIngredientManager ingredientManager) {
+			try {
+				Path path = getSessionFilePath();
+				Files.createDirectories(path.getParent());
+				JsonObject root = new JsonObject();
+				root.addProperty("groupId", groupId);
+				root.addProperty("targetAmount", targetAmount.toString());
+				if (targetRecipeOverride != null) {
+					root.addProperty("targetRecipeOverride", targetRecipeOverride.toString());
+				}
+				if (targetIngredient != null) {
+					TypedIngredientSerializer serializer = new TypedIngredientSerializer(ingredientManager);
+					root.addProperty("targetIngredient", serializer.serialize(targetIngredient));
+				}
+
+				JsonArray manualArr = new JsonArray();
+				for (Map.Entry<BookmarkIngredientKey, ResourceLocation> entry : manualRecipes.entrySet()) {
+					JsonObject item = new JsonObject();
+					item.add("key", BookmarkIngredientKeySerializer.serialize(entry.getKey()));
+					item.addProperty("recipe", entry.getValue().toString());
+					manualArr.add(item);
+				}
+				root.add("manualRecipes", manualArr);
+
+				JsonArray prunedArr = new JsonArray();
+				for (BookmarkIngredientKey pruned : prunedKeys) {
+					prunedArr.add(BookmarkIngredientKeySerializer.serialize(pruned));
+				}
+				root.add("prunedKeys", prunedArr);
+
+				root.addProperty("checkInventory", checkInventory);
+				root.addProperty("showStats", showStats);
+				root.addProperty("statsLabelMode", statsLabelMode);
+				root.addProperty("cameraPanX", cameraPanX);
+				root.addProperty("cameraPanY", cameraPanY);
+				root.addProperty("cameraZoom", cameraZoom);
+
+				Files.writeString(path, root.toString(), StandardCharsets.UTF_8);
+			} catch (Throwable ignored) {}
+		}
+
+		public static @Nullable TreeSession loadFromFile(IIngredientManager ingredientManager) {
+			try {
+				Path path = getSessionFilePath();
+				if (!Files.exists(path)) {
+					return null;
+				}
+				String content = Files.readString(path, StandardCharsets.UTF_8);
+				if (content.isBlank()) {
+					return null;
+				}
+				JsonObject root = JsonParser.parseString(content).getAsJsonObject();
+				TreeSession session = new TreeSession();
+				session.groupId = root.has("groupId") ? root.get("groupId").getAsInt() : -1;
+				if (root.has("targetAmount")) {
+					try {
+						session.targetAmount = new BigInteger(root.get("targetAmount").getAsString());
+					} catch (Exception ignored) {}
+				}
+				if (root.has("targetRecipeOverride")) {
+					session.targetRecipeOverride = new ResourceLocation(root.get("targetRecipeOverride").getAsString());
+				}
+				if (root.has("targetIngredient")) {
+					TypedIngredientSerializer serializer = new TypedIngredientSerializer(ingredientManager);
+					var res = serializer.deserialize(root.get("targetIngredient").getAsString());
+					session.targetIngredient = res.getResult().orElse(null);
+				}
+				if (root.has("manualRecipes") && root.get("manualRecipes").isJsonArray()) {
+					for (JsonElement elem : root.getAsJsonArray("manualRecipes")) {
+						if (elem.isJsonObject()) {
+							JsonObject obj = elem.getAsJsonObject();
+							BookmarkIngredientKey key = BookmarkIngredientKeySerializer.deserialize(obj.get("key"));
+							ResourceLocation rec = new ResourceLocation(obj.get("recipe").getAsString());
+							session.manualRecipes.put(key, rec);
+						}
+					}
+				}
+				if (root.has("prunedKeys") && root.get("prunedKeys").isJsonArray()) {
+					for (JsonElement elem : root.getAsJsonArray("prunedKeys")) {
+						BookmarkIngredientKey key = BookmarkIngredientKeySerializer.deserialize(elem);
+						session.prunedKeys.add(key);
+					}
+				}
+				if (root.has("checkInventory")) {
+					session.checkInventory = root.get("checkInventory").getAsBoolean();
+				}
+				if (root.has("showStats")) {
+					session.showStats = root.get("showStats").getAsBoolean();
+				}
+				if (root.has("statsLabelMode")) {
+					session.statsLabelMode = root.get("statsLabelMode").getAsBoolean();
+				}
+				if (root.has("cameraPanX")) {
+					session.cameraPanX = root.get("cameraPanX").getAsFloat();
+				}
+				if (root.has("cameraPanY")) {
+					session.cameraPanY = root.get("cameraPanY").getAsFloat();
+				}
+				if (root.has("cameraZoom")) {
+					session.cameraZoom = root.get("cameraZoom").getAsFloat();
+				}
+				if (session.targetIngredient != null || session.groupId >= 0) {
+					return session;
+				}
+			} catch (Throwable ignored) {}
+			return null;
+		}
 	}
 
 	private static @Nullable TreeSession activeSession = null;
@@ -103,6 +227,15 @@ public final class CraftingTreeScreen extends Screen {
 
 	private @Nullable TreeStatsLayout.PlacedSlot hoveredStatsSlot;
 	private int statsScrollOffset = 0;
+
+	private static void ensureActiveSessionLoaded() {
+		if (activeSession == null) {
+			try {
+				IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
+				activeSession = TreeSession.loadFromFile(ingredientManager);
+			} catch (Throwable ignored) {}
+		}
+	}
 
 	public static void open(Screen parent, BookmarkList bookmarks, int groupId) {
 		IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
@@ -120,13 +253,21 @@ public final class CraftingTreeScreen extends Screen {
 
 	public static void clearSession() {
 		activeSession = null;
+		try {
+			Path path = TreeSession.getSessionFilePath();
+			if (Files.exists(path)) {
+				Files.delete(path);
+			}
+		} catch (Throwable ignored) {}
 	}
 
 	public static boolean hasActiveSession() {
+		ensureActiveSessionLoaded();
 		return activeSession != null && (activeSession.targetIngredient != null || activeSession.groupId >= 0);
 	}
 
 	public static void openSessionOrNew(Screen parent, BookmarkList bookmarks, IIngredientManager ingredientManager) {
+		ensureActiveSessionLoaded();
 		if (hasActiveSession()) {
 			if (activeSession.targetIngredient != null) {
 				Minecraft.getInstance().setScreen(new CraftingTreeScreen(
@@ -174,6 +315,7 @@ public final class CraftingTreeScreen extends Screen {
 		IIngredientManager ingredientManager
 	) {
 		super(Component.translatable("jei.tree.title"));
+		ensureActiveSessionLoaded();
 		this.parentScreen = parentScreen;
 		this.bookmarks = bookmarks;
 		this.groupId = groupId;
@@ -205,6 +347,7 @@ public final class CraftingTreeScreen extends Screen {
 		IIngredientManager ingredientManager
 	) {
 		super(Component.translatable("jei.tree.title"));
+		ensureActiveSessionLoaded();
 		this.parentScreen = parentScreen;
 		this.bookmarks = bookmarks;
 		this.groupId = -1;
@@ -215,20 +358,22 @@ public final class CraftingTreeScreen extends Screen {
 		this.targetRecipeOverride = targetRecipeOverride;
 
 		// Restore session if working on the same target ingredient
-		if (activeSession != null && activeSession.targetIngredient != null &&
-			activeSession.targetIngredient.getIngredient().equals(targetIngredient.getIngredient())
-		) {
-			this.manualRecipes.putAll(activeSession.manualRecipes);
-			this.prunedKeys.addAll(activeSession.prunedKeys);
-			if (activeSession.targetRecipeOverride != null) {
-				this.targetRecipeOverride = activeSession.targetRecipeOverride;
+		if (activeSession != null && activeSession.targetIngredient != null) {
+			BookmarkIngredientKey activeKey = BookmarkItemMetadataFactory.createPermutationKey(activeSession.targetIngredient, ingredientManager);
+			BookmarkIngredientKey currentKey = BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager);
+			if (activeKey.equals(currentKey)) {
+				this.manualRecipes.putAll(activeSession.manualRecipes);
+				this.prunedKeys.addAll(activeSession.prunedKeys);
+				if (activeSession.targetRecipeOverride != null) {
+					this.targetRecipeOverride = activeSession.targetRecipeOverride;
+				}
+				this.targetAmount = activeSession.targetAmount;
+				this.checkInventory = activeSession.checkInventory;
+				this.showStats = activeSession.showStats;
+				this.statsLabelMode = activeSession.statsLabelMode;
+				this.camera.setScroll(activeSession.cameraPanX, activeSession.cameraPanY);
+				this.camera.setZoomLevel(activeSession.cameraZoom);
 			}
-			this.targetAmount = activeSession.targetAmount;
-			this.checkInventory = activeSession.checkInventory;
-			this.showStats = activeSession.showStats;
-			this.statsLabelMode = activeSession.statsLabelMode;
-			this.camera.setScroll(activeSession.cameraPanX, activeSession.cameraPanY);
-			this.camera.setZoomLevel(activeSession.cameraZoom);
 		}
 
 		rebuildTreeMath();
@@ -255,6 +400,8 @@ public final class CraftingTreeScreen extends Screen {
 		activeSession.cameraPanX = this.camera.getScrollX();
 		activeSession.cameraPanY = this.camera.getScrollY();
 		activeSession.cameraZoom = this.camera.getZoomLevel();
+
+		activeSession.saveToFile(this.ingredientManager);
 	}
 
 	private void rebuildTreeMath() {

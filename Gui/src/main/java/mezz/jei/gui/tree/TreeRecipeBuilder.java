@@ -53,8 +53,10 @@ public final class TreeRecipeBuilder {
 		}
 	}
 
+	public record RecipeTargetKey(ResourceLocation recipeUid, @Nullable BookmarkIngredientKey targetKey) {}
+
 	// High-performance concurrency caches
-	private static final Map<ResourceLocation, RecipeInfo<?>> RECIPE_UID_CACHE = new ConcurrentHashMap<>();
+	private static final Map<RecipeTargetKey, RecipeInfo<?>> RECIPE_UID_CACHE = new ConcurrentHashMap<>();
 	private static final Map<BookmarkIngredientKey, List<RecipeInfo<?>>> CANDIDATES_CACHE = new ConcurrentHashMap<>();
 
 	public static void clearCache() {
@@ -123,14 +125,37 @@ public final class TreeRecipeBuilder {
 		} catch (Throwable ignored) {
 			return null;
 		}
-		RecipeInfo<?> baseInfo = RECIPE_UID_CACHE.get(recipeUid);
 		IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
+		BookmarkIngredientKey targetKey = matchTarget != null ? BookmarkItemMetadataFactory.createPermutationKey(matchTarget, ingredientManager) : null;
+		RecipeTargetKey cacheKey = new RecipeTargetKey(recipeUid, targetKey);
 
-		if (baseInfo == null) {
-			IRecipeManager recipeManager = Internal.getJeiRuntime().getRecipeManager();
-			List<IRecipeCategory<?>> categories = recipeManager.createRecipeCategoryLookup().get().toList();
+		RecipeInfo<?> cached = RECIPE_UID_CACHE.get(cacheKey);
+		if (cached != null) {
+			return cached;
+		}
 
-			// Multi-core parallel category scan for the specific UID
+		IRecipeManager recipeManager = Internal.getJeiRuntime().getRecipeManager();
+		List<IRecipeCategory<?>> categories = recipeManager.createRecipeCategoryLookup().get().toList();
+
+		// Multi-core parallel category scan for the specific UID matching matchTarget
+		RecipeInfo<?> baseInfo = categories.parallelStream()
+			.<RecipeInfo<?>>map(category -> {
+				List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().toList();
+				for (Object recipe : recipes) {
+					ResourceLocation uid = category.getRegistryName(cast(recipe));
+					if (recipeUid.equals(uid)) {
+						return extractRecipeInfo(category, recipe, uid, matchTarget);
+					}
+				}
+				return null;
+			})
+			.filter(Objects::nonNull)
+			.findFirst()
+			.orElse(null);
+
+		if (baseInfo == null && matchTarget != null) {
+			// Fallback: search without target filter if category does not expose exact output match,
+			// but verify if matchTarget is an output
 			baseInfo = categories.parallelStream()
 				.<RecipeInfo<?>>map(category -> {
 					List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().toList();
@@ -146,21 +171,20 @@ public final class TreeRecipeBuilder {
 				.findFirst()
 				.orElse(null);
 
-			if (baseInfo == null) {
-				return null;
+			if (baseInfo != null) {
+				long factor = calculateOutputFactor(baseInfo, matchTarget, ingredientManager);
+				if (factor > 0) {
+					baseInfo = baseInfo.withFactor(factor);
+				} else {
+					baseInfo = null; // Do NOT use recipe if output does not match matchTarget
+				}
 			}
 		}
 
-		if (matchTarget == null) {
-			return baseInfo;
+		if (baseInfo != null) {
+			RECIPE_UID_CACHE.put(cacheKey, baseInfo);
 		}
-
-		// Re-evaluate output factor specifically against matchTarget
-		long factor = calculateOutputFactor(baseInfo, matchTarget, ingredientManager);
-		if (factor <= 0) {
-			factor = 1;
-		}
-		return baseInfo.withFactor(factor);
+		return baseInfo;
 	}
 
 	private static long calculateOutputFactor(
@@ -201,11 +225,6 @@ public final class TreeRecipeBuilder {
 
 		List<ITypedIngredient<?>> inputs = new ArrayList<>();
 		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.INPUT)) {
-			// Skip Mekanism extra slot (e.g. infuser charging / display slot) so it doesn't mix with actual craft inputs
-			Optional<String> slotName = slot.getSlotName();
-			if (slotName.isPresent() && "extra".equalsIgnoreCase(slotName.get())) {
-				continue;
-			}
 			Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
 			ingOpt.ifPresent(inputs::add);
 		}
@@ -241,7 +260,7 @@ public final class TreeRecipeBuilder {
 			}
 		}
 
-		RecipeInfo<T> info = new RecipeInfo<>(
+		return new RecipeInfo<>(
 			category,
 			recipe,
 			recipeUid,
@@ -250,9 +269,6 @@ public final class TreeRecipeBuilder {
 			outputs,
 			factor
 		);
-
-		RECIPE_UID_CACHE.putIfAbsent(recipeUid, info);
-		return info;
 	}
 
 	/**

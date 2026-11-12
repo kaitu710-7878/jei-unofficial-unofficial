@@ -15,6 +15,20 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta12] - 2026-11-12 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **ゲーム再起動時のツリーセッション自動保存・完全復元（永続化）**:
+  - メモリ上のみで保持されていたツリーセッションがゲーム再起動によって消失し、再起動後にツリーを開くとブックマーク先頭のレシピチェーンツリーが開かれてしまう不具合を修正。
+  - セッション情報を設定ディレクトリ内の `config/jei/crafting_tree_session.json` へJSON形式で自動保存・永続化。ゲームを再起動しても作業途中のツリー（目標アイテム/数量、手動選択レシピ、削除した枝、カメラ座標、ズーム倍率等）が直前の状態のまま完全に復元されるよう改善。
+- **加圧反応室（PRC）の液体登録の正常化 & スロット名除外（"extra"等）の完全撤廃**:
+  - Mekanismの加圧反応室（Pressurized Reaction Chamber）において、水などの液体入力スロット名が `"extra"` であったため、beta11のスロット名除外処理により液体入力が消失・登録不能になっていた不具合を修正。
+  - beta9〜11で行われていた名指しスロット除外処理（"extra" 等）を完全に撤廃し、beta8のクリーンなスロット抽出ロジックへ復帰。加圧反応室の液体を含むすべての正当な入力スロットが正常に登録されるよう改善。
+- **リチウム（気体）と液体リチウム（流体）の完全型分離と混同防止**:
+  - 同一ID（`mekanism:lithium`）を持つ気体と液体がレシピ選択やツリー展開時に同一視されていた問題を修正。
+  - レシピUIDキャッシュを目的成分型（`BookmarkIngredientKey`）ごとに分離し、`findRecipe` で目的の型（気体 vs 液体）を出力しないレシピが誤採用されないよう厳格な一致検証を徹底。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta11] - 2026-11-12 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **吹込み変換レシピおよび冶金吹込み機レシピの完全正常化**:
@@ -28,7 +42,7 @@
 
 ### [15.59.0.212-jeiuu.4-beta10] - 2026-11-12 (Beta)
 #### 修正・改善 (Fixed & Improved)
-- **補填情報アイテム（ガスタンク等）のツリー材料除外**:
+- **補填情報アイテム（ガスタンク等）のツリー材料除外（不安定、専用対策のため非推奨。beta12でスロット名除外を完全撤廃し正常化）**:
   - Mekanismの冶金注入器や各種化学機械において、吹込み素材や気体・流体を機械に補填するための補助表示（"Extra" スロット、ガスタンク・ケミカルタンク等）がクラフトツリーの入力材料として誤って組み込まれる問題を修正。
   - レシピ内に該当する気体・吹込み素材・流体等のケミカル入力が存在する場合、またはJEIスロット名が補助/充填用（extra, container, info, charge, fuel等）である場合、これらのコンテナ・補填用アイテムをツリーのクラフト材料から自動除外。
 - **「このノードとその枝を削除」の確実な実行と再発防止**:
@@ -49,7 +63,7 @@
   - クラフト実行回数が膨大になっても、非消費アイテムの要求数量を乗算せず「1個（または基本要求数）」に固定。
 
 #### 修正 (Fixed)
-- **吹込み素材変換レシピ等の必要素材数量計算バグの修正**:
+- **吹込み素材変換レシピ等の必要素材数量計算バグの修正（不安定、専用対策のため非推奨。beta11/12で本質的修正へ刷新）**:
   - 親レシピの生産量（`outputFactor`、例: 80mb）が親ノードのクラフト実行回数計算（`multiplier`）に正しく反映されず、さらに親の生産量が子ノード自身の生産量へ誤って代入されていたバグを根本解決。
   - 160mbの吹込み素材に対して80mb/個の変換レシピを割り当てた場合、消費素材が正しく「2個」と計算されるよう正常化。
 
@@ -138,6 +152,20 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta12] - 2026-11-12 (Beta)
+#### Fixed & Improved
+- **Tree Session Persistence Across Game Restarts**:
+  - Fixed an issue where the crafting tree session in memory was lost upon restarting the game, erroneously opening the first bookmark group's recipe chain when reopening the tree screen.
+  - Automatically persists the active session into `config/jei/crafting_tree_session.json`, fully restoring incomplete work (target ingredient, quantities, manually selected recipes, pruned branches, camera position, and zoom level) across game restarts.
+- **Restoration of Pressurized Reaction Chamber (PRC) Fluid Inputs & Removal of Slot-Name Filtering**:
+  - Fixed an issue where PRC fluid input slots (e.g. water) named `"extra"` were mistakenly omitted by beta11's slot-name filtering logic, preventing fluid recipes from registering.
+  - Completely removed ad-hoc slot-name exclusions ("extra", etc.), reverting to the clean beta8 baseline and ensuring all valid recipe inputs, including PRC fluids, are accurately preserved.
+- **Strict Separation of Gas Lithium & Fluid Lithium**:
+  - Fixed an issue where gas lithium and liquid lithium were treated as identical during tree expansion and recipe selection due to sharing the same resource ID (`mekanism:lithium`).
+  - Separated the recipe cache by typed ingredient keys (`BookmarkIngredientKey`) and enforced strict output type verification in `findRecipe`, guaranteeing that gas and fluid recipes are never confounded.
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta11] - 2026-11-12 (Beta)
 #### Fixed & Improved
 - **Full Restoration & Normalization of Infusion Conversion & Metallurgic Infuser Recipes**:
@@ -151,7 +179,7 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 
 ### [15.59.0.212-jeiuu.4-beta10] - 2026-11-12 (Beta)
 #### Fixed & Improved
-- **Exclusion of Supplementary Display Items (Gas Tanks / Chemical Tanks)**:
+- **Exclusion of Supplementary Display Items (Gas Tanks / Chemical Tanks) (Deprecated: unstable, ad-hoc fix; slot-name exclusion completely removed in beta12)**:
   - Fixed an issue where supplementary container items (such as Mekanism's "Extra" slot gas tanks and chemical tanks used to supply internal machine buffers) were mistakenly included as craft ingredients in the crafting tree.
   - Automatically identifies and filters out display guide slots (e.g. slots named extra, container, info, fuel, charge) and tank items when the recipe already contains the corresponding gas, infusion, or fluid ingredient.
 - **Reliable Node & Branch Pruning ("Remove Node and Branch")**:
@@ -172,7 +200,7 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
   - Keeps requirements fixed at 1 (or base requirement) without multiplying by recipe execution multiplier.
 
 #### Fixed
-- **Sub-Ingredient Multiplier Calculation for Partial Yield Recipes**:
+- **Sub-Ingredient Multiplier Calculation for Partial Yield Recipes (Deprecated: unstable, ad-hoc fix; replaced by fundamental fix in beta11/12)**:
   - Fixed a math bug where parent recipe output factors (e.g. 80mb yield) were erroneously mapped onto child output amounts rather than parent craft multipliers.
   - Correctly calculates input item demand (e.g. producing 160mb from an 80mb/item recipe accurately demands 2 items instead of 160).
 
