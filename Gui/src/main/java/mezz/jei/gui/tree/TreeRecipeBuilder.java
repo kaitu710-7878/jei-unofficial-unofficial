@@ -20,18 +20,21 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.ArrayDeque;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Builds and mutates recipe chain inputs from a target ingredient and dynamically chosen recipes.
  * Enables manual root calculation, step-by-step tree expansion, and crafting path exploration from scratch.
+ * Fully multi-core parallelized and cached for high performance on massive recipe trees.
  */
 public final class TreeRecipeBuilder {
 	private TreeRecipeBuilder() {}
@@ -44,13 +47,33 @@ public final class TreeRecipeBuilder {
 		List<ITypedIngredient<?>> inputs,
 		List<ITypedIngredient<?>> outputs,
 		long outputFactor
-	) {}
+	) {
+		public RecipeInfo<T> withFactor(long factor) {
+			return new RecipeInfo<>(category, recipe, recipeUid, categoryUid, inputs, outputs, factor);
+		}
+	}
+
+	// High-performance concurrency caches
+	private static final Map<ResourceLocation, RecipeInfo<?>> RECIPE_UID_CACHE = new ConcurrentHashMap<>();
+	private static final Map<BookmarkIngredientKey, List<RecipeInfo<?>>> CANDIDATES_CACHE = new ConcurrentHashMap<>();
+
+	public static void clearCache() {
+		RECIPE_UID_CACHE.clear();
+		CANDIDATES_CACHE.clear();
+	}
 
 	/**
-	 * Finds all recipes that produce the given ingredient.
+	 * Finds all recipes that produce the given ingredient using parallel search across recipe categories.
 	 */
 	public static List<RecipeInfo<?>> findRecipesFor(ITypedIngredient<?> targetIngredient) {
-		List<RecipeInfo<?>> result = new ArrayList<>();
+		IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
+		BookmarkIngredientKey targetKey = BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager);
+
+		List<RecipeInfo<?>> cached = CANDIDATES_CACHE.get(targetKey);
+		if (cached != null) {
+			return cached;
+		}
+
 		IRecipeManager recipeManager = Internal.getJeiRuntime().getRecipeManager();
 		IFocusFactory focusFactory = Internal.getJeiRuntime().getJeiHelpers().getFocusFactory();
 		IFocus<?> focus = focusFactory.createFocus(RecipeIngredientRole.OUTPUT, targetIngredient);
@@ -60,40 +83,91 @@ public final class TreeRecipeBuilder {
 			.get()
 			.toList();
 
-		for (IRecipeCategory<?> category : categories) {
-			List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType())
-				.limitFocus(List.of(focus))
-				.get()
-				.toList();
+		// Parallel multi-core evaluation across recipe categories
+		List<RecipeInfo<?>> result = categories.parallelStream()
+			.<RecipeInfo<?>>flatMap(category -> {
+				List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType())
+					.limitFocus(List.of(focus))
+					.get()
+					.toList();
 
-			for (Object recipe : recipes) {
-				ResourceLocation recipeUid = category.getRegistryName(cast(recipe));
-				if (recipeUid != null) {
-					RecipeInfo<?> info = extractRecipeInfo(category, recipe, recipeUid, targetIngredient);
-					if (info != null) {
-						result.add(info);
+				List<RecipeInfo<?>> catList = new ArrayList<>();
+				for (Object recipe : recipes) {
+					ResourceLocation recipeUid = category.getRegistryName(cast(recipe));
+					if (recipeUid != null) {
+						RecipeInfo<?> info = extractRecipeInfo(category, recipe, recipeUid, targetIngredient);
+						if (info != null) {
+							catList.add(info);
+						}
 					}
 				}
-			}
-		}
+				return catList.stream();
+			})
+			.toList();
+
+		CANDIDATES_CACHE.put(targetKey, result);
 		return result;
 	}
 
 	/**
-	 * Finds a specific recipe by its category and recipe UID.
+	 * Finds a specific recipe by its recipe UID, matching against matchTarget if supplied.
 	 */
 	public static @Nullable RecipeInfo<?> findRecipe(ResourceLocation recipeUid, @Nullable ITypedIngredient<?> matchTarget) {
-		IRecipeManager recipeManager = Internal.getJeiRuntime().getRecipeManager();
-		for (IRecipeCategory<?> category : recipeManager.createRecipeCategoryLookup().get().toList()) {
-			List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().toList();
-			for (Object recipe : recipes) {
-				ResourceLocation uid = category.getRegistryName(cast(recipe));
-				if (recipeUid.equals(uid)) {
-					return extractRecipeInfo(category, recipe, uid, matchTarget);
-				}
+		RecipeInfo<?> baseInfo = RECIPE_UID_CACHE.get(recipeUid);
+		IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
+
+		if (baseInfo == null) {
+			IRecipeManager recipeManager = Internal.getJeiRuntime().getRecipeManager();
+			List<IRecipeCategory<?>> categories = recipeManager.createRecipeCategoryLookup().get().toList();
+
+			// Multi-core parallel category scan for the specific UID
+			baseInfo = categories.parallelStream()
+				.<RecipeInfo<?>>map(category -> {
+					List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().toList();
+					for (Object recipe : recipes) {
+						ResourceLocation uid = category.getRegistryName(cast(recipe));
+						if (recipeUid.equals(uid)) {
+							return extractRecipeInfo(category, recipe, uid, null);
+						}
+					}
+					return null;
+				})
+				.filter(Objects::nonNull)
+				.findFirst()
+				.orElse(null);
+
+			if (baseInfo != null) {
+				RECIPE_UID_CACHE.put(recipeUid, baseInfo);
 			}
 		}
-		return null;
+
+		if (baseInfo == null) {
+			return null;
+		}
+
+		if (matchTarget == null) {
+			return baseInfo;
+		}
+
+		// Strictly verify that the recipe produces matchTarget with identical ingredient type & UID
+		BookmarkIngredientKey targetKey = BookmarkItemMetadataFactory.createPermutationKey(matchTarget, ingredientManager);
+		long factor = calculateMatchingOutputFactor(baseInfo, targetKey, ingredientManager);
+		if (factor <= 0) {
+			// Recipe does not produce the target ingredient type or UID
+			return null;
+		}
+
+		return baseInfo.withFactor(factor);
+	}
+
+	private static long calculateMatchingOutputFactor(RecipeInfo<?> info, BookmarkIngredientKey targetKey, IIngredientManager ingredientManager) {
+		for (ITypedIngredient<?> output : info.outputs()) {
+			BookmarkIngredientKey outKey = BookmarkItemMetadataFactory.createPermutationKey(output, ingredientManager);
+			if (targetKey.equals(outKey)) {
+				return Math.max(1, BookmarkIngredientAmountResolver.getAmount(output, ingredientManager));
+			}
+		}
+		return -1;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -107,6 +181,7 @@ public final class TreeRecipeBuilder {
 		T recipe = (T) rawRecipe;
 		IRecipeManager recipeManager = Internal.getJeiRuntime().getRecipeManager();
 		IFocusFactory focusFactory = Internal.getJeiRuntime().getJeiHelpers().getFocusFactory();
+		IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
 
 		IRecipeSlotsView slotsView = recipeManager.createRecipeLayoutDrawable(category, recipe, focusFactory.getEmptyFocusGroup())
 			.map(layout -> layout.getRecipeSlotsView())
@@ -123,30 +198,37 @@ public final class TreeRecipeBuilder {
 		}
 
 		List<ITypedIngredient<?>> outputs = new ArrayList<>();
-		long factor = 1;
 		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.OUTPUT)) {
 			Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
 			ingOpt.ifPresent(outputs::add);
 		}
 
+		long factor = 1;
 		if (targetIngredient != null) {
-			for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.OUTPUT)) {
-				Optional<ITypedIngredient<?>> disp = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
-				if (disp.isPresent()) {
-					ITypedIngredient<?> typed = disp.get();
-					if (typed.getIngredient().equals(targetIngredient.getIngredient()) ||
-						(typed.getItemStack().isPresent() && targetIngredient.getItemStack().isPresent() &&
-						net.minecraft.world.item.ItemStack.isSameItem(typed.getItemStack().get(), targetIngredient.getItemStack().get()))
-					) {
-						factor = Math.max(1, BookmarkIngredientAmountResolver.getAmount(typed, Internal.getJeiRuntime().getIngredientManager()));
+			BookmarkIngredientKey targetKey = BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager);
+			boolean matched = false;
 
+			for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.OUTPUT)) {
+				for (ITypedIngredient<?> slotIng : slot.getAllIngredients().toList()) {
+					BookmarkIngredientKey slotKey = BookmarkItemMetadataFactory.createPermutationKey(slotIng, ingredientManager);
+					if (targetKey.equals(slotKey)) {
+						factor = Math.max(1, BookmarkIngredientAmountResolver.getAmount(slotIng, ingredientManager));
+						matched = true;
 						break;
 					}
 				}
+				if (matched) {
+					break;
+				}
+			}
+
+			// If recipe does not produce the specified target ingredient, discard it
+			if (!matched) {
+				return null;
 			}
 		}
 
-		return new RecipeInfo<>(
+		RecipeInfo<T> info = new RecipeInfo<>(
 			category,
 			recipe,
 			recipeUid,
@@ -155,6 +237,9 @@ public final class TreeRecipeBuilder {
 			outputs,
 			factor
 		);
+
+		RECIPE_UID_CACHE.putIfAbsent(recipeUid, info);
+		return info;
 	}
 
 	/**

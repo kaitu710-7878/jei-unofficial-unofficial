@@ -28,7 +28,9 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Queue;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -268,7 +270,7 @@ public final class CraftingTreeScreen extends Screen {
 			);
 			this.treeMath = new TreeMath(inputs, stock);
 		} else {
-			this.treeMath = TreeChainBridge.createTreeMathFromGroup(bookmarks, groupId, stock);
+			this.treeMath = TreeChainBridge.createTreeMathFromGroup(bookmarks, groupId, stock, prunedKeys);
 		}
 		// Synchronize all manually assigned recipes into treeMath
 		this.manualRecipes.forEach(this.treeMath::setManualRecipe);
@@ -690,7 +692,7 @@ public final class CraftingTreeScreen extends Screen {
 		if (scale != 1.0f) {
 			pose.scale(scale, scale, 1.0f);
 		}
-		renderer.render(g, typed.getIngredient());
+		renderer.render(g, ingredient);
 		pose.popPose();
 	}
 
@@ -700,7 +702,7 @@ public final class CraftingTreeScreen extends Screen {
 	}
 
 	private void renderSlotAmount(GuiGraphics g, TreeSlot slot, int screenX, int screenY, int scaledSlotSize) {
-		BigInteger amount = slot.getProducedAmount();
+		BigInteger amount = slot.hasRecipe() ? slot.getProducedAmount() : slot.getRequestedAmount();
 		if (amount.compareTo(BigInteger.ONE) <= 0) {
 			return;
 		}
@@ -719,6 +721,7 @@ public final class CraftingTreeScreen extends Screen {
 		if (scale != 1.0f) {
 			g.pose().scale(scale, scale, 1.0f);
 		}
+		g.fill(-1, -1, textWidth + 1, 9, 0xC0000000);
 		g.drawString(font, text, 0, 0, 0xFFFFFFFF, true);
 		g.pose().popPose();
 	}
@@ -782,10 +785,36 @@ public final class CraftingTreeScreen extends Screen {
 				if (scale != 1.0f) {
 					g.pose().scale(scale, scale, 1.0f);
 				}
+				g.fill(-1, -1, textWidth + 1, 9, 0xC0000000);
 				g.drawString(font, amtText, 0, 0, 0xFFFFFFFF, true);
 				g.pose().popPose();
 			}
 		}
+	}
+
+	private Set<BookmarkIngredientKey> collectSubtreeKeys(TreeSlot root) {
+		Set<BookmarkIngredientKey> result = new HashSet<>();
+		Queue<TreeSlot> queue = new ArrayDeque<>();
+		queue.add(root);
+		while (!queue.isEmpty()) {
+			TreeSlot current = queue.poll();
+			if (current.getKey() != null) {
+				result.add(current.getKey());
+			}
+			for (TreeSlot child : graph.getChildren(current)) {
+				queue.add(child);
+			}
+		}
+		return result;
+	}
+
+	private void removeNodeAndBranch(TreeSlot target) {
+		Set<BookmarkIngredientKey> subtree = collectSubtreeKeys(target);
+		prunedKeys.addAll(subtree);
+		for (BookmarkIngredientKey k : subtree) {
+			manualRecipes.remove(k);
+		}
+		rebuildTreeMath();
 	}
 
 	private void renderTooltips(GuiGraphics g, int mouseX, int mouseY) {
@@ -871,16 +900,7 @@ public final class CraftingTreeScreen extends Screen {
 				TreeSlot target = hoveredNode;
 				Minecraft.getInstance().setScreen(new TreeAdjustQuantityScreen(this, target, result -> {
 					if (result.removeNode()) {
-						if (targetIngredient != null) {
-							prunedKeys.add(target.getKey());
-							rebuildTreeMath();
-						} else {
-							var unused = graph.collectUnusedRecipes(target);
-							for (ResourceLocation rec : unused) {
-								treeMath.setManualRecipe(target.getKey(), null);
-							}
-							recalculateTree(null);
-						}
+						removeNodeAndBranch(target);
 					} else {
 						if (targetIngredient != null && target.equals(graph.getRootSlot())) {
 							this.targetAmount = result.amountOverride().max(BigInteger.ONE);
@@ -926,13 +946,13 @@ public final class CraftingTreeScreen extends Screen {
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
 		if (showStats && mouseY >= height - STATS_BAR_HEIGHT) {
-			statsScrollOffset = Math.max(0, statsScrollOffset - (int) Math.round(delta * 20));
+			statsScrollOffset = Math.max(0, statsScrollOffset - (int) Math.round(delta * 40));
 			return true;
 		}
 
 		if (camera.isInViewport(mouseX, mouseY)) {
 			if (Screen.hasShiftDown()) {
-				camera.pan((float) (delta * 40.0), 0);
+				camera.pan((float) (delta * 140.0), 0);
 				return true;
 			}
 			camera.zoomAt(mouseX, mouseY, (int) Math.signum(delta));
@@ -951,8 +971,12 @@ public final class CraftingTreeScreen extends Screen {
 			return searchBox.keyPressed(keyCode, scanCode, modifiers);
 		}
 
-		// Recipe & Uses shortcuts on hovered node
+		// Recipe, Uses, and Delete shortcuts on hovered node
 		if (hoveredNode != null) {
+			if (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+				removeNodeAndBranch(hoveredNode);
+				return true;
+			}
 			Optional<ITypedIngredient<?>> typedOpt = hoveredNode.getTypedIngredient();
 			if (typedOpt.isPresent()) {
 				ITypedIngredient<?> typed = typedOpt.get();

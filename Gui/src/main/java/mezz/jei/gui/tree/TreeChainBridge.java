@@ -37,9 +37,23 @@ public final class TreeChainBridge {
 		int groupId,
 		Map<BookmarkIngredientKey, BigInteger> inventory
 	) {
+		return createTreeMathFromGroup(bookmarks, groupId, inventory, Set.of());
+	}
+
+	public static TreeMath createTreeMathFromGroup(
+		BookmarkList bookmarks,
+		int groupId,
+		Map<BookmarkIngredientKey, BigInteger> inventory,
+		Set<BookmarkIngredientKey> prunedKeys
+	) {
 		List<RecipeChainInput> inputs = bookmarks.getRecipeChainInputs(groupId);
 		if (inputs.isEmpty()) {
 			inputs = bookmarks.getGroupRecipeInputs(groupId);
+		}
+		if (!prunedKeys.isEmpty()) {
+			inputs = inputs.stream()
+				.filter(in -> !prunedKeys.contains(in.selectedKey()))
+				.toList();
 		}
 		TreeMath treeMath = new TreeMath(inputs, inventory);
 

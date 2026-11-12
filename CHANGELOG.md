@@ -9,25 +9,60 @@
 
 ### バージョニング方針
 本MODでは、上流のJEI / JEIU のバージョンを追跡しやすくするため、以下の命名規則を採用しています：
-[上流JEIバージョン]-jeiuu.[JEIUUリビジョン番号] (例: 15.59.0.212-jeiuu.2, 15.59.0.212-jeiuu.4-beta3)
-- **上流JEIバージョン** (15.59.0.212): ベースとなっているJEI / JEIUの公式バージョンを表します。
-- **JEIUUリビジョン** (jeiuu.4-beta3): 本フォーク（JEIUU）独自で行われた機能追加・バグ修正・最適化の更新回数およびリリース種別（Alpha/Beta/Release）を表します。
+`[上流JEIバージョン]-jeiuu.[JEIUUリビジョン番号]` (例: `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta8`)
+- **上流JEIバージョン** (`15.59.0.212`): ベースとなっているJEI / JEIUの公式バージョンを表します。
+- **JEIUUリビジョン** (`jeiuu.4-beta8`): 本フォーク（JEIUU）独自で行われた機能追加・バグ修正・最適化の更新回数およびリリース種別（Alpha/Beta/Release）を表します。
+
+---
+
+### [15.59.0.212-jeiuu.4-beta8] - 2026-11-12 (Beta)
+#### 追加・改善 (Added & Improved)
+- **大規模ツリーのマルチコア並列処理とキャッシュ最適化**:
+  - レシピ候補検索およびUID探索をマルチスレッド（parallel stream）で並列処理化。CPUの全コアを活用し、膨大なレシピが存在する環境でも大規模ツリーを高速に展開・再計算可能に。
+  - レシピ情報（入力・出力・生産ファクター）および候補探索結果のインメモリキャッシュ（`ConcurrentHashMap`）を導入し、重複検索オーバーヘッドを劇的に低減。
+- **スロット数量テキストの視認性向上と背景ボックス**:
+  - スロット内および統計バーの数量テキスト背後に半透明黒背景ボックス（`0xC0000000`）を描画。回路アイテムの番号（Programmed Circuitの「8」など）や複雑なテクスチャとテキストが重なっても、視認性を損なわず鮮明に読めるよう改善。
+  - 原材料ノード（葉ノード）でも要求数量が確実に右下に表示されるようフォールバックを適用。
+- **Shift + マウスホイールのスクロール速度向上**:
+  - 水平パン移動の感度を大幅に引き上げ、大規模ツリーにおける左右の高速スクロール・移動を快適化。
+- **「ノードとその枝を削除」の強化とキーボードショートカット対応**:
+  - ノードを削除した際、その配下に広がるすべての子孫ノードを再帰的に収集して確実に枝刈り（Prune）するよう修正。手動ツリー・チェーンツリーの双方に対応。
+  - ホバー中に `Delete` キーまたは `Backspace` キーを押すだけで、該当ノードとその枝を瞬時に削除可能に。
+
+#### 修正 (Fixed)
+- **言語キー未翻訳露出の修正**:
+  - `jei.tree.tooltip.amount` および `jei.tree.tooltip.produced` の言語定義（英語、日本語、簡体中文）を追加し、未翻訳キーが表示される問題を解消。
+- **液体と気体（リチウム等）の厳格な型分離**:
+  - `TreeRecipeBuilder` で `BookmarkIngredientKey` による厳格な型検証（`fluid_stack` と `mekanism.api.chemical.gas.GasStack` の区別）を行い、一致する成分を出力しないレシピを確実に除外。液体リチウムと気体リチウムが内部的に混同される問題を修正。
+- **ItemStackのスタックサイズ重複描画バグの修正**:
+  - `renderTypedIngredient` でアイテム単体描画用のコピー（count=1）が正しくレンダラーに渡されていなかったバグを修正。バニラのスロット数字「8」とツリーの数量表示「2.1M」が重なる不具合を完全解消。
+- **液体・ガス単位のタイポ修正 (`1bmb`)**:
+  - 1,000 Buckets (1,000,000 mB) の単位表記を仕様通り `1bmb` に修正（`bmd` タイポの解消）。
 
 ---
 
 ### [15.59.0.212-jeiuu.4-beta7] - 2026-11-12 (Beta)
-#### 霑ｽ蜉繝ｻ謾ｹ蝟・(Added & Improved)
-- **繝・Μ繝ｼ蟆ら畑繧｢繧ｯ繧ｻ繧ｹ繧ｭ繝ｼ縺ｮ譁ｰ險ｭ縺ｨ繧ｻ繝・す繝ｧ繝ｳ菫晁ｭｷ (遨ｺ荳ｭ縺ｧT繧ｭ繝ｼ蜀埼幕)**:
-  - 逕ｻ髱｢蜀・・菴輔ｂ縺ｪ縺・ｴ謇・医∪縺溘・繧｢繧､繝・Β髱槭・繝舌・譎ゑｼ峨〒 T 繧ｭ繝ｼ繧呈款縺吶□縺代〒縲∫峩蜑阪∪縺ｧ菴懈･ｭ縺励※縺・◆繝・Μ繝ｼ繧偵◎縺ｮ縺ｾ縺ｾ遒ｺ螳溘↓蜀埼幕縺ｧ縺阪ｋ讖溯・繧定ｿｽ蜉縲・  - 繧｢繧､繝・Β繧偵・繝舌・縺励※髢九￥蠢・ｦ√′縺ｪ縺上↑縺｣縺溘◆繧√∵э蝗ｳ縺帙★莉悶・繧｢繧､繝・Β縺ｮ繝・Μ繝ｼ縺ｧ菫晏ｭ俶ｸ医∩菴懈･ｭ蜀・ｮｹ縺御ｸ頑嶌縺肴ｶ亥悉縺輔ｌ繧倶ｺ区腐繧貞ｮ悟・縺ｫ髦ｲ豁｢縲・  - 謫堺ｽ懆ｨｭ螳夲ｼ・ontrols・峨↓縲後け繝ｩ繝輔ヨ繝・Μ繝ｼ繧帝幕縺・蜀埼幕 (key.jei.openCraftingTree)縲阪く繝ｼ繝舌う繝ｳ繝峨ｒ譁ｰ險ｭ縺励∝･ｽ縺ｿ縺ｮ繧ｭ繝ｼ縺ｫ蜑ｲ繧雁ｽ薙※蜿ｯ閭ｽ縺ｫ縲・  - 繝悶ャ繧ｯ繝槭・繧ｯ繧ｰ繝ｫ繝ｼ繝励°繧蛾幕縺・◆繝・Μ繝ｼ繧ゅそ繝・す繝ｧ繝ｳ縺ｨ縺励※豌ｸ邯壻ｿ晄戟縺輔ｌ繧九ｈ縺・↓謾ｹ蝟・・- **WASD/遏｢蜊ｰ繧ｭ繝ｼ縺ｫ繧医ｋ繝・Μ繝ｼ繝代Φ謫堺ｽ懊・謾ｹ蝟・*:
-  - WASD繧・泙蜊ｰ繧ｭ繝ｼ縺檎判髱｢荳翫・繝懊ち繝ｳ驕ｸ謚槭ヵ繧ｩ繝ｼ繧ｫ繧ｹ縺ｫ蜷ｸ繧上ｌ縺ｦ縺・◆蝠城｡後ｒ隗｣豸医ゅヤ繝ｪ繝ｼ遘ｻ蜍輔く繝ｼ蜈･蜉帙ｒ譛蜆ｪ蜈医〒豸郁ｲｻ縺励∝ｿｫ驕ｩ縺ｪ繧ｭ繝ｼ繝懊・繝画桃菴懊ｒ螳溽樟縲・- **Shift + 繝槭え繧ｹ繝帙う繝ｼ繝ｫ縺ｫ繧医ｋ豌ｴ蟷ｳ繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ縺ｮ譛牙柑蛹・*:
-  - Shift繧ｭ繝ｼ繧呈款縺励↑縺後ｉ繝帙う繝ｼ繝ｫ繧貞屓縺吶％縺ｨ縺ｧ縲√ヤ繝ｪ繝ｼ逕ｻ髱｢繧貞ｷｦ蜿ｳ縺ｫ繧ｹ繝繝ｼ繧ｺ縺ｫ繝代Φ遘ｻ蜍輔〒縺阪ｋ繧医≧菫ｮ豁｣縲・
-#### 菫ｮ豁｣ (Fixed)
-- **邨ｱ險医ヱ繝阪Ν縺ｮ繝帙ヰ繝ｼ陦ｨ遉ｺ縺悟・驛ｨ蜷咲ｧｰ縺ｫ縺ｪ繧倶ｸ榊・蜷医・菫ｮ豁｣**:
-  - 邨ｱ險医ヱ繝阪Ν・・ummary Bar・峨・繧｢繧､繝・Β繧・ｵ∽ｽ薙↓繝槭え繧ｹ繝帙ヰ繝ｼ縺励◆髫帙∝・驛ｨID・・minecraft:iron_ingot 遲会ｼ峨〒縺ｯ縺ｪ縺乗ｭ｣蠑上↑繝ｭ繝ｼ繧ｫ繝ｩ繧､繧ｺ陦ｨ遉ｺ蜷阪♀繧医・隧ｳ邏ｰ繝・・繝ｫ繝√ャ繝励′陦ｨ遉ｺ縺輔ｌ繧九ｈ縺・ｿｮ豁｣縲・- **繝弱・繝我ｸ翫・邱乗ｶ郁ｲｻ驥上→繝ｬ繧ｷ繝碑ｦ∵ｱよ焚縺ｮ驥阪↑繧願ｧ｣豸・*:
-  - 繝弱・繝牙・縺ｫ謠冗判縺輔ｌ繧狗ｷ丞ｿ・ｦ・㍼・井ｾ・ 128・峨→縲√ヰ繝九Λ繝ｬ繝ｳ繝繝ｩ繝ｼ縺梧緒逕ｻ縺吶ｋ繧ｹ繧ｿ繝・け謨ｰ・井ｾ・ 8・峨′驥阪↑縺｣縺ｦ隱ｭ繧√↑縺上↑繧句撫鬘後ｒ隗｣豸医ゅヤ繝ｪ繝ｼ險育ｮ礼ｵ先棡縺ｮ邱乗焚驥上・縺ｿ縺悟承荳九↓鄒弱＠縺乗緒逕ｻ縺輔ｌ縲∝ｹ・′蠎・＞蝣ｴ蜷医ｂ閾ｪ蜍慕ｸｮ蟆上せ繧ｱ繝ｼ繝ｫ縺ｧ譫蜀・↓蜿弱∪繧九ｈ縺・隼蝟・・- **邨ｱ險医ヱ繝阪Ν縺ｮ謨ｰ驥剰｡ｨ遉ｺ縺ｮ驥阪↑繧願ｧ｣豸・*:
-  - 邨ｱ險医ヱ繝阪Ν縺ｮ繧ｹ繝ｭ繝・ヨ縺ｫ縺翫＞縺ｦ縲∵｡∵焚縺ｮ螟壹＞謨ｰ驥上ユ繧ｭ繧ｹ繝医′髫｣謗･繧ｹ繝ｭ繝・ヨ繧・い繧､繧ｳ繝ｳ縺ｫ縺ｯ縺ｿ蜃ｺ縺励※驥阪↑繧句撫鬘後ｒ菫ｮ豁｣縲ゅせ繝ｭ繝・ヨ蟷・↓蠢懊§縺溯・蜍輔せ繧ｱ繝ｼ繝ｫ邵ｮ蟆丞・逅・→繧ｹ繝ｭ繝・ヨ髢馴囈縺ｮ諡｡螟ｧ繧帝←逕ｨ縲・- **邨ｱ險医ヱ繝阪Ν縺ｧ蛻晄悄逕滓・譎ゅ↓豸ｲ菴薙・繧ｬ繧ｹ縺ｮ謨ｰ驥上′陦ｨ遉ｺ縺輔ｌ縺ｪ縺・撫鬘後・菫ｮ豁｣**:
-  - 繝・Μ繝ｼ蛻晄悄逕滓・譎ゅ↓ BookmarkIngredientAmountResolver 繧帝壹§縺ｦ豬∽ｽ薙ｄ繧ｬ繧ｹ縺ｮ隕∵ｱる㍼・・B・峨ｒ豁｣遒ｺ縺ｫ蜿門ｾ励・髮・ｨ医☆繧九ｈ縺・↓謾ｹ菫ｮ縲・mB遲峨・蝣ｴ蜷医〒繧ょ腰菴堺ｻ倥″・・B / B 遲会ｼ峨〒遒ｺ螳溘↓謠冗判縺輔ｌ繧九ｈ縺・弍豁｣縲・
+#### 追加・改善 (Added & Improved)
+- **ツリー専用ホットキーの新設とセッション保持（空中でのTキー再開）**:
+  - 画面内の何もない場所（またはアイテム非ホバー時）で `T` キーを押すだけで、直前まで作業していたツリーをそのまま確実に再開できる機能を追加。
+  - アイテムをホバーして開く必要がなくなったため、意図せず他のアイテムでツリーの保存済み作業内容が上書き消失する事故を完全に防止。
+  - 操作設定（Controls）に「クラフトツリーを開く/再開 (`key.jei.openCraftingTree`)」キーバインドを新設し、好みのキーに割り当て可能に。
+  - ブックマークグループから開いたツリーもセッションとして永続保持されるように改善。
+- **WASD/矢印キーによるツリーパン操作の改善**:
+  - WASDや矢印キーが画面上のボタン選択フォーカスに吸われていた問題を解消。ツリー移動キー入力を最優先で消費し、快適なキーボード操作を実現。
+- **Shift + マウスホイールによる水平スクロール有効化**:
+  - Shiftキーを押しながらホイールを回すことで、ツリー画面を左右にスムーズにパン移動できるよう修正。
+
+#### 修正 (Fixed)
+- **統計パネルのホバー表示が内部名称だった不具合の修正**:
+  - 統計パネル（Summary Bar）のアイテムや流体にマウスホバーした際、内部ID（`minecraft:iron_ingot` 等）ではなく正式なローカライズ表示名および詳細ツールチップが表示されるよう修正。
+- **統計パネルの数量表示の重なり解消**:
+  - 統計パネルのスロットにおいて、桁数の多い数量テキストが隣接スロットやアイコンに食い込んで重なる問題を修正。スロット幅に応じた自動スケール縮小とスロット間隔の拡大を適用。
+- **統計パネルの初期生成時に液体やガスの数量が表示されない問題の修正**:
+  - ツリー初期生成時にも `BookmarkIngredientAmountResolver` を通じて流体・ガスの要求量（mB）を正確に取得・集計できるよう改修。
+
 ---
+
 ### [15.59.0.212-jeiuu.4-beta6] - 2026-11-12 (Beta)
 #### 追加・改善 (Added & Improved)
 - **JEI レシピビューワー画面との連携による直感的なレシピ選択**:
@@ -52,112 +87,80 @@
 
 ---
 
-### [15.59.0.212-jeiuu.4-beta7] - 2026-11-12 (Beta)
-#### 霑ｽ蜉繝ｻ謾ｹ蝟・(Added & Improved)
-- **繝・Μ繝ｼ蟆ら畑繧｢繧ｯ繧ｻ繧ｹ繧ｭ繝ｼ縺ｮ譁ｰ險ｭ縺ｨ繧ｻ繝・す繝ｧ繝ｳ菫晁ｭｷ (遨ｺ荳ｭ縺ｧT繧ｭ繝ｼ蜀埼幕)**:
-  - 逕ｻ髱｢蜀・・菴輔ｂ縺ｪ縺・ｴ謇・医∪縺溘・繧｢繧､繝・Β髱槭・繝舌・譎ゑｼ峨〒 T 繧ｭ繝ｼ繧呈款縺吶□縺代〒縲∫峩蜑阪∪縺ｧ菴懈･ｭ縺励※縺・◆繝・Μ繝ｼ繧偵◎縺ｮ縺ｾ縺ｾ遒ｺ螳溘↓蜀埼幕縺ｧ縺阪ｋ讖溯・繧定ｿｽ蜉縲・  - 繧｢繧､繝・Β繧偵・繝舌・縺励※髢九￥蠢・ｦ√′縺ｪ縺上↑縺｣縺溘◆繧√∵э蝗ｳ縺帙★莉悶・繧｢繧､繝・Β縺ｮ繝・Μ繝ｼ縺ｧ菫晏ｭ俶ｸ医∩菴懈･ｭ蜀・ｮｹ縺御ｸ頑嶌縺肴ｶ亥悉縺輔ｌ繧倶ｺ区腐繧貞ｮ悟・縺ｫ髦ｲ豁｢縲・  - 謫堺ｽ懆ｨｭ螳夲ｼ・ontrols・峨↓縲後け繝ｩ繝輔ヨ繝・Μ繝ｼ繧帝幕縺・蜀埼幕 (key.jei.openCraftingTree)縲阪く繝ｼ繝舌う繝ｳ繝峨ｒ譁ｰ險ｭ縺励∝･ｽ縺ｿ縺ｮ繧ｭ繝ｼ縺ｫ蜑ｲ繧雁ｽ薙※蜿ｯ閭ｽ縺ｫ縲・  - 繝悶ャ繧ｯ繝槭・繧ｯ繧ｰ繝ｫ繝ｼ繝励°繧蛾幕縺・◆繝・Μ繝ｼ繧ゅそ繝・す繝ｧ繝ｳ縺ｨ縺励※豌ｸ邯壻ｿ晄戟縺輔ｌ繧九ｈ縺・↓謾ｹ蝟・・- **WASD/遏｢蜊ｰ繧ｭ繝ｼ縺ｫ繧医ｋ繝・Μ繝ｼ繝代Φ謫堺ｽ懊・謾ｹ蝟・*:
-  - WASD繧・泙蜊ｰ繧ｭ繝ｼ縺檎判髱｢荳翫・繝懊ち繝ｳ驕ｸ謚槭ヵ繧ｩ繝ｼ繧ｫ繧ｹ縺ｫ蜷ｸ繧上ｌ縺ｦ縺・◆蝠城｡後ｒ隗｣豸医ゅヤ繝ｪ繝ｼ遘ｻ蜍輔く繝ｼ蜈･蜉帙ｒ譛蜆ｪ蜈医〒豸郁ｲｻ縺励∝ｿｫ驕ｩ縺ｪ繧ｭ繝ｼ繝懊・繝画桃菴懊ｒ螳溽樟縲・- **Shift + 繝槭え繧ｹ繝帙う繝ｼ繝ｫ縺ｫ繧医ｋ豌ｴ蟷ｳ繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ縺ｮ譛牙柑蛹・*:
-  - Shift繧ｭ繝ｼ繧呈款縺励↑縺後ｉ繝帙う繝ｼ繝ｫ繧貞屓縺吶％縺ｨ縺ｧ縲√ヤ繝ｪ繝ｼ逕ｻ髱｢繧貞ｷｦ蜿ｳ縺ｫ繧ｹ繝繝ｼ繧ｺ縺ｫ繝代Φ遘ｻ蜍輔〒縺阪ｋ繧医≧菫ｮ豁｣縲・
-#### 菫ｮ豁｣ (Fixed)
-- **邨ｱ險医ヱ繝阪Ν縺ｮ繝帙ヰ繝ｼ陦ｨ遉ｺ縺悟・驛ｨ蜷咲ｧｰ縺ｫ縺ｪ繧倶ｸ榊・蜷医・菫ｮ豁｣**:
-  - 邨ｱ險医ヱ繝阪Ν・・ummary Bar・峨・繧｢繧､繝・Β繧・ｵ∽ｽ薙↓繝槭え繧ｹ繝帙ヰ繝ｼ縺励◆髫帙∝・驛ｨID・・minecraft:iron_ingot 遲会ｼ峨〒縺ｯ縺ｪ縺乗ｭ｣蠑上↑繝ｭ繝ｼ繧ｫ繝ｩ繧､繧ｺ陦ｨ遉ｺ蜷阪♀繧医・隧ｳ邏ｰ繝・・繝ｫ繝√ャ繝励′陦ｨ遉ｺ縺輔ｌ繧九ｈ縺・ｿｮ豁｣縲・- **繝弱・繝我ｸ翫・邱乗ｶ郁ｲｻ驥上→繝ｬ繧ｷ繝碑ｦ∵ｱよ焚縺ｮ驥阪↑繧願ｧ｣豸・*:
-  - 繝弱・繝牙・縺ｫ謠冗判縺輔ｌ繧狗ｷ丞ｿ・ｦ・㍼・井ｾ・ 128・峨→縲√ヰ繝九Λ繝ｬ繝ｳ繝繝ｩ繝ｼ縺梧緒逕ｻ縺吶ｋ繧ｹ繧ｿ繝・け謨ｰ・井ｾ・ 8・峨′驥阪↑縺｣縺ｦ隱ｭ繧√↑縺上↑繧句撫鬘後ｒ隗｣豸医ゅヤ繝ｪ繝ｼ險育ｮ礼ｵ先棡縺ｮ邱乗焚驥上・縺ｿ縺悟承荳九↓鄒弱＠縺乗緒逕ｻ縺輔ｌ縲∝ｹ・′蠎・＞蝣ｴ蜷医ｂ閾ｪ蜍慕ｸｮ蟆上せ繧ｱ繝ｼ繝ｫ縺ｧ譫蜀・↓蜿弱∪繧九ｈ縺・隼蝟・・- **邨ｱ險医ヱ繝阪Ν縺ｮ謨ｰ驥剰｡ｨ遉ｺ縺ｮ驥阪↑繧願ｧ｣豸・*:
-  - 邨ｱ險医ヱ繝阪Ν縺ｮ繧ｹ繝ｭ繝・ヨ縺ｫ縺翫＞縺ｦ縲∵｡∵焚縺ｮ螟壹＞謨ｰ驥上ユ繧ｭ繧ｹ繝医′髫｣謗･繧ｹ繝ｭ繝・ヨ繧・い繧､繧ｳ繝ｳ縺ｫ縺ｯ縺ｿ蜃ｺ縺励※驥阪↑繧句撫鬘後ｒ菫ｮ豁｣縲ゅせ繝ｭ繝・ヨ蟷・↓蠢懊§縺溯・蜍輔せ繧ｱ繝ｼ繝ｫ邵ｮ蟆丞・逅・→繧ｹ繝ｭ繝・ヨ髢馴囈縺ｮ諡｡螟ｧ繧帝←逕ｨ縲・- **邨ｱ險医ヱ繝阪Ν縺ｧ蛻晄悄逕滓・譎ゅ↓豸ｲ菴薙・繧ｬ繧ｹ縺ｮ謨ｰ驥上′陦ｨ遉ｺ縺輔ｌ縺ｪ縺・撫鬘後・菫ｮ豁｣**:
-  - 繝・Μ繝ｼ蛻晄悄逕滓・譎ゅ↓ BookmarkIngredientAmountResolver 繧帝壹§縺ｦ豬∽ｽ薙ｄ繧ｬ繧ｹ縺ｮ隕∵ｱる㍼・・B・峨ｒ豁｣遒ｺ縺ｫ蜿門ｾ励・髮・ｨ医☆繧九ｈ縺・↓謾ｹ菫ｮ縲・mB遲峨・蝣ｴ蜷医〒繧ょ腰菴堺ｻ倥″・・B / B 遲会ｼ峨〒遒ｺ螳溘↓謠冗判縺輔ｌ繧九ｈ縺・弍豁｣縲・
+<a name="english"></a>
+## English
+
+### Versioning Policy
+To clearly trace the upstream JEI / JEIU base version, this mod adopts the following versioning scheme:
+`[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta8`)
+- **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
+- **JEIUU Revision** (`jeiuu.4-beta8`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
 ---
-### [15.59.0.212-jeiuu.4-beta7] - 2026-11-12 (Beta)
+
+### [15.59.0.212-jeiuu.4-beta8] - 2026-11-12 (Beta)
 #### Added & Improved
-- **Direct Tree Access Key & Session Protection (Resume In-Progress Tree in Empty Space)**:
-  - Pressing T (or the bound key) in an empty space without hovering over an item now directly resumes your saved working tree.
-  - Eliminates the need to hover an item to re-enter the tree screen, completely preventing accidental overwriting and loss of in-progress tree sessions.
-  - Added "Open/Resume Crafting Tree" (key.jei.openCraftingTree) key mapping in Minecraft Controls.
-  - Group-based crafting trees are now also persisted in active sessions across screen closes.
-- **Fixed WASD/Arrow Key Tree Panning**:
-  - Fixed WASD and Arrow key navigation getting captured by GUI button focus; keys are now cleanly consumed for smooth canvas panning.
-- **Fixed Shift + Mouse Wheel Horizontal Scrolling**:
-  - Shift + Wheel now reliably performs smooth horizontal panning across the tree view.
+- **Multi-Core Parallel Processing & Cache Optimization for Massive Trees**:
+  - Multi-threaded recipe candidate lookups and UID resolution using parallel streams. Utilizes all CPU cores to calculate and expand massive recipe trees instantly in heavy modpacks.
+  - Introduced in-memory concurrent caches (`ConcurrentHashMap`) for recipe metadata, slots, outputs, and candidate lookups, eliminating redundant drawable creation overhead.
+- **Improved Slot Amount Visibility & Dark Background Box**:
+  - Added semi-transparent dark background boxes (`0xC0000000`) behind quantity text in slots and the stats bar. Solves visual overlapping with complex textures and item labels (such as GregTech Programmed Circuit configuration numbers).
+  - Ensured leaf/raw material nodes display their total required amounts correctly.
+- **Enhanced Horizontal Pan Speed with Shift + Scroll**:
+  - Significantly increased Shift + Mouse Wheel scroll speed for swift horizontal navigation across large crafting trees.
+- **Pruning & Branch Deletion Fixes with Keyboard Shortcut**:
+  - Deleting a node now recursively gathers and removes all descendant child nodes across both manual and bookmark chain trees.
+  - Added `Delete` and `Backspace` hotkeys to directly remove the hovered node and its entire branch.
 
 #### Fixed
-- **Fixed Internal IDs in Statistics Hover Tooltips**:
-  - Hovering ingredients in the statistics summary bar now shows their proper localized names and rich tooltips instead of raw internal registry IDs.
-- **Resolved Number Overlaps on Tree Nodes**:
-  - Fixed recipe requirement count (e.g. 8) rendered by vanilla item decorators overlapping with the total tree demand count (e.g. 128). Single-count display items and auto-scaling now ensure crisp, legible quantity labels.
-- **Resolved Text Overlaps in Statistics Summary**:
-  - Fixed large amounts overflowing slot boundaries and colliding with adjacent slots; amounts now auto-scale to fit within the slot width.
-- **Fixed Missing Initial Fluid & Gas Amounts in Statistics**:
-  - Fixed fluid and gas inputs not computing amounts until sub-recipes were chosen by utilizing BookmarkIngredientAmountResolver during initial recipe extraction. Fluids and gases are now always displayed with correct units (mB, B).
+- **Missing Tooltip Translation Keys**:
+  - Added translations for `jei.tree.tooltip.amount` and `jei.tree.tooltip.produced` in English, Japanese, and Simplified Chinese.
+- **Strict Separation of Fluids and Gases (e.g. Lithium)**:
+  - Enforced strict ingredient type and UID matching via `BookmarkIngredientKey`, properly distinguishing between `fluid_stack` and `mekanism.api.chemical.gas.GasStack`.
+- **Duplicate ItemStack Count Rendering**:
+  - Fixed `renderTypedIngredient` passing the original multi-count item instead of a single item copy, preventing vanilla item stack numbers from overlapping with tree totals.
+- **Fluid & Gas Unit Typo (`1bmb`)**:
+  - Corrected 1,000 Buckets (1,000,000 mB) abbreviation from `bmd` to `bmb`.
 
 ---
+
+### [15.59.0.212-jeiuu.4-beta7] - 2026-11-12 (Beta)
+#### Added & Improved
+- **Dedicated Crafting Tree Hotkey & Session Resume (`key.jei.openCraftingTree`)**:
+  - Added dedicated keybind to resume working crafting tree anytime from anywhere without needing to hover over an item.
+  - Prevents accidental overwriting of in-progress trees when opening the tree.
+- **Optimized Keyboard WASD & Arrow Key Panning**:
+  - Ensured tree panning consumes WASD / Arrow keys with priority over widget focus.
+- **Shift + Mouse Wheel Horizontal Scroll Support**:
+  - Smooth lateral camera panning across the tree canvas.
+
+#### Fixed
+- **Stats Panel Tooltip Displaying Internal IDs**:
+  - Resolved localized item/fluid display names and full tooltips in the summary bar.
+- **Overlapping Quantity Text in Stats Bar**:
+  - Automatic scaling and enlarged slot spacing prevent text collision.
+- **Initial Fluid and Gas Demand Counting**:
+  - Accurate calculation of fluid and gas units (mB/B) upon initial tree generation.
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta6] - 2026-11-12 (Beta)
 #### Added & Improved
-- **JEI Recipes GUI Integration for Recipe Selection (+ Button)**:
-  - Right-clicking any tree node now directly opens the full JEI Recipes GUI.
-  - Clicking the "+" (transfer/select) button in the recipe view now immediately selects that recipe for the tree node and returns to the crafting tree smoothly.
-- **Persistent Tree Session (Preserving In-Progress Trees Across GUI Closes)**:
-  - Working tree states (target ingredient, customized recipes, overrides, collapsed nodes, and camera transform) are now preserved across screen closes.
-  - Added a "Reset" (`New`) toolbar button to easily wipe and restart a tree from scratch whenever desired.
-- **Enhanced Large Tree Navigation (Horizontal Wheel & Keyboard Panning)**:
-  - Added horizontal panning via `Shift + Mouse Wheel`.
-  - Added arrow keys and WASD navigation for smooth, high-speed camera panning across massive trees.
-  - Added a "Home / Center on Root" (`H`) toolbar button (also mapped to `Home` and `H` keys) to instantly refocus on the top-level target item.
+- **JEI Recipes GUI Integration for Recipe Selection**:
+  - Right-clicking a node now opens JEI's standard `RecipesGui`. Clicking the `+` button directly binds the recipe to the crafting tree node and returns seamlessly.
+- **Crafting Tree Session Persistence**:
+  - Working tree state (target item, custom recipe choices, manual quantities, collapsed branches, camera pan/zoom) is persistently retained even across GUI closes.
+  - Added `New` reset button to restore default layout anytime.
+- **Smooth Navigation Across Massive Trees**:
+  - Horizontal camera panning with `Shift + Mouse Wheel`.
+  - Directional panning with Arrow keys and WASD.
+  - `H` / `Home` button to instantly center the view on the root target item.
 
 #### Fixed
-- **Eliminated Node Overlap and Collisions in Large Trees**:
-  - Fixed an offset normalization flaw in `TreeLayout` subtree contour calculation, aligning actual node coordinates with boundary contour checks so complex trees no longer collide or overlap.
-  - Widened horizontal and vertical node spacing for superior readability.
-- **Fixed Root Target Jumping / Shifting upon Node Collapse or Expansion**:
-  - Implemented camera anchor tracking in `recalculateTree`. When the tree shifts horizontally during layout recalculation, camera pan is instantly compensated so the target root item remains rock-solid in screen position.
-
----
-
-### [15.59.0.212-jeiuu.4-beta5] - 2026-11-12 (Beta)
-#### 修正 (Fixed)
-- **手動レシピ選択時に子ノード（原料）が下に展開されない不具合の根本修正**:
-  - `TreeRecipeBuilder.extractRecipeInfo` において、`IRecipeSlotView.getDisplayedIngredient()` が空の場合に `getAllIngredients().findFirst()` をフォールバック取得するよう修正。フォーカスなしレイアウト描画時でもレシピの全入力材料が確実に抽出されるように改善。
-  - `CraftingTreeScreen.rebuildTreeMath` において、手動選択された代替レシピ（`manualRecipes`）を新しくインスタンス化された `TreeMath` に確実に引き継ぎ・同期するよう修正。
-  - `TreeMath.findRecipeInputs` において、動的レシピ探索結果の入力アイテムを同一材料ごとに集約（例: 木材4個で作業台を作る場合に4個として正しく合算）し、選択された代替レシピの子原料ノードが親ノードの下に確実に展開・接続されるよう改修。
-
----
-
-### [15.59.0.212-jeiuu.4-beta5] - 2026-11-12 (Beta)
-#### Fixed
-- **Fixed Sub-Nodes Not Expanding Downward Upon Manual Recipe Selection**:
-  - In `TreeRecipeBuilder.extractRecipeInfo`, added a fallback to `IRecipeSlotView.getAllIngredients().findFirst()` when `getDisplayedIngredient()` returns empty, guaranteeing that all recipe inputs are successfully extracted even under unfocused recipe layout drawables.
-  - In `CraftingTreeScreen.rebuildTreeMath`, properly synchronized user-selected manual recipes (`manualRecipes`) into newly constructed `TreeMath` instances.
-  - In `TreeMath.findRecipeInputs`, aggregated identical child ingredients by item count and resolved child nodes recursively, ensuring that newly chosen recipes expand downward properly into branching sub-nodes.
-
----
-
-### [15.59.0.212-jeiuu.4-beta4] - 2026-11-12 (Beta)
-#### 追加・改善 (Added & Improved)
-- **操作設定およびAltショートカット一覧へのツリー操作表示**:
-  - アイテムホバー時およびお気に入りレシピの Alt キーヘルプ一覧に「クラフトツリーを開く（`Shift + B` / `T`）」を追加。
-  - Minecraft の操作設定画面（Options > Controls > Key Binds）における表示名を「クラフトツリーを表示」に明確化。
-- **統計パネルの項目名常時表示モード（常時ラベル / ツールチップ）の追加**:
-  - 画面下部統計バーに「完成目標物:」「不足原材料:」「必要中間クラフト:」「機械・ハンドラ:」などのセクション見出しを常時インライン表示するモード（`Lbl:ON`）と、アイテムのみをコンパクトに並べてツールチップで確認するモード（`Lbl:OFF`）のトグル切り替えボタンを追加。
-  - セクションごとのアイテムが一目で直感的に判別可能に向上。
-
-#### 修正 (Fixed)
-- **全ノードの展開/折りたたみ（`+/-` ボタン）のトグル復帰不具合の修正**:
-  - 一括折りたたみ後に再度ボタンを押しても展開されなかったバグを修正。折りたたみ状態レシピの同期と全展開処理を是正し、一括展開と一括折りたたみが交互に正常動作するよう改修。
-- **手動ツリー拡張時のレシピ指定で新規ツリーとして分裂・独立する不具合の修正**:
-  - 手動探索モードで中間素材に代替レシピを割り当てた際、親レシピの入力（原料）として消費される中間ノードが誤って新規ルート（独立ツリー）として扱われていたバグを解消。親ノードの枝として正しく接続・子ノードが展開されるよう修正。
-
----
-
-### [15.59.0.212-jeiuu.4-beta4] - 2026-11-12 (Beta)
-#### Added & Improved
-- **Tree Shortcuts in Controls and Alt Hotkey Tooltips**:
-  - Added "Open Crafting Tree (`Shift + B` / `T`)" to the Alt hotkey cheatsheet tooltips for both hovered ingredients and favorite recipes.
-  - Refined the key mapping label in Minecraft Controls screen to "View Crafting Tree".
-- **Statistics Section Labels Mode (Always Visible Labels vs Compact Tooltips)**:
-  - Added a toggle button (`Lbl:ON` / `Lbl:OFF`) to the crafting tree top bar to switch between inline section headers (e.g., "Final Results:", "Missing Raw Ingredients:", "Operations by Machine:") and compact icon-only tooltip mode.
-
-#### Fixed
-- **Fixed Expand/Collapse All Nodes Toggle**:
-  - Fixed a logic bug where re-pressing the `+/-` toggle button after collapsing all nodes failed to re-expand them. Nodes and collapsed recipe sets are now properly cleared and refreshed upon toggling.
-- **Fixed Sub-Ingredient Branch Splitting into Independent New Trees**:
-  - Fixed an issue where manually assigning an alternate recipe to an intermediate ingredient caused it to be treated as a new top-level root tree instead of branching under its parent node. Consumed ingredients are now correctly preserved as branch nodes.
+- **Resolved Node Overlapping in Massive Trees**:
+  - Overhauled subtree contour calculation in `TreeLayout` to prevent overlap regardless of tree depth or branch width.
+- **Eliminated Camera Jumping on Collapse/Expand**:
+  - Re-anchored camera tracking to target item root node during layout updates.
 
 ---
 

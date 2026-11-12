@@ -52,8 +52,8 @@ public class BookmarkAmountFormatterTest {
 		assertEquals("1B", BookmarkAmountFormatter.formatFluidAmount(1_000));
 		assertEquals("1.125B", BookmarkAmountFormatter.formatFluidAmount(1_125));
 		assertEquals("1.5B", BookmarkAmountFormatter.formatFluidAmount(1_500));
-		assertEquals("1bmd", BookmarkAmountFormatter.formatFluidAmount(1_000_000));
-		assertEquals("1.2bmd", BookmarkAmountFormatter.formatFluidAmount(1_200_000));
+		assertEquals("1bmb", BookmarkAmountFormatter.formatFluidAmount(1_000_000));
+		assertEquals("1.2bmb", BookmarkAmountFormatter.formatFluidAmount(1_200_000));
 		assertEquals("1MB", BookmarkAmountFormatter.formatFluidAmount(1_000_000_000L));
 		assertEquals("2.5MB", BookmarkAmountFormatter.formatFluidAmount(2_500_000_000L));
 		assertEquals(".125", FluidAmountFormatter.format(10_125, 81_000));
@@ -66,7 +66,7 @@ public class BookmarkAmountFormatterTest {
 		assertEquals(".125", BookmarkAmountFormatter.formatTypedAmount(125, "mekanism.api.chemical.gas.GasStack"));
 		assertEquals("1B", BookmarkAmountFormatter.formatTypedAmount(1_000, "fluid_stack"));
 		assertEquals("1.5B", BookmarkAmountFormatter.formatTypedAmount(1_500, "mekanism.api.chemical.gas.GasStack"));
-		assertEquals("1bmd", BookmarkAmountFormatter.formatTypedAmount(1_000_000, "mekanism.api.chemical.infuse.InfusionStack"));
+		assertEquals("1bmb", BookmarkAmountFormatter.formatTypedAmount(1_000_000, "mekanism.api.chemical.infuse.InfusionStack"));
 		assertEquals("1MB", BookmarkAmountFormatter.formatTypedAmount(1_000_000_000L, "mekanism.api.chemical.slurry.SlurryStack"));
 	}
 
