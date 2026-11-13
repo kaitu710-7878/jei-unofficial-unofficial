@@ -359,6 +359,19 @@ public final class TreeRecipeBuilder {
 		Set<BookmarkIngredientKey> prunedKeys,
 		IIngredientManager ingredientManager
 	) {
+		return buildInputsForTarget(targetIngredient, targetAmount, targetRecipeOverride, manualRecipes, customInputs, Set.of(), prunedKeys, ingredientManager);
+	}
+
+	public static List<RecipeChainInput> buildInputsForTarget(
+		ITypedIngredient<?> targetIngredient,
+		BigInteger targetAmount,
+		@Nullable ResourceLocation targetRecipeOverride,
+		Map<BookmarkIngredientKey, ResourceLocation> manualRecipes,
+		Map<BookmarkIngredientKey, List<ITypedIngredient<?>>> customInputs,
+		Set<BookmarkIngredientKey> uncraftedKeys,
+		Set<BookmarkIngredientKey> prunedKeys,
+		IIngredientManager ingredientManager
+	) {
 		try {
 			Internal.getJeiRuntime();
 		} catch (Throwable ignored) {
@@ -375,13 +388,15 @@ public final class TreeRecipeBuilder {
 
 		// Find recipe for root
 		RecipeInfo<?> rootRecipe = null;
-		if (targetRecipeOverride != null) {
-			rootRecipe = findRecipe(targetRecipeOverride, targetIngredient);
-		}
-		if (rootRecipe == null) {
-			List<RecipeInfo<?>> candidates = findRecipesFor(targetIngredient);
-			if (!candidates.isEmpty()) {
-				rootRecipe = candidates.get(0);
+		if (!uncraftedKeys.contains(rootKey)) {
+			if (targetRecipeOverride != null) {
+				rootRecipe = findRecipe(targetRecipeOverride, targetIngredient);
+			}
+			if (rootRecipe == null) {
+				List<RecipeInfo<?>> candidates = findRecipesFor(targetIngredient);
+				if (!candidates.isEmpty()) {
+					rootRecipe = candidates.get(0);
+				}
 			}
 		}
 
@@ -428,14 +443,16 @@ public final class TreeRecipeBuilder {
 					continue;
 				}
 
-				ResourceLocation subRecipeUid = manualRecipes.get(inputKey);
 				RecipeInfo<?> subRecipe = null;
-				if (subRecipeUid != null) {
-					subRecipe = findRecipe(subRecipeUid, inputIng);
-					if (subRecipe != null && customInputs.containsKey(inputKey)) {
-						List<ITypedIngredient<?>> customList = customInputs.get(inputKey);
-						if (customList != null && customList.size() >= subRecipe.inputs().size()) {
-							subRecipe = subRecipe.withInputs(customList);
+				if (!uncraftedKeys.contains(inputKey)) {
+					ResourceLocation subRecipeUid = manualRecipes.get(inputKey);
+					if (subRecipeUid != null) {
+						subRecipe = findRecipe(subRecipeUid, inputIng);
+						if (subRecipe != null && customInputs.containsKey(inputKey)) {
+							List<ITypedIngredient<?>> customList = customInputs.get(inputKey);
+							if (customList != null && customList.size() >= subRecipe.inputs().size()) {
+								subRecipe = subRecipe.withInputs(customList);
+							}
 						}
 					}
 				}

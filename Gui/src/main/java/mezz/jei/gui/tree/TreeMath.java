@@ -40,6 +40,7 @@ public final class TreeMath {
 	private final Map<BookmarkIngredientKey, BigInteger> manualAmountOverrides = new HashMap<>();
 	private final Set<BookmarkIngredientKey> forceCraftOverrides = new HashSet<>();
 	private final Set<ResourceLocation> collapsedRecipes = new HashSet<>();
+	private final Set<BookmarkIngredientKey> uncraftedKeys = new HashSet<>();
 
 	private final Set<BookmarkIngredientKey> prunedKeys;
 	private final TreeGraph graph = new TreeGraph();
@@ -105,6 +106,20 @@ public final class TreeMath {
 	public void setCollapsedRecipes(Set<ResourceLocation> collapsed) {
 		this.collapsedRecipes.clear();
 		this.collapsedRecipes.addAll(collapsed);
+	}
+
+	public void setUncrafted(BookmarkIngredientKey key, boolean uncrafted) {
+		if (uncrafted) {
+			uncraftedKeys.add(key);
+			manualRecipeOverrides.remove(key);
+			customRecipeInputs.remove(key);
+		} else {
+			uncraftedKeys.remove(key);
+		}
+	}
+
+	public boolean isUncrafted(BookmarkIngredientKey key) {
+		return uncraftedKeys.contains(key);
 	}
 
 	private static boolean isNonConsumable(BookmarkIngredientKey key) {
@@ -237,7 +252,10 @@ public final class TreeMath {
 			remainingToCraft = totalDemand.subtract(usedStock);
 		}
 
-		ResourceLocation chosenRecipe = manualRecipeOverrides.getOrDefault(key, defaultRecipeUid);
+		ResourceLocation chosenRecipe = null;
+		if (!uncraftedKeys.contains(key)) {
+			chosenRecipe = manualRecipeOverrides.getOrDefault(key, defaultRecipeUid);
+		}
 		ResourceLocation chosenType = defaultRecipeType;
 
 		// Dynamically resolve actual output factor from chosen recipe for this node!

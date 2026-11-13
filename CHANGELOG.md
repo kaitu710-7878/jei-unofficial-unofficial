@@ -15,6 +15,19 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta19] - 2026-11-13 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **枝削除・レシピ再追加・変更の完全安定化（未加工状態管理 `uncraftedKeys` の導入）**:
+  - ノードや枝を削除した際、従来の「子孫キーをグローバルな除外リスト（`prunedKeys`）に登録する」方式を撤廃。対象ノード自身を「レシピ未割り当ての葉ノード（未加工素材）」として明確に管理する `uncraftedKeys` 機構を導入。
+  - レシピが解除されたノードの子供たちは自動的に生成されなくなるため、子孫キーを禁止リストへ入れる必要がなくなり、他の枝にある同一アイテムの誤削除や、キー不一致によるブロックが完全に解消。
+  - 枝を削除したノードに対して右クリックから同じレシピや別のレシピを何度でも自由に再選択・再構築可能になり、新レシピの入力材料が100%確実にツリーへ展開されるよう抜本的に改善。
+  - 既存ノードを削除せずに別のレシピに変更する際も、古い入力材料に惑わされず即座に新しいレシピとその子供たちへスムーズに切り替わるよう修正。
+  - セッションファイル（`crafting_tree_session.json`）にも `uncraftedKeys` を完全永続化し、ゲームを再起動しても削除・変更したツリーの状態が崩れず正確に復元されるよう強化。
+  - ブックマークグループツリーにおいて、手動設定したレシピやカスタム入力が再計算時に消失していた不具合を修正。
+
+---
+
+
 ### [15.59.0.212-jeiuu.4-beta18] - 2026-11-12 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **操作設定・ショートカットキー表示におけるツリー展開操作の複数キー（Shift+B / T）併記対応**:
@@ -222,6 +235,19 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
 
 ---
+
+### [15.59.0.212-jeiuu.4-beta19] - 2026-11-13 (Beta)
+#### Fixed & Improved
+- **Rock-Solid Branch Deletion, Re-Addition, and Recipe Overwrite (`uncraftedKeys`)**:
+  - Replaced the brittle descendant key pollution (`prunedKeys`) approach with an explicit uncrafted state manager (`uncraftedKeys`). Pruning a branch now directly clears the node's assigned recipe and marks it as an uncrafted leaf, automatically causing its child branches to vanish cleanly without polluting global key filters.
+  - Eliminates accidental removal of identical items in other branches and prevents lingering descendant keys from blocking newly selected recipes.
+  - Allows pruned nodes to be seamlessly re-assigned the same recipe or completely different recipes unlimited times, with all child ingredients reliably expanding into the tree canvas.
+  - Switching recipes on existing nodes without prior deletion cleanly and instantaneously overrides and recalculates the new component tree without leftover conflict.
+  - Fully persisted `uncraftedKeys` into `crafting_tree_session.json` for faithful restoration across game restarts.
+  - Fixed manual recipe assignments and custom inputs being erroneously wiped during recalculations in bookmark group trees.
+
+---
+
 
 ### [15.59.0.212-jeiuu.4-beta18] - 2026-11-12 (Beta)
 #### Fixed & Improved
