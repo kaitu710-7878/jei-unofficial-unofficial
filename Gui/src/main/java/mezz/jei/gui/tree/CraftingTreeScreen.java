@@ -4,6 +4,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotView;
@@ -1074,7 +1076,8 @@ public final class CraftingTreeScreen extends Screen {
 			}
 		}
 
-		// 2. Draw Nodes
+		// 2. Collect visible nodes & draw Slot Backgrounds / Borders first
+		List<VisibleTreeNode> visibleNodes = new ArrayList<>();
 		for (TreeSlot slot : graph.getItems()) {
 			TreeLayout.Point pos = layout.getPosition(slot);
 			if (pos == null) {
@@ -1102,23 +1105,31 @@ public final class CraftingTreeScreen extends Screen {
 
 			// Draw Slot Background & Borders
 			TreeDraw.drawSlot(g, screenX, screenY, scaledSlotSize, slot, searchMatch, isHover);
+			visibleNodes.add(new VisibleTreeNode(slot, screenX, screenY, scaledSlotSize));
+		}
 
-			// Render Item inside Slot
-			Optional<ITypedIngredient<?>> typedOpt = slot.getTypedIngredient();
+		// Flush lines and slot backgrounds before rendering custom ingredient renderers (fluids, gases, chemicals)
+		g.flush();
+
+		// 3. Render Ingredient Icons
+		for (VisibleTreeNode node : visibleNodes) {
+			Optional<ITypedIngredient<?>> typedOpt = node.slot().getTypedIngredient();
 			if (typedOpt.isPresent()) {
-				ITypedIngredient<?> typed = typedOpt.get();
-				float scale = (float) scaledSlotSize / (float) TreeLayout.SLOT_SIZE;
-				int itemPad = Math.max(0, (scaledSlotSize - Math.round(16 * scale)) / 2);
-				renderTypedIngredient(g, typed, screenX + itemPad, screenY + itemPad, scale);
+				float scale = (float) node.scaledSlotSize() / (float) TreeLayout.SLOT_SIZE;
+				float itemPad = Math.max(0.0f, (node.scaledSlotSize() - 16.0f * scale) / 2.0f);
+				renderTypedIngredient(g, typedOpt.get(), node.screenX() + itemPad, node.screenY() + itemPad, scale);
 			}
+		}
 
+		// 4. Render Amount Overlays & Collapse Buttons on top
+		for (VisibleTreeNode node : visibleNodes) {
+			TreeSlot slot = node.slot();
 			BigInteger amount = slot.hasRecipe() ? slot.getProducedAmount() : slot.getRequestedAmount();
-			drawFormattedAmountOverlay(g, amount, slot.getKey(), screenX, screenY, scaledSlotSize);
+			drawFormattedAmountOverlay(g, amount, slot.getKey(), node.screenX(), node.screenY(), node.scaledSlotSize());
 
-			// Draw Collapse/Expand Button if node has children
 			if (graph.hasChildren(slot)) {
-				int collapseX = screenX + (scaledSlotSize - 9) / 2;
-				int collapseY = screenY + scaledSlotSize;
+				int collapseX = node.screenX() + (node.scaledSlotSize() - 9) / 2;
+				int collapseY = node.screenY() + node.scaledSlotSize();
 				boolean isCollapseHover = camera.isInViewport(mouseX, mouseY) &&
 					mouseX >= collapseX && mouseX < collapseX + 9 &&
 					mouseY >= collapseY && mouseY < collapseY + 9;
@@ -1131,8 +1142,11 @@ public final class CraftingTreeScreen extends Screen {
 			}
 		}
 
+		g.flush();
 		g.disableScissor();
 	}
+
+	private record VisibleTreeNode(TreeSlot slot, int screenX, int screenY, int scaledSlotSize) {}
 
 	private boolean matchesSearch(TreeSlot slot) {
 		if (searchQuery.isEmpty()) {
@@ -1158,7 +1172,7 @@ public final class CraftingTreeScreen extends Screen {
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T> void renderTypedIngredient(GuiGraphics g, ITypedIngredient<T> typed, int x, int y, float scale) {
+	private <T> void renderTypedIngredient(GuiGraphics g, ITypedIngredient<T> typed, float x, float y, float scale) {
 		IIngredientRenderer<T> renderer = ingredientManager.getIngredientRenderer(typed.getType());
 		T ingredient = typed.getIngredient();
 		if (ingredient instanceof ItemStack stack && stack.getCount() > 1) {
@@ -1166,13 +1180,24 @@ public final class CraftingTreeScreen extends Screen {
 			single.setCount(1);
 			ingredient = (T) single;
 		}
-		com.mojang.blaze3d.vertex.PoseStack pose = g.pose();
+		int rendererW = Math.max(1, renderer.getWidth());
+		int rendererH = Math.max(1, renderer.getHeight());
+		float scaleX = scale * (16.0f / rendererW);
+		float scaleY = scale * (16.0f / rendererH);
+
+		PoseStack pose = g.pose();
 		pose.pushPose();
-		pose.translate(x, y, 100);
-		if (scale != 1.0f) {
-			pose.scale(scale, scale, 1.0f);
+		pose.translate(x, y, 100.0f);
+		if (scaleX != 1.0f || scaleY != 1.0f) {
+			pose.scale(scaleX, scaleY, 1.0f);
 		}
+		RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+		RenderSystem.enableBlend();
 		renderer.render(g, ingredient);
+		// Flush immediately so Tesselator-based fluid/chemical renderers stay ordered and do not leak GL state
+		g.flush();
+		RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+		RenderSystem.disableBlend();
 		pose.popPose();
 	}
 
@@ -1234,6 +1259,9 @@ public final class CraftingTreeScreen extends Screen {
 			}
 		}
 
+		record VisibleStatsSlot(TreeStatsLayout.PlacedSlot placed, int screenX) {}
+		List<VisibleStatsSlot> visibleSlots = new ArrayList<>();
+
 		for (TreeStatsLayout.PlacedSlot placed : statsLayout.getPlacedSlots()) {
 			int slotScreenX = drawX + placed.getX();
 			if (slotScreenX + TreeStatsLayout.SLOT_SIZE < 0 || slotScreenX > width) {
@@ -1250,17 +1278,25 @@ public final class CraftingTreeScreen extends Screen {
 			// Slot Background
 			int bg = isHover ? 0xFF444444 : 0xFF282828;
 			g.fill(slotScreenX, drawY, slotScreenX + TreeStatsLayout.SLOT_SIZE, drawY + TreeStatsLayout.SLOT_SIZE, bg);
+			visibleSlots.add(new VisibleStatsSlot(placed, slotScreenX));
+		}
 
-			// Render Ingredient
-			TreeStats.Row row = placed.getRow();
+		g.flush();
+
+		for (VisibleStatsSlot visible : visibleSlots) {
+			TreeStats.Row row = visible.placed().getRow();
 			ITypedIngredient<?> rowIng = row.getTypedIngredient().orElseGet(() -> row.getKey() != null ? row.getKey().typedIngredient() : null);
 			if (rowIng != null) {
-				renderTypedIngredient(g, rowIng, slotScreenX + 1, drawY + 1, 1.0f);
+				renderTypedIngredient(g, rowIng, visible.screenX() + 1.0f, drawY + 1.0f, 1.0f);
 			}
-
-			// Render Row Amount
-			drawFormattedAmountOverlay(g, row.getAmount(), row.getKey(), slotScreenX, drawY, TreeStatsLayout.SLOT_SIZE);
 		}
+
+		for (VisibleStatsSlot visible : visibleSlots) {
+			TreeStats.Row row = visible.placed().getRow();
+			drawFormattedAmountOverlay(g, row.getAmount(), row.getKey(), visible.screenX(), drawY, TreeStatsLayout.SLOT_SIZE);
+		}
+
+		g.flush();
 	}
 
 	private Set<BookmarkIngredientKey> collectSubtreeKeys(TreeSlot root, boolean includeRoot) {

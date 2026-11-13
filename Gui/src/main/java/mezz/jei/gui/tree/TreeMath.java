@@ -42,6 +42,7 @@ public final class TreeMath {
 	private final Set<BookmarkIngredientKey> forceCraftOverrides = new HashSet<>();
 	private final Set<ResourceLocation> collapsedRecipes = new HashSet<>();
 	private final Set<BookmarkIngredientKey> uncraftedKeys = new HashSet<>();
+	private final Set<BookmarkIngredientKey> nonConsumableKeys = new HashSet<>();
 	private final Set<String> prunedPaths = new HashSet<>();
 
 	private final Set<BookmarkIngredientKey> prunedKeys;
@@ -145,16 +146,43 @@ public final class TreeMath {
 		return false;
 	}
 
-	private static boolean isNonConsumable(BookmarkIngredientKey key) {
+	public static boolean isNonConsumable(BookmarkIngredientKey key) {
+		return isNonConsumable(key, key.typedIngredient());
+	}
+
+	public static boolean isNonConsumable(BookmarkIngredientKey key, @Nullable ITypedIngredient<?> typed) {
 		String uid = key.ingredientUid().toLowerCase(Locale.ROOT);
-		return uid.contains("press")
+		if (uid.contains("press")
 			|| uid.contains("mold")
 			|| uid.contains("cast")
 			|| uid.contains("die")
 			|| uid.contains("template")
 			|| uid.contains("lens")
 			|| uid.contains("catalyst")
-			|| uid.contains("programmed_circuit");
+			|| uid.contains("stamp")
+			|| uid.contains("shape.")
+			|| uid.contains("extruder_shape")
+			|| uid.contains("programmed_circuit")
+			|| uid.contains("integrated_circuit")
+		) {
+			return true;
+		}
+		if (typed != null && typed.getIngredient() instanceof net.minecraft.world.item.ItemStack stack && !stack.isEmpty()) {
+			@SuppressWarnings("deprecation")
+			boolean hasRemaining = stack.getItem().hasCraftingRemainingItem();
+			if (hasRemaining) {
+				@SuppressWarnings("deprecation")
+				net.minecraft.world.item.Item remainingItem = stack.getItem().getCraftingRemainingItem();
+				if (remainingItem != null && remainingItem == stack.getItem()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private boolean isNodeNonConsumable(BookmarkIngredientKey key, @Nullable ITypedIngredient<?> typed) {
+		return nonConsumableKeys.contains(key) || isNonConsumable(key, typed);
 	}
 
 	/**
@@ -165,9 +193,19 @@ public final class TreeMath {
 		allocatedInventory.clear();
 
 		// 1. Scan which items are consumed as inputs by ANY recipe in this tree
+		nonConsumableKeys.clear();
 		Set<BookmarkIngredientKey> consumedKeys = new HashSet<>();
 		for (RecipeChainInput input : rootInputs) {
 			BookmarkItemMetadata meta = input.metadata();
+			if (meta.type().isNonConsumable()) {
+				BookmarkIngredientKey ncKey = input.selectedKey();
+				if (ncKey == null && !meta.permutations().isEmpty()) {
+					ncKey = meta.permutations().iterator().next();
+				}
+				if (ncKey != null) {
+					nonConsumableKeys.add(ncKey);
+				}
+			}
 			if (meta.type().isGraphInput() || meta.type() == BookmarkItemType.INGREDIENT) {
 				BookmarkIngredientKey inKey = input.selectedKey();
 				if (inKey == null && !meta.permutations().isEmpty()) {
@@ -325,7 +363,7 @@ public final class TreeMath {
 			usedStock,
 			remainingToCraft,
 			multiplier,
-			false
+			isNodeNonConsumable(key, typedIngredient)
 		);
 
 		node.setForceCraft(force);
@@ -350,7 +388,7 @@ public final class TreeMath {
 					continue;
 				}
 				// Non-consumable items (molds, circuits) stay fixed at base amount without multiplier
-				BigInteger subRequested = isNonConsumable(sub.key()) ? sub.amount() : sub.amount().multiply(multiplier);
+				BigInteger subRequested = isNodeNonConsumable(sub.key(), sub.typedIngredient()) ? sub.amount() : sub.amount().multiply(multiplier);
 
 				TreeSlot childSlot = buildNode(
 					sub.key(),

@@ -15,6 +15,18 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta23] - 2026-11-13 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **金型等の非消費・再利用可能アイテムの必要数計算を修正**:
+  - 金型・プレス・ダイス・回路・クラフト残留アイテム（自己返却型）などの非消費アイテムが、ツリー内の複数工程で使用された際に統計計算（`TreeStats`）で足し算（合算）され複数個要求されていた問題を修正。非消費アイテムは複数箇所で使われても最大値（`BigInteger::max`、通常1個）のみを要求するよう変更。
+  - `TreeMath.isNonConsumable` の判定を強化し、`stamp` / `shape.` / `extruder_shape` / `integrated_circuit` 等のキーワード、および `BookmarkItemType.NONCONSUMABLE` メタデータ、クラフト残留アイテム（`getCraftingRemainingItem`）も非消費として正しく認識するよう拡張。
+- **液体・気体・化学物質のレンダリングズレおよび描画不安定の修正**:
+  - `CraftingTreeScreen` および統計バーの描画パスを「背景・枠・接続線 → `g.flush()` → アイコン本体 → 数量オーバーレイ → `g.flush()`」の3パスへ分離し、`Tesselator` を直接使用する流体・気体レンダラーと `GuiGraphics` バッファの描画順逆転や干渉を解消。
+  - `renderTypedIngredient` 前後で `g.flush()` と `RenderSystem.setShaderColor(1, 1, 1, 1)` / ブレンド状態のリセットを徹底し、他スロットへの色・ブレンド漏れを防止。
+  - ズーム倍率に応じた描画座標の浮動小数点配置とレンダラーサイズ（`getWidth` / `getHeight`）に基づく自動フィット補正を導入し、ズーム時やカスタムサイズの液体・気体アイコンが枠からズレないように修正。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta22] - 2026-11-13 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **ガス・液体リチウム等の同一ID・異種別素材の厳密な区別を復元**:
@@ -270,6 +282,18 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta23] - 2026-11-13 (Beta)
+#### Fixed & Improved
+- **Fixed Non-Consumable & Reusable Items (Molds, Presses, etc.) Demanding Multiple Copies**:
+  - Fixed `TreeStats` summing non-consumable items across multiple branches in the crafting tree instead of taking the maximum required count (`BigInteger::max`), preventing reusable molds/presses from being requested multiple times in total requirements.
+  - Expanded `TreeMath.isNonConsumable` detection to cover `stamp`, `shape.`, `extruder_shape`, `integrated_circuit`, `BookmarkItemType.NONCONSUMABLE` metadata, and self-returning crafting remainders (`getCraftingRemainingItem`).
+- **Fixed Unstable & Misaligned Rendering for Fluids, Gases, and Chemicals**:
+  - Separated tree canvas and stats bar rendering into distinct passes (`backgrounds/lines -> g.flush() -> ingredients -> overlays -> g.flush()`), eliminating Z-order conflicts between `GuiGraphics` buffered draws and direct `Tesselator`-based fluid/chemical renderers.
+  - Added explicit `g.flush()`, `RenderSystem.setShaderColor(1, 1, 1, 1)`, and blend state cleanup around `renderTypedIngredient` to prevent shader color or blend leakage across slots.
+  - Used floating-point centering and renderer-dimension scaling (`getWidth` / `getHeight`) so fluid and gas icons remain accurately aligned inside zoomed slots.
 
 ---
 

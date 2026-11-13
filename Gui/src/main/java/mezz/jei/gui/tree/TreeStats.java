@@ -119,13 +119,14 @@ public final class TreeStats {
 			ingredientObjects.putIfAbsent(key, slot.getTypedIngredient());
 
 			if (!slot.hasRecipe()) {
-				// Raw ingredient
+				// Raw ingredient (non-consumables like molds/presses are reusable, so take max instead of summing)
+				boolean nonConsumable = slot.isContainerItem() || TreeMath.isNonConsumable(key, slot.getTypedIngredient().orElse(null));
 				if (slot.getLeftAmount().signum() > 0) {
-					ingredientNeeded.merge(key, slot.getLeftAmount(), BigInteger::add);
+					ingredientNeeded.merge(key, slot.getLeftAmount(), nonConsumable ? BigInteger::max : BigInteger::add);
 				}
 				BigInteger inStock = slot.getRequestedAmount().subtract(slot.getLeftAmount());
 				if (inStock.signum() > 0) {
-					ingredientAvailable.merge(key, inStock, BigInteger::add);
+					ingredientAvailable.merge(key, inStock, nonConsumable ? BigInteger::max : BigInteger::add);
 				}
 			} else {
 				// Craft node
