@@ -750,7 +750,7 @@ public final class CraftingTreeScreen extends Screen {
 			String parentPath = effectiveTarget.getNodePath();
 			if (parentPath != null && !parentPath.isEmpty()) {
 				String childPrefix = parentPath + "/";
-				prunedPaths.removeIf(p -> p.startsWith(childPrefix) && p.endsWith(newOutputKey.ingredientUid()));
+				prunedPaths.removeIf(p -> p.startsWith(childPrefix) && (p.endsWith("/" + newOutputKey.stableKey()) || p.endsWith("/" + newOutputKey.ingredientUid())));
 			}
 			this.prunedKeys.remove(newOutputKey);
 			this.uncraftedKeys.remove(newOutputKey);

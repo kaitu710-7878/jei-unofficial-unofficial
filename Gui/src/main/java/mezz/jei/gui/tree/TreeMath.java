@@ -207,7 +207,7 @@ public final class TreeMath {
 			}
 		}
 
-		Set<ResourceLocation> visitedRecipes = new HashSet<>();
+		Set<VisitedNodeRecipe> visitedRecipes = new HashSet<>();
 
 		int rootIndex = 0;
 		for (RecipeChainInput rootInput : roots) {
@@ -261,7 +261,7 @@ public final class TreeMath {
 		BigInteger baseOutputAmount,
 		BigInteger inheritAmount,
 		BigInteger requestedAmount,
-		Set<ResourceLocation> visitedRecipes,
+		Set<VisitedNodeRecipe> visitedRecipes,
 		int depth,
 		String nodePath
 	) {
@@ -337,13 +337,14 @@ public final class TreeMath {
 		}
 
 		// Recursively resolve children ingredients if recipe exists and within depth limit
-		if (chosenRecipe != null && depth < MAX_DEPTH && !visitedRecipes.contains(chosenRecipe)) {
-			visitedRecipes.add(chosenRecipe);
+		VisitedNodeRecipe visitKey = chosenRecipe != null ? new VisitedNodeRecipe(key, chosenRecipe) : null;
+		if (visitKey != null && depth < MAX_DEPTH && !visitedRecipes.contains(visitKey)) {
+			visitedRecipes.add(visitKey);
 
 			List<RecipeChildIngredient> subIngredients = findRecipeInputs(chosenRecipe, key, typedIngredient);
 			int childIdx = 0;
 			for (RecipeChildIngredient sub : subIngredients) {
-				String childPath = nodePath + "/" + sub.key().ingredientUid();
+				String childPath = nodePath + "/" + sub.key().stableKey();
 				String legacyIndexedPath = nodePath + "/" + childIdx++ + ":" + sub.key().ingredientUid();
 				if (isPathPruned(childPath) || isPathPruned(legacyIndexedPath) || prunedKeys.contains(sub.key())) {
 					continue;
@@ -369,11 +370,13 @@ public final class TreeMath {
 				}
 			}
 
-			visitedRecipes.remove(chosenRecipe);
+			visitedRecipes.remove(visitKey);
 		}
 
 		return node;
 	}
+
+	private record VisitedNodeRecipe(BookmarkIngredientKey key, ResourceLocation recipeUid) {}
 
 	private record RecipeChildIngredient(
 		BookmarkIngredientKey key,

@@ -145,13 +145,17 @@ public final class TreeRecipeBuilder {
 		List<IRecipeCategory<?>> categories = recipeManager.createRecipeCategoryLookup().get().toList();
 
 		// Multi-core parallel category scan for the specific UID matching matchTarget
+		boolean requireMatch = matchTarget != null;
 		RecipeInfo<?> baseInfo = categories.parallelStream()
 			.<RecipeInfo<?>>map(category -> {
 				List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().toList();
 				for (Object recipe : recipes) {
 					ResourceLocation uid = category.getRegistryName(cast(recipe));
 					if (recipeUid.equals(uid)) {
-						return extractRecipeInfo(category, recipe, uid, matchTarget, false);
+						RecipeInfo<?> info = extractRecipeInfo(category, recipe, uid, matchTarget, requireMatch);
+						if (info != null) {
+							return info;
+						}
 					}
 				}
 				return null;
@@ -161,14 +165,17 @@ public final class TreeRecipeBuilder {
 			.orElse(null);
 
 		if (baseInfo == null && matchTarget != null) {
-			// Fallback: search without target filter if category does not expose exact output match
+			// Fallback: search without target filter only if the category does not expose output slots
 			baseInfo = categories.parallelStream()
 				.<RecipeInfo<?>>map(category -> {
 					List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().toList();
 					for (Object recipe : recipes) {
 						ResourceLocation uid = category.getRegistryName(cast(recipe));
 						if (recipeUid.equals(uid)) {
-							return extractRecipeInfo(category, recipe, uid, null, false);
+							RecipeInfo<?> info = extractRecipeInfo(category, recipe, uid, null, false);
+							if (info != null) {
+								return info;
+							}
 						}
 					}
 					return null;
@@ -178,8 +185,13 @@ public final class TreeRecipeBuilder {
 				.orElse(null);
 
 			if (baseInfo != null) {
-				long factor = calculateOutputFactor(baseInfo, matchTarget, ingredientManager);
-				baseInfo = baseInfo.withFactor(Math.max(1, factor));
+				if (!baseInfo.outputs().isEmpty() && !hasMatchingOutput(baseInfo, matchTarget, ingredientManager)) {
+					// Reject mismatched recipe (e.g., gas output vs fluid output sharing the same recipe UID)
+					baseInfo = null;
+				} else {
+					long factor = calculateOutputFactor(baseInfo, matchTarget, ingredientManager);
+					baseInfo = baseInfo.withFactor(Math.max(1, factor));
+				}
 			}
 		}
 
@@ -237,6 +249,21 @@ public final class TreeRecipeBuilder {
 			outputs,
 			factor
 		);
+	}
+
+	private static boolean hasMatchingOutput(
+		RecipeInfo<?> info,
+		ITypedIngredient<?> matchTarget,
+		IIngredientManager ingredientManager
+	) {
+		BookmarkIngredientKey matchKey = BookmarkItemMetadataFactory.createPermutationKey(matchTarget, ingredientManager);
+		for (ITypedIngredient<?> out : info.outputs()) {
+			BookmarkIngredientKey outKey = BookmarkItemMetadataFactory.createPermutationKey(out, ingredientManager);
+			if (matchKey.equals(outKey) || matchKey.matchesCraftingAvailable(outKey)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static long calculateOutputFactor(

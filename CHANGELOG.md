@@ -15,6 +15,15 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta22] - 2026-11-13 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **ガス・液体リチウム等の同一ID・異種別素材の厳密な区別を復元**:
+  - `TreeRecipeBuilder.findRecipe` において、同一レシピUID（Mekanismの回転凝縮機等）を共有するガス生成・液体生成レシピを検索する際、出力ターゲットの型（`GasStack` / `FluidStack` 等）の一致検証（`requireTargetMatch`）が抜けて先頭レシピを誤返却していたバグを修正。
+  - フォールバック検索でも出力スロットが存在するレシピに対してターゲット型・キーが一致しない場合は確実に除外するよう安全ガードを復元。
+  - `TreeMath` のノードパス生成（`prunedPaths` 用）およびループ検出（`visitedRecipes`）を `ingredientUid` 単体や `recipeUid` 単体ではなく、`ingredientTypeUid` を含む `stableKey()` と `BookmarkIngredientKey` の組み合わせで厳密に区別するよう改修。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta21] - 2026-11-13 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **WASDおよび矢印キーによる画面移動（パン操作）の反転修正**:
@@ -261,6 +270,15 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta22] - 2026-11-13 (Beta)
+#### Fixed & Improved
+- **Restored Strict Separation Between Gas Lithium and Fluid Lithium (Same ID, Different Types)**:
+  - Fixed a regression in `TreeRecipeBuilder.findRecipe` where `requireTargetMatch` was bypassed and recipe iteration returned prematurely, causing recipes sharing the same UID (such as Mekanism's Rotary Condensentrator) to return the wrong direction (gas vs. fluid) regardless of target ingredient type.
+  - Restored output-matching validation in the fallback lookup to reject recipes whose outputs do not match the target ingredient's key and type.
+  - Updated `TreeMath` node path generation (`prunedPaths`) and cycle detection (`visitedRecipes`) to include full typed keys (`stableKey()` / `BookmarkIngredientKey`) instead of bare `ingredientUid` or `recipeUid`, preventing path collisions and false cycle blocks between gas and fluid variants.
 
 ---
 
