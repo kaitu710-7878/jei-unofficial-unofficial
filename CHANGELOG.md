@@ -15,6 +15,23 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta20] - 2026-11-13 (Beta)
+#### 菫ｮ豁｣繝ｻ謾ｹ蝟・(Fixed & Improved)
+- **繝弱・繝牙炎髯､縺ｮ螳悟・豸亥悉繝ｻ繝代せ繝吶・繧ｹ髯､螟厄ｼ・prunedPaths・峨→繧ｿ繧ｰ譚先侭鄂ｮ謠帙・螳悟・蟇ｾ蠢・*:
+  - **繝弱・繝牙炎髯､縺ｮ螳悟・豸亥悉**: 蠕捺擂縺ｮ縲後ヮ繝ｼ繝芽・霄ｫ繧呈悴蜉蟾･邏譚舌→縺励※逕ｻ髱｢荳翫↓谿九☆縲肴嫌蜍輔°繧峨√Θ繝ｼ繧ｶ繝ｼ縺ｮ諢丞峙騾壹ｊ縲悟ｯｾ雎｡繝弱・繝芽・霄ｫ縺ｨ縺昴・譫晢ｼ亥ｭ仙ｭｫ繝弱・繝会ｼ峨☆縺ｹ縺ｦ繧偵ヤ繝ｪ繝ｼ荳翫°繧牙ｮ悟・縺ｫ豸亥悉・磯撼陦ｨ遉ｺ繝ｻ髯､螟厄ｼ峨阪☆繧倶ｻ墓ｧ倥∈蛻ｷ譁ｰ縲ょ炎髯､謫堺ｽ懊ｒ陦後▲縺溽椪髢薙↓逕ｻ髱｢縺九ｉ隧ｲ蠖馴・岼縺檎ｶｺ鮗励↓豸亥悉縺輔ｌ縲∫ｵｱ險医ｄ蠢・ｦ∫ｴ譚舌°繧峨ｂ豁｣縺励￥髯､螟悶＆繧後ｋ繧医≧菫ｮ豁｣縲・  - **繝代せ繝吶・繧ｹ髯､螟也ｮ｡逅・ｼ・prunedPaths・峨・蟆主・**: 繝・Μ繝ｼ蜀・・髫主ｱ､繝代せ・・nodePath・峨↓蝓ｺ縺･縺丈ｸ諢上↑髯､螟門愛螳壹ｒ蟆主・縲ょ挨譫昴↓縺ゅｋ蜷御ｸ繧｢繧､繝・Β・磯延繧､繝ｳ繧ｴ繝・ヨ繧・ぎ繝ｩ繧ｹ縺ｪ縺ｩ・峨∈縺ｮ蟾ｻ縺肴ｷｻ縺亥炎髯､繧貞ｮ悟・縺ｫ髦ｲ豁｢縺励√げ繝ｭ繝ｼ繝舌Ν繧ｭ繝ｼ髯､螟悶・遶ｶ蜷医ｄ繧ｴ繝ｼ繧ｹ繝医く繝ｼ縺ｫ繧医ｋ譁ｰ繝ｬ繧ｷ繝泌ｱ暮幕縺ｮ髦ｻ螳ｳ繧呈ｹ邨ｶ縲・  - **繧ｿ繧ｰ譚先侭鄂ｮ謠幢ｼ医ぎ繝ｩ繧ｹ縺ｮ濶ｲ蛻・ｊ譖ｿ縺育ｭ会ｼ峨・螳悟・蟇ｾ蠢・*: 繧ｿ繧ｰ繝ｬ繧ｷ繝斐↑縺ｩ縺ｧ驕ｸ謚槭＆繧後◆譚先侭・井ｾ・ 辟｡濶ｲ繧ｬ繝ｩ繧ｹ・峨↓蟇ｾ縺励∝承繧ｯ繝ｪ繝・け繝ｬ繧ｷ繝皮判髱｢縺九ｉ蛻･蛟呵｣懶ｼ井ｾ・ 襍､濶ｲ繧ｬ繝ｩ繧ｹ・峨ｒ驕ｸ謚槭＠縺ｦ縲・縲阪・繧ｿ繝ｳ繧呈款縺励◆髫帙∬ｦｪ繝弱・繝峨・蜈･蜉帶攝譁吶Μ繧ｹ繝茨ｼ・customRecipeInputs・牙・縺ｮ隧ｲ蠖薙い繧､繝・Β繧定・蜍慕ｽｮ謠帙＠縲∵眠譚先侭縺ｮ繝ｬ繧ｷ繝斐ｒ螻暮幕縺吶ｋ讖滓ｧ九ｒ譁ｰ險ｭ縲ゅち繧ｰ繝ｬ繧ｷ繝斐〒繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ縺励◆莉ｻ諢上・濶ｲ繝ｻ譚先侭縺ｸ縺ｮ蛻・ｊ譖ｿ縺医′100%遒ｺ螳溘↓繝・Μ繝ｼ縺ｫ蜿肴丐縺輔ｌ繧九ｈ縺・隼蝟・・  - **繧ｻ繝・す繝ｧ繝ｳ豌ｸ邯壼喧縺ｮ蠑ｷ蛹・*: crafting_tree_session.json 縺ｫ prunedPaths 繧定ｿｽ蜉縺励√ご繝ｼ繝繧貞・襍ｷ蜍輔＠縺ｦ繧ょ炎髯､縺励◆鬆・岼縺悟享謇九↓蠕ｩ豢ｻ縺励↑縺・ｈ縺・憾諷倶ｿ晏ｭ倥ｒ蠕ｹ蠎輔・
+---
+
+### [15.59.0.212-jeiuu.4-beta20] - 2026-11-13 (Beta)
+#### Fixed & Improved
+- **Clean Node Pruning via Tree Paths (prunedPaths) & Full Tag Ingredient Substitution**:
+  - **Complete Node Deletion**: Replaced the behavior of leaving pruned nodes as uncrafted leaves with complete visual and structural removal of the selected node and its entire subtree from the canvas and requirements list upon deletion.
+  - **Path-Based Pruning (prunedPaths)**: Introduced hierarchical node path tracking (
+odePath) for deterministic, collision-free pruning. Pruning an item in one branch will never accidentally affect identical items in other branches, eliminating key-clash issues and residual ghost keys blocking recipe expansions.
+  - **Tag Ingredient Substitution (Colored Glass Switching)**: When switching a tag-resolved ingredient (e.g., clear glass) to another candidate (e.g., red stained glass) via the recipe GUI transfer button, the parent node's component inputs (customRecipeInputs) are automatically updated to replace the old ingredient with the chosen one, reliably reflecting custom materials in the tree.
+  - **Session Persistence**: Fully serialized prunedPaths into crafting_tree_session.json to guarantee deleted branches and substituted components remain faithfully preserved across game restarts.
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta19] - 2026-11-13 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **枝削除・レシピ再追加・変更の完全安定化（未加工状態管理 `uncraftedKeys` の導入）**:
@@ -233,6 +250,23 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta20] - 2026-11-13 (Beta)
+#### 菫ｮ豁｣繝ｻ謾ｹ蝟・(Fixed & Improved)
+- **繝弱・繝牙炎髯､縺ｮ螳悟・豸亥悉繝ｻ繝代せ繝吶・繧ｹ髯､螟厄ｼ・prunedPaths・峨→繧ｿ繧ｰ譚先侭鄂ｮ謠帙・螳悟・蟇ｾ蠢・*:
+  - **繝弱・繝牙炎髯､縺ｮ螳悟・豸亥悉**: 蠕捺擂縺ｮ縲後ヮ繝ｼ繝芽・霄ｫ繧呈悴蜉蟾･邏譚舌→縺励※逕ｻ髱｢荳翫↓谿九☆縲肴嫌蜍輔°繧峨√Θ繝ｼ繧ｶ繝ｼ縺ｮ諢丞峙騾壹ｊ縲悟ｯｾ雎｡繝弱・繝芽・霄ｫ縺ｨ縺昴・譫晢ｼ亥ｭ仙ｭｫ繝弱・繝会ｼ峨☆縺ｹ縺ｦ繧偵ヤ繝ｪ繝ｼ荳翫°繧牙ｮ悟・縺ｫ豸亥悉・磯撼陦ｨ遉ｺ繝ｻ髯､螟厄ｼ峨阪☆繧倶ｻ墓ｧ倥∈蛻ｷ譁ｰ縲ょ炎髯､謫堺ｽ懊ｒ陦後▲縺溽椪髢薙↓逕ｻ髱｢縺九ｉ隧ｲ蠖馴・岼縺檎ｶｺ鮗励↓豸亥悉縺輔ｌ縲∫ｵｱ險医ｄ蠢・ｦ∫ｴ譚舌°繧峨ｂ豁｣縺励￥髯､螟悶＆繧後ｋ繧医≧菫ｮ豁｣縲・  - **繝代せ繝吶・繧ｹ髯､螟也ｮ｡逅・ｼ・prunedPaths・峨・蟆主・**: 繝・Μ繝ｼ蜀・・髫主ｱ､繝代せ・・nodePath・峨↓蝓ｺ縺･縺丈ｸ諢上↑髯､螟門愛螳壹ｒ蟆主・縲ょ挨譫昴↓縺ゅｋ蜷御ｸ繧｢繧､繝・Β・磯延繧､繝ｳ繧ｴ繝・ヨ繧・ぎ繝ｩ繧ｹ縺ｪ縺ｩ・峨∈縺ｮ蟾ｻ縺肴ｷｻ縺亥炎髯､繧貞ｮ悟・縺ｫ髦ｲ豁｢縺励√げ繝ｭ繝ｼ繝舌Ν繧ｭ繝ｼ髯､螟悶・遶ｶ蜷医ｄ繧ｴ繝ｼ繧ｹ繝医く繝ｼ縺ｫ繧医ｋ譁ｰ繝ｬ繧ｷ繝泌ｱ暮幕縺ｮ髦ｻ螳ｳ繧呈ｹ邨ｶ縲・  - **繧ｿ繧ｰ譚先侭鄂ｮ謠幢ｼ医ぎ繝ｩ繧ｹ縺ｮ濶ｲ蛻・ｊ譖ｿ縺育ｭ会ｼ峨・螳悟・蟇ｾ蠢・*: 繧ｿ繧ｰ繝ｬ繧ｷ繝斐↑縺ｩ縺ｧ驕ｸ謚槭＆繧後◆譚先侭・井ｾ・ 辟｡濶ｲ繧ｬ繝ｩ繧ｹ・峨↓蟇ｾ縺励∝承繧ｯ繝ｪ繝・け繝ｬ繧ｷ繝皮判髱｢縺九ｉ蛻･蛟呵｣懶ｼ井ｾ・ 襍､濶ｲ繧ｬ繝ｩ繧ｹ・峨ｒ驕ｸ謚槭＠縺ｦ縲・縲阪・繧ｿ繝ｳ繧呈款縺励◆髫帙∬ｦｪ繝弱・繝峨・蜈･蜉帶攝譁吶Μ繧ｹ繝茨ｼ・customRecipeInputs・牙・縺ｮ隧ｲ蠖薙い繧､繝・Β繧定・蜍慕ｽｮ謠帙＠縲∵眠譚先侭縺ｮ繝ｬ繧ｷ繝斐ｒ螻暮幕縺吶ｋ讖滓ｧ九ｒ譁ｰ險ｭ縲ゅち繧ｰ繝ｬ繧ｷ繝斐〒繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ縺励◆莉ｻ諢上・濶ｲ繝ｻ譚先侭縺ｸ縺ｮ蛻・ｊ譖ｿ縺医′100%遒ｺ螳溘↓繝・Μ繝ｼ縺ｫ蜿肴丐縺輔ｌ繧九ｈ縺・隼蝟・・  - **繧ｻ繝・す繝ｧ繝ｳ豌ｸ邯壼喧縺ｮ蠑ｷ蛹・*: crafting_tree_session.json 縺ｫ prunedPaths 繧定ｿｽ蜉縺励√ご繝ｼ繝繧貞・襍ｷ蜍輔＠縺ｦ繧ょ炎髯､縺励◆鬆・岼縺悟享謇九↓蠕ｩ豢ｻ縺励↑縺・ｈ縺・憾諷倶ｿ晏ｭ倥ｒ蠕ｹ蠎輔・
+---
+
+### [15.59.0.212-jeiuu.4-beta20] - 2026-11-13 (Beta)
+#### Fixed & Improved
+- **Clean Node Pruning via Tree Paths (prunedPaths) & Full Tag Ingredient Substitution**:
+  - **Complete Node Deletion**: Replaced the behavior of leaving pruned nodes as uncrafted leaves with complete visual and structural removal of the selected node and its entire subtree from the canvas and requirements list upon deletion.
+  - **Path-Based Pruning (prunedPaths)**: Introduced hierarchical node path tracking (
+odePath) for deterministic, collision-free pruning. Pruning an item in one branch will never accidentally affect identical items in other branches, eliminating key-clash issues and residual ghost keys blocking recipe expansions.
+  - **Tag Ingredient Substitution (Colored Glass Switching)**: When switching a tag-resolved ingredient (e.g., clear glass) to another candidate (e.g., red stained glass) via the recipe GUI transfer button, the parent node's component inputs (customRecipeInputs) are automatically updated to replace the old ingredient with the chosen one, reliably reflecting custom materials in the tree.
+  - **Session Persistence**: Fully serialized prunedPaths into crafting_tree_session.json to guarantee deleted branches and substituted components remain faithfully preserved across game restarts.
 
 ---
 

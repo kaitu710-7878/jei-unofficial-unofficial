@@ -77,6 +77,7 @@ public final class CraftingTreeScreen extends Screen {
 	private final Map<BookmarkIngredientKey, ResourceLocation> manualRecipes = new LinkedHashMap<>();
 	private final Set<BookmarkIngredientKey> prunedKeys = new HashSet<>();
 	private final Set<BookmarkIngredientKey> uncraftedKeys = new HashSet<>();
+	private final Set<String> prunedPaths = new HashSet<>();
 	private final Map<BookmarkIngredientKey, List<ITypedIngredient<?>>> customRecipeInputs = new LinkedHashMap<>();
 
 	private final TreeCamera camera = new TreeCamera();
@@ -105,6 +106,7 @@ public final class CraftingTreeScreen extends Screen {
 		public final Map<BookmarkIngredientKey, ResourceLocation> manualRecipes = new LinkedHashMap<>();
 		public final Set<BookmarkIngredientKey> prunedKeys = new HashSet<>();
 		public final Set<BookmarkIngredientKey> uncraftedKeys = new HashSet<>();
+		public final Set<String> prunedPaths = new HashSet<>();
 		public final Map<BookmarkIngredientKey, List<ITypedIngredient<?>>> customRecipeInputs = new LinkedHashMap<>();
 		public boolean checkInventory = true;
 		public boolean showStats = true;
@@ -161,6 +163,12 @@ public final class CraftingTreeScreen extends Screen {
 					uncraftedArr.add(BookmarkIngredientKeySerializer.serialize(uncrafted));
 				}
 				root.add("uncraftedKeys", uncraftedArr);
+
+				JsonArray prunedPathsArr = new JsonArray();
+				for (String pathStr : prunedPaths) {
+					prunedPathsArr.add(pathStr);
+				}
+				root.add("prunedPaths", prunedPathsArr);
 
 				JsonArray customInputsArr = new JsonArray();
 				for (Map.Entry<BookmarkIngredientKey, List<ITypedIngredient<?>>> entry : customRecipeInputs.entrySet()) {
@@ -241,6 +249,11 @@ public final class CraftingTreeScreen extends Screen {
 					for (JsonElement elem : root.getAsJsonArray("uncraftedKeys")) {
 						BookmarkIngredientKey key = BookmarkIngredientKeySerializer.deserialize(elem);
 						session.uncraftedKeys.add(key);
+					}
+				}
+				if (root.has("prunedPaths") && root.get("prunedPaths").isJsonArray()) {
+					for (JsonElement elem : root.getAsJsonArray("prunedPaths")) {
+						session.prunedPaths.add(elem.getAsString());
 					}
 				}
 				if (root.has("customRecipeInputs") && root.get("customRecipeInputs").isJsonArray()) {
@@ -397,6 +410,7 @@ public final class CraftingTreeScreen extends Screen {
 			this.customRecipeInputs.putAll(activeSession.customRecipeInputs);
 			this.prunedKeys.addAll(activeSession.prunedKeys);
 			this.uncraftedKeys.addAll(activeSession.uncraftedKeys);
+			this.prunedPaths.addAll(activeSession.prunedPaths);
 			this.checkInventory = activeSession.checkInventory;
 			this.showStats = activeSession.showStats;
 			this.statsLabelMode = activeSession.statsLabelMode;
@@ -437,6 +451,7 @@ public final class CraftingTreeScreen extends Screen {
 				this.customRecipeInputs.putAll(activeSession.customRecipeInputs);
 				this.prunedKeys.addAll(activeSession.prunedKeys);
 			this.uncraftedKeys.addAll(activeSession.uncraftedKeys);
+			this.prunedPaths.addAll(activeSession.prunedPaths);
 				if (activeSession.targetRecipeOverride != null) {
 					this.targetRecipeOverride = activeSession.targetRecipeOverride;
 				}
@@ -472,6 +487,8 @@ public final class CraftingTreeScreen extends Screen {
 		activeSession.prunedKeys.addAll(this.prunedKeys);
 		activeSession.uncraftedKeys.clear();
 		activeSession.uncraftedKeys.addAll(this.uncraftedKeys);
+		activeSession.prunedPaths.clear();
+		activeSession.prunedPaths.addAll(this.prunedPaths);
 		activeSession.checkInventory = this.checkInventory;
 		activeSession.showStats = this.showStats;
 		activeSession.statsLabelMode = this.statsLabelMode;
@@ -504,8 +521,9 @@ public final class CraftingTreeScreen extends Screen {
 		} else {
 			this.treeMath = TreeChainBridge.createTreeMathFromGroup(bookmarks, groupId, stock, prunedKeys);
 		}
-		// Synchronize all manually assigned recipes, custom inputs, and uncrafted states into treeMath
+		// Synchronize all manually assigned recipes, custom inputs, uncrafted states, and pruned paths into treeMath
 		this.uncraftedKeys.forEach(k -> this.treeMath.setUncrafted(k, true));
+		this.treeMath.setPrunedPaths(this.prunedPaths);
 		this.manualRecipes.forEach(this.treeMath::setManualRecipe);
 		this.customRecipeInputs.forEach(this.treeMath::setCustomRecipeInputs);
 		this.graph = treeMath.calculate();
@@ -674,6 +692,8 @@ public final class CraftingTreeScreen extends Screen {
 		manualRecipes.clear();
 		customRecipeInputs.clear();
 		prunedKeys.clear();
+		uncraftedKeys.clear();
+		prunedPaths.clear();
 		targetRecipeOverride = null;
 		rebuildTreeMath();
 		fitToView();
@@ -700,9 +720,51 @@ public final class CraftingTreeScreen extends Screen {
 				return;
 			}
 			ResourceLocation recipeUid = info.recipeUid();
+
+			// Unprune target's path if it was previously pruned
+			if (pendingRecipeTarget.getNodePath() != null && !pendingRecipeTarget.getNodePath().isEmpty()) {
+				prunedPaths.remove(pendingRecipeTarget.getNodePath());
+			}
+
+			// Check if layout output is a replacement for target ingredient (e.g. colored glass substitution)
+			ITypedIngredient<?> newOutputIng = !info.outputs().isEmpty() ? info.outputs().get(0) : null;
+			BookmarkIngredientKey newOutputKey = newOutputIng != null ? BookmarkItemMetadataFactory.createPermutationKey(newOutputIng, ingredientManager) : null;
+
 			if (pendingRecipeTarget.equals(graph.getRootSlot())) {
 				this.targetRecipeOverride = recipeUid;
+			} else if (newOutputKey != null && !newOutputKey.equals(targetKey)) {
+				// Child node ingredient substitution! Update parent node's customRecipeInputs
+				TreeSlot parent = graph.getParent(pendingRecipeTarget);
+				if (parent != null) {
+					BookmarkIngredientKey parentKey = parent.getKey();
+					List<ITypedIngredient<?>> currentParentInputs = customRecipeInputs.get(parentKey);
+					if (currentParentInputs == null) {
+						// Retrieve default inputs of parent
+						ResourceLocation parentRecipe = parent.getRecipeUid();
+						if (parentRecipe != null) {
+							TreeRecipeBuilder.RecipeInfo<?> pInfo = TreeRecipeBuilder.findRecipe(parentRecipe, parent.getTypedIngredient().orElse(null));
+							if (pInfo != null) {
+								currentParentInputs = new ArrayList<>(pInfo.inputs());
+							}
+						}
+					} else {
+						currentParentInputs = new ArrayList<>(currentParentInputs);
+					}
+					if (currentParentInputs != null) {
+						for (int i = 0; i < currentParentInputs.size(); i++) {
+							BookmarkIngredientKey inK = BookmarkItemMetadataFactory.createPermutationKey(currentParentInputs.get(i), ingredientManager);
+							if (inK.equals(targetKey) || inK.matchesCraftingAvailable(targetKey)) {
+								currentParentInputs.set(i, newOutputIng);
+								break;
+							}
+						}
+						this.customRecipeInputs.put(parentKey, currentParentInputs);
+					}
+				}
+				this.manualRecipes.remove(targetKey);
+				targetKey = newOutputKey;
 			}
+
 			this.manualRecipes.put(targetKey, recipeUid);
 			boolean hasCyclingChoice = false;
 			for (IRecipeSlotView slot : layout.getRecipeSlotsView().getSlotViews(RecipeIngredientRole.INPUT)) {
@@ -733,6 +795,9 @@ public final class CraftingTreeScreen extends Screen {
 	public void applySelectedRecipe(ResourceLocation recipeUid) {
 		if (pendingRecipeTarget != null) {
 			BookmarkIngredientKey targetKey = pendingRecipeTarget.getKey();
+			if (pendingRecipeTarget.getNodePath() != null && !pendingRecipeTarget.getNodePath().isEmpty()) {
+				prunedPaths.remove(pendingRecipeTarget.getNodePath());
+			}
 			if (pendingRecipeTarget.equals(graph.getRootSlot())) {
 				this.targetRecipeOverride = recipeUid;
 			}
@@ -1131,13 +1196,14 @@ public final class CraftingTreeScreen extends Screen {
 			this.targetRecipeOverride = null;
 			rebuildTreeMath();
 		} else {
-			// For child nodes: mark the target node as uncrafted!
-			// This clears its recipe so its children vanish automatically,
-			// while leaving the target node itself as an uncrafted leaf!
+			// For child nodes: prune its path completely so it and its entire subtree vanish from the canvas!
+			if (target.getNodePath() != null && !target.getNodePath().isEmpty()) {
+				prunedPaths.add(target.getNodePath());
+			}
 			if (targetKey != null) {
-				uncraftedKeys.add(targetKey);
 				manualRecipes.remove(targetKey);
 				customRecipeInputs.remove(targetKey);
+				uncraftedKeys.remove(targetKey);
 			}
 			// Clean up any descendant recipes/custom inputs that were attached
 			Set<BookmarkIngredientKey> descendants = collectSubtreeKeys(target, false);
@@ -1147,7 +1213,7 @@ public final class CraftingTreeScreen extends Screen {
 				uncraftedKeys.remove(k);
 				prunedKeys.remove(k);
 			}
-			rebuildTreeMath(target);
+			rebuildTreeMath(graph.getParent(target));
 		}
 		saveSession();
 	}

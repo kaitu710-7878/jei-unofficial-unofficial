@@ -34,6 +34,7 @@ public final class TreeSlot {
 	private @Nullable BigInteger manualAmountOverride;
 	private @Nullable ResourceLocation manualRecipeOverride;
 	private boolean collapsed;
+	private String nodePath = "";
 
 	public TreeSlot(
 		BookmarkIngredientKey key,
@@ -187,5 +188,13 @@ public final class TreeSlot {
 
 	public long longMultiplier() {
 		return BigIntMath.toLongSaturated(getMultiplier());
+	}
+
+	public String getNodePath() {
+		return nodePath;
+	}
+
+	public void setNodePath(String nodePath) {
+		this.nodePath = nodePath != null ? nodePath : "";
 	}
 }

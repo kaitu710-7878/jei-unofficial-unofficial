@@ -41,6 +41,7 @@ public final class TreeMath {
 	private final Set<BookmarkIngredientKey> forceCraftOverrides = new HashSet<>();
 	private final Set<ResourceLocation> collapsedRecipes = new HashSet<>();
 	private final Set<BookmarkIngredientKey> uncraftedKeys = new HashSet<>();
+	private final Set<String> prunedPaths = new HashSet<>();
 
 	private final Set<BookmarkIngredientKey> prunedKeys;
 	private final TreeGraph graph = new TreeGraph();
@@ -122,6 +123,27 @@ public final class TreeMath {
 		return uncraftedKeys.contains(key);
 	}
 
+	public void setPrunedPaths(Set<String> paths) {
+		this.prunedPaths.clear();
+		this.prunedPaths.addAll(paths);
+	}
+
+	public Set<String> getPrunedPaths() {
+		return Collections.unmodifiableSet(prunedPaths);
+	}
+
+	public boolean isPathPruned(String path) {
+		if (prunedPaths.contains(path)) {
+			return true;
+		}
+		for (String pruned : prunedPaths) {
+			if (path.startsWith(pruned + "/")) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private static boolean isNonConsumable(BookmarkIngredientKey key) {
 		String uid = key.ingredientUid().toLowerCase(Locale.ROOT);
 		return uid.contains("press")
@@ -184,12 +206,18 @@ public final class TreeMath {
 
 		Set<ResourceLocation> visitedRecipes = new HashSet<>();
 
+		int rootIndex = 0;
 		for (RecipeChainInput rootInput : roots) {
 			BookmarkIngredientKey key = rootInput.selectedKey();
 			if (key == null && !rootInput.metadata().permutations().isEmpty()) {
 				key = rootInput.metadata().permutations().iterator().next();
 			}
 			if (key == null || prunedKeys.contains(key)) {
+				continue;
+			}
+
+			String rootPath = String.valueOf(rootIndex++);
+			if (isPathPruned(rootPath)) {
 				continue;
 			}
 
@@ -209,7 +237,8 @@ public final class TreeMath {
 				BigInteger.ZERO,
 				baseAmount,
 				visitedRecipes,
-				0
+				0,
+				rootPath
 			);
 
 			if (rootSlot != null) {
@@ -230,9 +259,10 @@ public final class TreeMath {
 		BigInteger inheritAmount,
 		BigInteger requestedAmount,
 		Set<ResourceLocation> visitedRecipes,
-		int depth
+		int depth,
+		String nodePath
 	) {
-		if (prunedKeys.contains(key)) {
+		if (isPathPruned(nodePath) || prunedKeys.contains(key)) {
 			return null;
 		}
 		boolean force = forceCraftOverrides.contains(key);
@@ -306,9 +336,12 @@ public final class TreeMath {
 		if (chosenRecipe != null && depth < MAX_DEPTH && !visitedRecipes.contains(chosenRecipe)) {
 			visitedRecipes.add(chosenRecipe);
 
+			node.setNodePath(nodePath);
 			List<RecipeChildIngredient> subIngredients = findRecipeInputs(chosenRecipe, key, typedIngredient);
+			int childIdx = 0;
 			for (RecipeChildIngredient sub : subIngredients) {
-				if (prunedKeys.contains(sub.key())) {
+				String childPath = nodePath + "/" + childIdx++ + ":" + sub.key().ingredientUid();
+				if (isPathPruned(childPath) || prunedKeys.contains(sub.key())) {
 					continue;
 				}
 				// Non-consumable items (molds, circuits) stay fixed at base amount without multiplier
@@ -323,7 +356,8 @@ public final class TreeMath {
 					BigInteger.ZERO,
 					subRequested,
 					visitedRecipes,
-					depth + 1
+					depth + 1,
+					childPath
 				);
 
 				if (childSlot != null) {
@@ -334,6 +368,7 @@ public final class TreeMath {
 			visitedRecipes.remove(chosenRecipe);
 		}
 
+		node.setNodePath(nodePath);
 		return node;
 	}
 
@@ -352,11 +387,12 @@ public final class TreeMath {
 	) {
 		List<RecipeChildIngredient> results = new ArrayList<>();
 
-		// If manual recipe override was explicitly assigned for this parent node, prioritize JEI live recipes
-		// over stale rootInputs from the initial bookmark chain!
+		// If manual recipe override or custom inputs were explicitly assigned for this parent node,
+		// prioritize live recipes / custom inputs over stale rootInputs from the initial bookmark chain!
 		boolean hasManualOverride = manualRecipeOverrides.containsKey(parentKey);
+		boolean hasCustomInputs = customRecipeInputs.containsKey(parentKey);
 
-		if (!hasManualOverride) {
+		if (!hasManualOverride && !hasCustomInputs) {
 			// Check if inputs are available from rootInputs metadata
 			for (RecipeChainInput input : rootInputs) {
 				BookmarkItemMetadata meta = input.metadata();
@@ -382,9 +418,7 @@ public final class TreeMath {
 			ITypedIngredient<?> matchTarget = parentIngredient != null ? parentIngredient : parentKey.typedIngredient();
 			TreeRecipeBuilder.RecipeInfo<?> info = TreeRecipeBuilder.findRecipe(recipeUid, matchTarget);
 			List<ITypedIngredient<?>> effectiveInputs = customRecipeInputs.get(parentKey);
-			if (effectiveInputs != null && info != null && !info.inputs().isEmpty() && effectiveInputs.size() < info.inputs().size()) {
-				effectiveInputs = info.inputs();
-			} else if (effectiveInputs == null && info != null) {
+			if (effectiveInputs == null && info != null) {
 				effectiveInputs = info.inputs();
 			}
 			if (effectiveInputs != null && !effectiveInputs.isEmpty()) {
