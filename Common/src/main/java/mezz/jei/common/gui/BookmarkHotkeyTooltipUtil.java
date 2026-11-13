@@ -82,7 +82,7 @@ public final class BookmarkHotkeyTooltipUtil {
 		HotkeyTooltipLine.add(tooltip, keyBindings.getShowUses().getTranslatedKeyMessage(), "jei.tooltip.bookmarks.hotkeys.uses");
 		HotkeyTooltipLine.add(tooltip, HotkeyTooltipLine.prefixed("SHIFT + ", keyBindings.getBookmark().getTranslatedKeyMessage()), "jei.tooltip.bookmarks.hotkeys.add_with_recipe");
 		HotkeyTooltipLine.add(tooltip, HotkeyTooltipLine.prefixed("CTRL + SHIFT + ", keyBindings.getBookmark().getTranslatedKeyMessage()), "jei.tooltip.bookmarks.hotkeys.add_with_recipe_and_count");
-		HotkeyTooltipLine.add(tooltip, getTreeOpenHotkeyComponent(keyBindings), "jei.tree.open");
+		addTreeHotkeys(tooltip, keyBindings);
 		if (showToggleInputCatalyst) {
 			HotkeyTooltipLine.add(
 				tooltip,
@@ -188,12 +188,14 @@ public final class BookmarkHotkeyTooltipUtil {
 		boolean craftingMode
 	) {
 		if (craftingMode) {
-			HotkeyTooltipLine.add(tooltip, getTreeOpenHotkeyComponent(keyBindings), "jei.tree.open");
+			addTreeHotkeys(tooltip, keyBindings);
 			HotkeyTooltipLine.add(
 				tooltip,
 				HotkeyTooltipLine.prefixed("ALT + ", keyBindings.getBookmarkPullItems().getTranslatedKeyMessage()),
 				"jei.tooltip.bookmarks.group.hotkeys.save_missing"
 			);
+		} else {
+			HotkeyTooltipLine.add(tooltip, keyBindings.getOpenCraftingTree().getTranslatedKeyMessage(), "jei.tooltip.hotkeys.tree_resume");
 		}
 	}
 
@@ -226,7 +228,18 @@ public final class BookmarkHotkeyTooltipUtil {
 		Component bookmarkKey = keyBindings.getBookmark().getTranslatedKeyMessage();
 		HotkeyTooltipLine.add(tooltip, bookmarkKey, "jei.tooltip.favoriteRecipes.remove");
 		HotkeyTooltipLine.add(tooltip, HotkeyTooltipLine.prefixed("SHIFT + ", bookmarkKey), "jei.tooltip.favoriteRecipes.saveTree");
-		HotkeyTooltipLine.add(tooltip, getTreeOpenHotkeyComponent(keyBindings), "jei.tree.open");
+		addTreeHotkeys(tooltip, keyBindings);
+	}
+
+	public static void addTreeHotkeys(ITooltipBuilder tooltip, IInternalKeyMappings keyBindings) {
+		Component showTreeKey = keyBindings.getShowRecipeTree().getTranslatedKeyMessage();
+		Component openTreeKey = keyBindings.getOpenCraftingTree().getTranslatedKeyMessage();
+		if (!showTreeKey.getString().isEmpty()) {
+			HotkeyTooltipLine.add(tooltip, showTreeKey, "jei.tooltip.hotkeys.tree_expand");
+		}
+		if (!openTreeKey.getString().isEmpty() && !openTreeKey.getString().equalsIgnoreCase(showTreeKey.getString())) {
+			HotkeyTooltipLine.add(tooltip, openTreeKey, "jei.tooltip.hotkeys.tree_open_resume");
+		}
 	}
 
 	public static Component getTreeOpenHotkeyComponent(IInternalKeyMappings keyBindings) {

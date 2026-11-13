@@ -518,8 +518,8 @@
     "jei.bookmark.scrollStep.oneStack":  "1スタック",
     "jei.tooltip.bookmarks.group.keys.ctrl_alt_scroll":  "Ctrl + Alt + スクロール",
     "gui.jei.recipe_navigation.forward.unavailable":  "次の検索はありません",
-    "key.jei.showRecipeTree":  "クラフトツリーを展開 (Shift+B)",
-    "key.jei.openCraftingTree":  "クラフトツリーを展開/再開 (Tキー)",
+    "key.jei.showRecipeTree":  "クラフトツリーを新規展開 (カーソル対象) (Shift+B)",
+    "key.jei.openCraftingTree":  "クラフトツリーを展開 / 作業中のツリーを再開 (T)",
     "jei.tooltip.bookmarks.group.keys.left_drag":  "左クリック + ドラッグ",
     "jei.tooltip.recipe.favorite.add":  "このレシピをお気に入りに登録。",
     "jei.tooltip.favoriteRecipes.saveTree":  "レシピツリーを生成",
@@ -577,5 +577,8 @@
   "jei.tree.home": "親項目 (目標アイテム) にカメラを移動 (Home/H)",
   "jei.tree.reset": "リセット",
   "jei.tree.reset.tooltip": "作業中のツリーを初期状態にリセット",
-  "jei.tree.hint.right_click_recipe_jei": "右クリック: レシピ画面を開く (+でツリーに選択)"
+  "jei.tree.hint.right_click_recipe_jei": "右クリック: レシピ画面を開く (+でツリーに選択)",
+  "jei.tooltip.hotkeys.tree_expand": "カーソル下のアイテムでクラフトツリーを新規展開",
+  "jei.tooltip.hotkeys.tree_open_resume": "クラフトツリーを展開 / 作業中のツリーを再開",
+  "jei.tooltip.hotkeys.tree_resume": "作業中のクラフトツリーを再開"
 }

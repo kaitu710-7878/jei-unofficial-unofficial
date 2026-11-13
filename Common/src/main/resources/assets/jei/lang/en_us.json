@@ -1,8 +1,8 @@
 {
   "_comment": "Debug (for a debug mode, do not need translation)",
   "jei.tooltip.config": "JEI Config",
-  "key.jei.showRecipeTree": "Expand Crafting Tree (Shift+B)",
-  "key.jei.openCraftingTree": "Expand/Resume Crafting Tree (T)",
+  "key.jei.showRecipeTree": "Expand Crafting Tree for Hovered Item (Shift+B)",
+  "key.jei.openCraftingTree": "Expand / Resume Working Crafting Tree (T)",
   "jei.tree.title": "Recipe Tree",
   "jei.tree.search": "Search tree",
   "jei.tree.demand_view": "Actual branch demand",
@@ -583,5 +583,8 @@
   "jei.tree.home": "Center View on Root Target (Home/H)",
   "jei.tree.reset": "Reset",
   "jei.tree.reset.tooltip": "Reset working tree to initial state",
-  "jei.tree.hint.right_click_recipe_jei": "Right-Click: Open in JEI Recipes GUI (Press + to select)"
+  "jei.tree.hint.right_click_recipe_jei": "Right-Click: Open in JEI Recipes GUI (Press + to select)",
+  "jei.tooltip.hotkeys.tree_expand": "Expand new crafting tree for hovered item",
+  "jei.tooltip.hotkeys.tree_open_resume": "Expand crafting tree or resume active tree",
+  "jei.tooltip.hotkeys.tree_resume": "Resume active crafting tree"
 }

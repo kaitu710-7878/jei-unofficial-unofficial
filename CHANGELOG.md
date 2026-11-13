@@ -15,6 +15,17 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta24] - 2026-11-13 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **液体・気体アイコンの1px細線化（表示不安定）の根本修正**:
+  - `CraftingTreeScreen.renderTypedIngredient` において、レシピ由来の微量な数量（10mB等）をそのまま `FluidTankRenderer` / 化学物質レンダラーへ渡していたため、1000mB容量に対する割合で高さ1ピクセルの帯しか描画されない現象が発生していました。
+  - `IIngredientHelper.normalizeIngredient()` による正規化（バケツ・タンク満タン表示）を適用してから描画するように修正し、あらゆる液体・気体・化学物質が16×16スロット全面に安定して表示されるよう改善。
+- **操作設定およびAlt長押しショートカット説明への `Shift+B` / `T` キー用途明記**:
+  - Minecraftの「操作設定 > キー割り当て」において、`Shift+B`（カーソル下のアイテムから新規展開）と `T`（展開 / 作業中ツリーの再開）の用途を明確化。
+  - アイテム、ブックマーク、通常グループ、レシピチェーン、お気に入りレシピ等のすべてのAlt長押しショートカットツールチップ（`BookmarkHotkeyTooltipUtil`）に、`Shift+B` と `T` それぞれの用途を分かりやすく個別表示するように改善。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta23] - 2026-11-13 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **金型等の非消費・再利用可能アイテムの必要数計算を修正**:
@@ -282,6 +293,17 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta24] - 2026-11-13 (Beta)
+#### Fixed & Improved
+- **Fixed 1px-Thin / Unstable Fluid & Gas Icon Rendering**:
+  - In `CraftingTreeScreen.renderTypedIngredient`, small recipe fluid/gas amounts (e.g., 10 mB) were previously passed unnormalized to `FluidTankRenderer` and chemical renderers, causing them to render only a 1-pixel strip relative to the 1000 mB tank capacity.
+  - Applied `IIngredientHelper.normalizeIngredient()` before rendering so all fluids, gases, and chemicals render reliably at full 16x16 icon height.
+- **Clarified `Shift+B` and `T` Key Purposes in Controls and Alt-Hold Shortcut Tooltips**:
+  - Updated keybinding labels in Minecraft's Controls menu to clearly distinguish `Shift+B` (expand new crafting tree for hovered item) and `T` (expand or resume active crafting tree).
+  - Updated `BookmarkHotkeyTooltipUtil` across ingredients, bookmarks, normal bookmark groups, recipe chains, and favorite recipes so holding `Alt` displays individual descriptions for both `Shift+B` and `T`.
 
 ---
 

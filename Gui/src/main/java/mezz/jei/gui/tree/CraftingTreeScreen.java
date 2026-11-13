@@ -1174,7 +1174,8 @@ public final class CraftingTreeScreen extends Screen {
 	@SuppressWarnings("unchecked")
 	private <T> void renderTypedIngredient(GuiGraphics g, ITypedIngredient<T> typed, float x, float y, float scale) {
 		IIngredientRenderer<T> renderer = ingredientManager.getIngredientRenderer(typed.getType());
-		T ingredient = typed.getIngredient();
+		mezz.jei.api.ingredients.IIngredientHelper<T> helper = ingredientManager.getIngredientHelper(typed.getType());
+		T ingredient = helper.normalizeIngredient(typed.getIngredient());
 		if (ingredient instanceof ItemStack stack && stack.getCount() > 1) {
 			ItemStack single = stack.copy();
 			single.setCount(1);
