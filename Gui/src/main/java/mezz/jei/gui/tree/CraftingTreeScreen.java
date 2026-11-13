@@ -83,6 +83,7 @@ public final class CraftingTreeScreen extends Screen {
 	private final Set<String> prunedPaths = new HashSet<>();
 	private final Map<BookmarkIngredientKey, List<ITypedIngredient<?>>> customRecipeInputs = new LinkedHashMap<>();
 	private final Map<BookmarkIngredientKey, String> searchTextCache = new HashMap<>();
+	private final Map<ResourceLocation, mezz.jei.api.recipe.category.IRecipeCategory<?>> categoryCache = new HashMap<>();
 
 	private final TreeCamera camera = new TreeCamera();
 	private boolean cameraInitialized = false;
@@ -1216,8 +1217,20 @@ public final class CraftingTreeScreen extends Screen {
 		int screenY,
 		int slotSize
 	) {
+		drawFormattedAmountOverlay(g, amount, key, screenX, screenY, slotSize, false);
+	}
+
+	private void drawFormattedAmountOverlay(
+		GuiGraphics g,
+		BigInteger amount,
+		@Nullable BookmarkIngredientKey key,
+		int screenX,
+		int screenY,
+		int slotSize,
+		boolean alwaysShowPositive
+	) {
 		boolean isFluidOrGas = key != null && BookmarkAmountFormatter.usesFluidAmountUnits(key.ingredientTypeUid());
-		boolean shouldRender = isFluidOrGas ? amount.signum() > 0 : amount.compareTo(BigInteger.ONE) > 0;
+		boolean shouldRender = (alwaysShowPositive || isFluidOrGas) ? amount.signum() > 0 : amount.compareTo(BigInteger.ONE) > 0;
 		if (!shouldRender) {
 			return;
 		}
@@ -1289,15 +1302,59 @@ public final class CraftingTreeScreen extends Screen {
 			ITypedIngredient<?> rowIng = row.getTypedIngredient().orElseGet(() -> row.getKey() != null ? row.getKey().typedIngredient() : null);
 			if (rowIng != null) {
 				renderTypedIngredient(g, rowIng, visible.screenX() + 1.0f, drawY + 1.0f, 1.0f);
+			} else if (row.getKind() == TreeStats.Kind.HANDLER && row.getHandlerUid() != null) {
+				renderHandlerIcon(g, row.getHandlerUid(), visible.screenX() + 1.0f, drawY + 1.0f);
 			}
 		}
 
 		for (VisibleStatsSlot visible : visibleSlots) {
 			TreeStats.Row row = visible.placed().getRow();
-			drawFormattedAmountOverlay(g, row.getAmount(), row.getKey(), visible.screenX(), drawY, TreeStatsLayout.SLOT_SIZE);
+			boolean alwaysShow = row.getKind() == TreeStats.Kind.HANDLER || row.getKind() == TreeStats.Kind.CRAFT_NEEDED;
+			drawFormattedAmountOverlay(g, row.getAmount(), row.getKey(), visible.screenX(), drawY, TreeStatsLayout.SLOT_SIZE, alwaysShow);
 		}
 
 		g.flush();
+	}
+
+	private @Nullable mezz.jei.api.recipe.category.IRecipeCategory<?> findCategoryByUid(ResourceLocation handlerUid) {
+		if (categoryCache.isEmpty()) {
+			try {
+				Internal.getJeiRuntime().getRecipeManager().createRecipeCategoryLookup().get()
+					.forEach(cat -> categoryCache.put(cat.getRecipeType().getUid(), cat));
+			} catch (Throwable ignored) {}
+		}
+		return categoryCache.get(handlerUid);
+	}
+
+	private void renderHandlerIcon(GuiGraphics g, ResourceLocation handlerUid, float x, float y) {
+		mezz.jei.api.recipe.category.IRecipeCategory<?> category = findCategoryByUid(handlerUid);
+		if (category == null) {
+			return;
+		}
+		mezz.jei.api.gui.drawable.IDrawable icon = category.getIcon();
+		if (icon != null && icon.getWidth() > 0 && icon.getHeight() > 0) {
+			float scaleX = 16.0f / icon.getWidth();
+			float scaleY = 16.0f / icon.getHeight();
+			PoseStack pose = g.pose();
+			pose.pushPose();
+			pose.translate(x, y, 100.0f);
+			if (scaleX != 1.0f || scaleY != 1.0f) {
+				pose.scale(scaleX, scaleY, 1.0f);
+			}
+			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+			RenderSystem.enableBlend();
+			icon.draw(g, 0, 0);
+			g.flush();
+			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+			RenderSystem.disableBlend();
+			pose.popPose();
+			return;
+		}
+		try {
+			Internal.getJeiRuntime().getRecipeManager().createRecipeCatalystLookup(category.getRecipeType()).get()
+				.findFirst()
+				.ifPresent(catalyst -> renderTypedIngredient(g, catalyst, x, y, 1.0f));
+		} catch (Throwable ignored) {}
 	}
 
 	private Set<BookmarkIngredientKey> collectSubtreeKeys(TreeSlot root, boolean includeRoot) {
@@ -1424,6 +1481,13 @@ public final class CraftingTreeScreen extends Screen {
 				tooltip.addAll(getIngredientTooltip(rowIng));
 			} else if (row.getKey() != null) {
 				tooltip.add(Component.literal(row.getKey().ingredientUid()).withStyle(ChatFormatting.WHITE));
+			} else if (row.getKind() == TreeStats.Kind.HANDLER && row.getHandlerUid() != null) {
+				mezz.jei.api.recipe.category.IRecipeCategory<?> category = findCategoryByUid(row.getHandlerUid());
+				Component title = category != null ? category.getTitle() : Component.literal(row.getHandlerUid().toString());
+				tooltip.add(title.copy().withStyle(ChatFormatting.WHITE));
+				if (row.getRecipeCount() > 0) {
+					tooltip.add(Component.translatable("jei.tree.tooltip.handler_recipes", row.getRecipeCount()).withStyle(ChatFormatting.DARK_AQUA));
+				}
 			}
 			String amtStr = row.getKey() != null ? BookmarkAmountFormatter.formatTypedAmount(row.getAmount(), row.getKey().ingredientTypeUid()) : row.getAmount().toString();
 			tooltip.add(Component.translatable("jei.tree.tooltip.amount", amtStr).withStyle(ChatFormatting.GRAY));

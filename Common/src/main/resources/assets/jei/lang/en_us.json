@@ -586,5 +586,6 @@
   "jei.tree.hint.right_click_recipe_jei": "Right-Click: Open in JEI Recipes GUI (Press + to select)",
   "jei.tooltip.hotkeys.tree_expand": "Expand new crafting tree for hovered item",
   "jei.tooltip.hotkeys.tree_open_resume": "Expand crafting tree or resume active tree",
-  "jei.tooltip.hotkeys.tree_resume": "Resume active crafting tree"
+  "jei.tooltip.hotkeys.tree_resume": "Resume active crafting tree",
+  "jei.tree.tooltip.handler_recipes": "Recipes used: %s"
 }

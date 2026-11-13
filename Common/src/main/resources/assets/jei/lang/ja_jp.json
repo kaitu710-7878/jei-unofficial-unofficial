@@ -580,5 +580,6 @@
   "jei.tree.hint.right_click_recipe_jei": "右クリック: レシピ画面を開く (+でツリーに選択)",
   "jei.tooltip.hotkeys.tree_expand": "カーソル下のアイテムでクラフトツリーを新規展開",
   "jei.tooltip.hotkeys.tree_open_resume": "クラフトツリーを展開 / 作業中のツリーを再開",
-  "jei.tooltip.hotkeys.tree_resume": "作業中のクラフトツリーを再開"
+  "jei.tooltip.hotkeys.tree_resume": "作業中のクラフトツリーを再開",
+  "jei.tree.tooltip.handler_recipes": "対象レシピ数: %s"
 }

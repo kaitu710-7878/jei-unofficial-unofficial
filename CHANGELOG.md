@@ -15,6 +15,14 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta25] - 2026-11-13 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **画面下部統計バーの「機械・ハンドラ別実行数」アイコンおよびツールチップ描画の修正**:
+  - 統計バーの `HANDLER` セクションで `ITypedIngredient` が空だったためスロットアイコンが描画されていなかった問題を修正。JEIの `IRecipeCategory` からカテゴリアイコン（`getIcon()`）または作業台カタリスト（`createRecipeCatalystLookup`）を取得して16×16スロットにフィット描画するように改善。
+  - 加工回数・中間クラフト回数が1回の場合でも回数が明示されるようにし、ホバー時のツールチップに機械・カテゴリ名と使用レシピ数を表示するように修正。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta24] - 2026-11-13 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **液体・気体アイコンの1px細線化（表示不安定）の根本修正**:
@@ -293,6 +301,14 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta25] - 2026-11-13 (Beta)
+#### Fixed & Improved
+- **Fixed Machine/Handler Execution Count Rendering & Tooltips in Bottom Stats Bar**:
+  - Fixed an issue where `HANDLER` slots in the bottom stats bar rendered empty black squares because they lacked an `ITypedIngredient`. Now looks up the corresponding `IRecipeCategory` icon (or falls back to its first recipe catalyst) and scales it cleanly into the 16x16 slot.
+  - Ensured machine and intermediate craft counts display even for single executions (`1`) and added the localized category title and recipe count to the hover tooltip.
 
 ---
 
