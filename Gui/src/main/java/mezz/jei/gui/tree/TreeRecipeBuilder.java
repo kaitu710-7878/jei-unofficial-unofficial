@@ -11,6 +11,7 @@ import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import mezz.jei.api.runtime.IIngredientManager;
 import mezz.jei.common.Internal;
+import mezz.jei.common.util.BigIntMath;
 import mezz.jei.gui.bookmarks.BookmarkIngredientAmountResolver;
 import mezz.jei.gui.bookmarks.BookmarkIngredientKey;
 import mezz.jei.gui.bookmarks.BookmarkItemMetadata;
@@ -24,6 +25,7 @@ import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -222,9 +224,11 @@ public final class TreeRecipeBuilder {
 					}
 				}
 			}
+		} else if (!outputs.isEmpty()) {
+			factor = Math.max(1, BookmarkIngredientAmountResolver.getAmount(outputs.get(0), ingredientManager));
 		}
 
-		RecipeInfo<T> info = new RecipeInfo<>(
+		return new RecipeInfo<>(
 			category,
 			recipe,
 			recipeUid,
@@ -233,10 +237,6 @@ public final class TreeRecipeBuilder {
 			outputs,
 			factor
 		);
-
-		BookmarkIngredientKey targetKey = targetIngredient != null ? BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager) : null;
-		RECIPE_UID_CACHE.put(new RecipeTargetKey(recipeUid, targetKey), info);
-		return info;
 	}
 
 	private static long calculateOutputFactor(
@@ -402,14 +402,14 @@ public final class TreeRecipeBuilder {
 
 		if (rootRecipe != null && customInputs.containsKey(rootKey)) {
 			List<ITypedIngredient<?>> customList = customInputs.get(rootKey);
-			if (customList != null && customList.size() >= rootRecipe.inputs().size()) {
+			if (customList != null && !customList.isEmpty()) {
 				rootRecipe = rootRecipe.withInputs(customList);
 			}
 		}
 
 		// Create root entry (RESULT)
-		long rootMultiplier = Math.max(1, targetAmount.longValue());
-		long rootFactor = rootRecipe != null ? rootRecipe.outputFactor() : 1;
+		long rootMultiplier = Math.max(1L, BigIntMath.toLongSaturated(targetAmount));
+		long rootFactor = rootRecipe != null ? rootRecipe.outputFactor() : 1L;
 		ResourceLocation rootCatUid = rootRecipe != null ? rootRecipe.categoryUid() : null;
 		ResourceLocation rootRecUid = rootRecipe != null ? rootRecipe.recipeUid() : null;
 
@@ -437,11 +437,24 @@ public final class TreeRecipeBuilder {
 		while (!recipeQueue.isEmpty()) {
 			RecipeInfo<?> currentRecipe = recipeQueue.poll();
 
+			// Aggregate identical ingredient keys per recipe so slot counts are summed consistently
+			Map<BookmarkIngredientKey, Long> aggregatedAmounts = new LinkedHashMap<>();
+			Map<BookmarkIngredientKey, ITypedIngredient<?>> representativeIngredients = new LinkedHashMap<>();
+
 			for (ITypedIngredient<?> inputIng : currentRecipe.inputs()) {
 				BookmarkIngredientKey inputKey = BookmarkItemMetadataFactory.createPermutationKey(inputIng, ingredientManager);
 				if (prunedKeys.contains(inputKey)) {
 					continue;
 				}
+				long amt = Math.max(1L, BookmarkIngredientAmountResolver.getAmount(inputIng, ingredientManager));
+				aggregatedAmounts.merge(inputKey, amt, Long::sum);
+				representativeIngredients.putIfAbsent(inputKey, inputIng);
+			}
+
+			for (Map.Entry<BookmarkIngredientKey, Long> entry : aggregatedAmounts.entrySet()) {
+				BookmarkIngredientKey inputKey = entry.getKey();
+				long totalInputAmt = entry.getValue();
+				ITypedIngredient<?> inputIng = representativeIngredients.get(inputKey);
 
 				RecipeInfo<?> subRecipe = null;
 				if (!uncraftedKeys.contains(inputKey)) {
@@ -450,18 +463,17 @@ public final class TreeRecipeBuilder {
 						subRecipe = findRecipe(subRecipeUid, inputIng);
 						if (subRecipe != null && customInputs.containsKey(inputKey)) {
 							List<ITypedIngredient<?>> customList = customInputs.get(inputKey);
-							if (customList != null && customList.size() >= subRecipe.inputs().size()) {
+							if (customList != null && !customList.isEmpty()) {
 								subRecipe = subRecipe.withInputs(customList);
 							}
 						}
 					}
 				}
 
-				// Always register inputKey as an INGREDIENT of currentRecipe
 				BookmarkItemMetadata rawMeta = new BookmarkItemMetadata(
 					-1,
 					BookmarkItemType.INGREDIENT,
-					Math.max(1, BookmarkIngredientAmountResolver.getAmount(inputIng, ingredientManager)),
+					totalInputAmt,
 					1,
 					BookmarkItemMetadata.CHANCE_FULL,
 					currentRecipe.categoryUid(),
@@ -471,7 +483,6 @@ public final class TreeRecipeBuilder {
 				inputs.add(new RecipeChainInput(indexCounter++, rawMeta, inputKey, inputIng));
 
 				if (subRecipe != null && !visited.contains(inputKey)) {
-					// Sub-ingredient has a manually selected recipe: expand it
 					visited.add(inputKey);
 					recipeQueue.add(subRecipe);
 				}

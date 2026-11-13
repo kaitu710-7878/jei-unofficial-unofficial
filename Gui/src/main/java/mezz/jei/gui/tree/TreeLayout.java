@@ -1,5 +1,6 @@
 package mezz.jei.gui.tree;
 
+import mezz.jei.gui.bookmarks.BookmarkIngredientKey;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -57,9 +58,10 @@ public final class TreeLayout {
 	/**
 	 * Recalculates layout for the given graph.
 	 * Returns displacement [dx, dy] of the anchor if provided, or null.
+	 * Matches anchor across graph rebuilds using its deterministic nodePath or ingredient key.
 	 */
 	public int @Nullable [] recalculate(TreeGraph graph, @Nullable TreeSlot anchor) {
-		Point oldAnchorPos = (anchor != null && positions.containsKey(anchor)) ? new Point(positions.get(anchor).x, positions.get(anchor).y) : null;
+		Point oldAnchorPos = findPositionForAnchor(anchor);
 
 		positions.clear();
 		rowsByY.clear();
@@ -96,9 +98,40 @@ public final class TreeLayout {
 			treeHeight = Math.max(treeHeight, p.y + SLOT_SIZE);
 		}
 
-		if (oldAnchorPos != null && positions.containsKey(anchor)) {
-			Point newAnchorPos = positions.get(anchor);
-			return new int[]{newAnchorPos.x - oldAnchorPos.x, newAnchorPos.y - oldAnchorPos.y};
+		if (oldAnchorPos != null) {
+			Point newAnchorPos = findPositionForAnchor(anchor);
+			if (newAnchorPos != null) {
+				return new int[]{newAnchorPos.x - oldAnchorPos.x, newAnchorPos.y - oldAnchorPos.y};
+			}
+		}
+		return null;
+	}
+
+	private @Nullable Point findPositionForAnchor(@Nullable TreeSlot anchor) {
+		if (anchor == null || positions.isEmpty()) {
+			return null;
+		}
+		Point direct = positions.get(anchor);
+		if (direct != null) {
+			return new Point(direct.x, direct.y);
+		}
+		String targetPath = anchor.getNodePath();
+		if (targetPath != null && !targetPath.isEmpty()) {
+			for (Map.Entry<TreeSlot, Point> entry : positions.entrySet()) {
+				if (targetPath.equals(entry.getKey().getNodePath())) {
+					Point p = entry.getValue();
+					return new Point(p.x, p.y);
+				}
+			}
+		}
+		BookmarkIngredientKey targetKey = anchor.getKey();
+		if (targetKey != null) {
+			for (Map.Entry<TreeSlot, Point> entry : positions.entrySet()) {
+				if (targetKey.equals(entry.getKey().getKey())) {
+					Point p = entry.getValue();
+					return new Point(p.x, p.y);
+				}
+			}
 		}
 		return null;
 	}

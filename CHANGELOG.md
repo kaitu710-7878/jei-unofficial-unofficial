@@ -15,20 +15,31 @@
 
 ---
 
-### [15.59.0.212-jeiuu.4-beta20] - 2026-11-13 (Beta)
-#### 菫ｮ豁｣繝ｻ謾ｹ蝟・(Fixed & Improved)
-- **繝弱・繝牙炎髯､縺ｮ螳悟・豸亥悉繝ｻ繝代せ繝吶・繧ｹ髯､螟厄ｼ・prunedPaths・峨→繧ｿ繧ｰ譚先侭鄂ｮ謠帙・螳悟・蟇ｾ蠢・*:
-  - **繝弱・繝牙炎髯､縺ｮ螳悟・豸亥悉**: 蠕捺擂縺ｮ縲後ヮ繝ｼ繝芽・霄ｫ繧呈悴蜉蟾･邏譚舌→縺励※逕ｻ髱｢荳翫↓谿九☆縲肴嫌蜍輔°繧峨√Θ繝ｼ繧ｶ繝ｼ縺ｮ諢丞峙騾壹ｊ縲悟ｯｾ雎｡繝弱・繝芽・霄ｫ縺ｨ縺昴・譫晢ｼ亥ｭ仙ｭｫ繝弱・繝会ｼ峨☆縺ｹ縺ｦ繧偵ヤ繝ｪ繝ｼ荳翫°繧牙ｮ悟・縺ｫ豸亥悉・磯撼陦ｨ遉ｺ繝ｻ髯､螟厄ｼ峨阪☆繧倶ｻ墓ｧ倥∈蛻ｷ譁ｰ縲ょ炎髯､謫堺ｽ懊ｒ陦後▲縺溽椪髢薙↓逕ｻ髱｢縺九ｉ隧ｲ蠖馴・岼縺檎ｶｺ鮗励↓豸亥悉縺輔ｌ縲∫ｵｱ險医ｄ蠢・ｦ∫ｴ譚舌°繧峨ｂ豁｣縺励￥髯､螟悶＆繧後ｋ繧医≧菫ｮ豁｣縲・  - **繝代せ繝吶・繧ｹ髯､螟也ｮ｡逅・ｼ・prunedPaths・峨・蟆主・**: 繝・Μ繝ｼ蜀・・髫主ｱ､繝代せ・・nodePath・峨↓蝓ｺ縺･縺丈ｸ諢上↑髯､螟門愛螳壹ｒ蟆主・縲ょ挨譫昴↓縺ゅｋ蜷御ｸ繧｢繧､繝・Β・磯延繧､繝ｳ繧ｴ繝・ヨ繧・ぎ繝ｩ繧ｹ縺ｪ縺ｩ・峨∈縺ｮ蟾ｻ縺肴ｷｻ縺亥炎髯､繧貞ｮ悟・縺ｫ髦ｲ豁｢縺励√げ繝ｭ繝ｼ繝舌Ν繧ｭ繝ｼ髯､螟悶・遶ｶ蜷医ｄ繧ｴ繝ｼ繧ｹ繝医く繝ｼ縺ｫ繧医ｋ譁ｰ繝ｬ繧ｷ繝泌ｱ暮幕縺ｮ髦ｻ螳ｳ繧呈ｹ邨ｶ縲・  - **繧ｿ繧ｰ譚先侭鄂ｮ謠幢ｼ医ぎ繝ｩ繧ｹ縺ｮ濶ｲ蛻・ｊ譖ｿ縺育ｭ会ｼ峨・螳悟・蟇ｾ蠢・*: 繧ｿ繧ｰ繝ｬ繧ｷ繝斐↑縺ｩ縺ｧ驕ｸ謚槭＆繧後◆譚先侭・井ｾ・ 辟｡濶ｲ繧ｬ繝ｩ繧ｹ・峨↓蟇ｾ縺励∝承繧ｯ繝ｪ繝・け繝ｬ繧ｷ繝皮判髱｢縺九ｉ蛻･蛟呵｣懶ｼ井ｾ・ 襍､濶ｲ繧ｬ繝ｩ繧ｹ・峨ｒ驕ｸ謚槭＠縺ｦ縲・縲阪・繧ｿ繝ｳ繧呈款縺励◆髫帙∬ｦｪ繝弱・繝峨・蜈･蜉帶攝譁吶Μ繧ｹ繝茨ｼ・customRecipeInputs・牙・縺ｮ隧ｲ蠖薙い繧､繝・Β繧定・蜍慕ｽｮ謠帙＠縲∵眠譚先侭縺ｮ繝ｬ繧ｷ繝斐ｒ螻暮幕縺吶ｋ讖滓ｧ九ｒ譁ｰ險ｭ縲ゅち繧ｰ繝ｬ繧ｷ繝斐〒繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ縺励◆莉ｻ諢上・濶ｲ繝ｻ譚先侭縺ｸ縺ｮ蛻・ｊ譖ｿ縺医′100%遒ｺ螳溘↓繝・Μ繝ｼ縺ｫ蜿肴丐縺輔ｌ繧九ｈ縺・隼蝟・・  - **繧ｻ繝・す繝ｧ繝ｳ豌ｸ邯壼喧縺ｮ蠑ｷ蛹・*: crafting_tree_session.json 縺ｫ prunedPaths 繧定ｿｽ蜉縺励√ご繝ｼ繝繧貞・襍ｷ蜍輔＠縺ｦ繧ょ炎髯､縺励◆鬆・岼縺悟享謇九↓蠕ｩ豢ｻ縺励↑縺・ｈ縺・憾諷倶ｿ晏ｭ倥ｒ蠕ｹ蠎輔・
+### [15.59.0.212-jeiuu.4-beta21] - 2026-11-13 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **WASDおよび矢印キーによる画面移動（パン操作）の反転修正**:
+  - `W` / `↑` キーで上方向、`S` / `↓` キーで下方向、`A` / `←` キーで左方向、`D` / `→` キーで右方向へ直感的にカメラが移動するよう符号を修正。またズーム倍率に依存せず一定の画面移動速度になるよう改善。
+- **2種類の削除モード（単品削除・同種一括削除）の選択対応**:
+  - 数量調整ダイアログに「このノードと枝のみ削除 (`Del`)」ボタンと「同じ項目すべてと枝を削除 (`Shift+Del`)」ボタンの2つを配置し、用途に応じて使い分けられるよう改善。
+  - ツリー画面上でのショートカットキーも、`Delete` / `Backspace` 単体押しで「カーソル下のノードと枝のみを単品削除」、`Shift + Delete` / `Shift + Backspace` で「ツリー内の同じアイテムすべてと枝を一括削除」の両方に対応。
+- **子項目削除後のレシピ再選択による完全復元修正**:
+  - 複数の子項目のうち1つを削除した後、親ノード（または対象ノード）のレシピを選択し直した際に削除した子項目が復活しない問題を解消。
+  - 親ノードのレシピ再選択時に配下の削除パス（`prunedPaths`）や除外キー（`prunedKeys` / `uncraftedKeys`）を一括解除し、さらに `R` / `U` キーからJEI画面を開いて親や子のレシピへ遷移してから「+」ボタンを押した場合でも対象ノードを自動特定して確実に元通り復元するよう改善。
+  - 初回ツリー生成時と手動レシピ選択時で、同一レシピ内の同じ材料スロットが常に数量合算（集約）されるよう計算ロジックを統一。
+- **クラフトツリー全体のリファクタリング・最適化**:
+  - `TreeLayout` のカメラ追従アンカー照合をノードパス（`nodePath`）およびキーベースに改修し、再計算時の画面揺れを完全に防止。
+  - `TreeRecipeBuilder` で一時的なスロット表示がグローバルキャッシュを汚染しないよう修正。
+  - 検索ハイライト判定にツールチップ文字列キャッシュを導入し、大規模ツリー描画時のフレームレートを向上。
+
 ---
 
 ### [15.59.0.212-jeiuu.4-beta20] - 2026-11-13 (Beta)
-#### Fixed & Improved
-- **Clean Node Pruning via Tree Paths (prunedPaths) & Full Tag Ingredient Substitution**:
-  - **Complete Node Deletion**: Replaced the behavior of leaving pruned nodes as uncrafted leaves with complete visual and structural removal of the selected node and its entire subtree from the canvas and requirements list upon deletion.
-  - **Path-Based Pruning (prunedPaths)**: Introduced hierarchical node path tracking (
-odePath) for deterministic, collision-free pruning. Pruning an item in one branch will never accidentally affect identical items in other branches, eliminating key-clash issues and residual ghost keys blocking recipe expansions.
-  - **Tag Ingredient Substitution (Colored Glass Switching)**: When switching a tag-resolved ingredient (e.g., clear glass) to another candidate (e.g., red stained glass) via the recipe GUI transfer button, the parent node's component inputs (customRecipeInputs) are automatically updated to replace the old ingredient with the chosen one, reliably reflecting custom materials in the tree.
-  - **Session Persistence**: Fully serialized prunedPaths into crafting_tree_session.json to guarantee deleted branches and substituted components remain faithfully preserved across game restarts.
+#### 修正・改善 (Fixed & Improved)
+- **ノード削除の完全消去・パスベース除外（`prunedPaths`）とタグ材料置換の完全対応**:
+  - **ノード削除の完全消去**: 従来の「ノード自身を未加工素材として画面上に残す」挙動から、ユーザーの意図通り「対象ノード自身とその枝（子孫ノード）すべてをツリー上から完全に消去（非表示・除外）」する仕様へ刷新。削除操作を行った瞬間に画面から該当項目が綺麗に消去され、統計や必要素材からも正しく除外されるよう修正。
+  - **パスベース除外管理（`prunedPaths`）の導入**: ツリー内の階層パス（`nodePath`）に基づく一意な除外判定を導入。別枝にある同一アイテム（鉄インゴットやガラスなど）への巻き添え削除を完全に防止し、グローバルキー除外の競合やゴーストキーによる新レシピ展開の阻害を根絶。
+  - **タグ材料置換（ガラスの色切り替え等）の完全対応**: タグレシピなどで選択された材料（例: 無色ガラス）に対し、右クリックレシピ画面から別候補（例: 赤色ガラス）を選択して「+」ボタンを押した際、親ノードの入力材料リスト（`customRecipeInputs`）内の該当アイテムを自動置換し、新材料のレシピを展開する機構を新設。タグレシピでスクロールした任意の色・材料への切り替えが100%確実にツリーに反映されるよう改善。
+  - **セッション永続化の強化**: `crafting_tree_session.json` に `prunedPaths` を追加し、ゲームを再起動しても削除した項目が勝手に復活しないよう状態保存を徹底。
 
 ---
 
@@ -253,20 +264,31 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 
 ---
 
-### [15.59.0.212-jeiuu.4-beta20] - 2026-11-13 (Beta)
-#### 菫ｮ豁｣繝ｻ謾ｹ蝟・(Fixed & Improved)
-- **繝弱・繝牙炎髯､縺ｮ螳悟・豸亥悉繝ｻ繝代せ繝吶・繧ｹ髯､螟厄ｼ・prunedPaths・峨→繧ｿ繧ｰ譚先侭鄂ｮ謠帙・螳悟・蟇ｾ蠢・*:
-  - **繝弱・繝牙炎髯､縺ｮ螳悟・豸亥悉**: 蠕捺擂縺ｮ縲後ヮ繝ｼ繝芽・霄ｫ繧呈悴蜉蟾･邏譚舌→縺励※逕ｻ髱｢荳翫↓谿九☆縲肴嫌蜍輔°繧峨√Θ繝ｼ繧ｶ繝ｼ縺ｮ諢丞峙騾壹ｊ縲悟ｯｾ雎｡繝弱・繝芽・霄ｫ縺ｨ縺昴・譫晢ｼ亥ｭ仙ｭｫ繝弱・繝会ｼ峨☆縺ｹ縺ｦ繧偵ヤ繝ｪ繝ｼ荳翫°繧牙ｮ悟・縺ｫ豸亥悉・磯撼陦ｨ遉ｺ繝ｻ髯､螟厄ｼ峨阪☆繧倶ｻ墓ｧ倥∈蛻ｷ譁ｰ縲ょ炎髯､謫堺ｽ懊ｒ陦後▲縺溽椪髢薙↓逕ｻ髱｢縺九ｉ隧ｲ蠖馴・岼縺檎ｶｺ鮗励↓豸亥悉縺輔ｌ縲∫ｵｱ險医ｄ蠢・ｦ∫ｴ譚舌°繧峨ｂ豁｣縺励￥髯､螟悶＆繧後ｋ繧医≧菫ｮ豁｣縲・  - **繝代せ繝吶・繧ｹ髯､螟也ｮ｡逅・ｼ・prunedPaths・峨・蟆主・**: 繝・Μ繝ｼ蜀・・髫主ｱ､繝代せ・・nodePath・峨↓蝓ｺ縺･縺丈ｸ諢上↑髯､螟門愛螳壹ｒ蟆主・縲ょ挨譫昴↓縺ゅｋ蜷御ｸ繧｢繧､繝・Β・磯延繧､繝ｳ繧ｴ繝・ヨ繧・ぎ繝ｩ繧ｹ縺ｪ縺ｩ・峨∈縺ｮ蟾ｻ縺肴ｷｻ縺亥炎髯､繧貞ｮ悟・縺ｫ髦ｲ豁｢縺励√げ繝ｭ繝ｼ繝舌Ν繧ｭ繝ｼ髯､螟悶・遶ｶ蜷医ｄ繧ｴ繝ｼ繧ｹ繝医く繝ｼ縺ｫ繧医ｋ譁ｰ繝ｬ繧ｷ繝泌ｱ暮幕縺ｮ髦ｻ螳ｳ繧呈ｹ邨ｶ縲・  - **繧ｿ繧ｰ譚先侭鄂ｮ謠幢ｼ医ぎ繝ｩ繧ｹ縺ｮ濶ｲ蛻・ｊ譖ｿ縺育ｭ会ｼ峨・螳悟・蟇ｾ蠢・*: 繧ｿ繧ｰ繝ｬ繧ｷ繝斐↑縺ｩ縺ｧ驕ｸ謚槭＆繧後◆譚先侭・井ｾ・ 辟｡濶ｲ繧ｬ繝ｩ繧ｹ・峨↓蟇ｾ縺励∝承繧ｯ繝ｪ繝・け繝ｬ繧ｷ繝皮判髱｢縺九ｉ蛻･蛟呵｣懶ｼ井ｾ・ 襍､濶ｲ繧ｬ繝ｩ繧ｹ・峨ｒ驕ｸ謚槭＠縺ｦ縲・縲阪・繧ｿ繝ｳ繧呈款縺励◆髫帙∬ｦｪ繝弱・繝峨・蜈･蜉帶攝譁吶Μ繧ｹ繝茨ｼ・customRecipeInputs・牙・縺ｮ隧ｲ蠖薙い繧､繝・Β繧定・蜍慕ｽｮ謠帙＠縲∵眠譚先侭縺ｮ繝ｬ繧ｷ繝斐ｒ螻暮幕縺吶ｋ讖滓ｧ九ｒ譁ｰ險ｭ縲ゅち繧ｰ繝ｬ繧ｷ繝斐〒繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ縺励◆莉ｻ諢上・濶ｲ繝ｻ譚先侭縺ｸ縺ｮ蛻・ｊ譖ｿ縺医′100%遒ｺ螳溘↓繝・Μ繝ｼ縺ｫ蜿肴丐縺輔ｌ繧九ｈ縺・隼蝟・・  - **繧ｻ繝・す繝ｧ繝ｳ豌ｸ邯壼喧縺ｮ蠑ｷ蛹・*: crafting_tree_session.json 縺ｫ prunedPaths 繧定ｿｽ蜉縺励√ご繝ｼ繝繧貞・襍ｷ蜍輔＠縺ｦ繧ょ炎髯､縺励◆鬆・岼縺悟享謇九↓蠕ｩ豢ｻ縺励↑縺・ｈ縺・憾諷倶ｿ晏ｭ倥ｒ蠕ｹ蠎輔・
+### [15.59.0.212-jeiuu.4-beta21] - 2026-11-13 (Beta)
+#### Fixed & Improved
+- **Fixed Inverted WASD & Arrow Key Camera Panning**:
+  - Corrected the directional signs for `W`/`Up` (up), `S`/`Down` (down), `A`/`Left` (left), and `D`/`Right` (right) so camera movement matches intuitive user direction, scaled by zoom level for consistent panning speed.
+- **Dual Deletion Modes (Single Node vs. All Identical Items)**:
+  - Updated the quantity adjustment screen with two explicit removal buttons: "Remove This Node & Branch Only (`Del`)" and "Remove All Identical Items & Branches (`Shift+Del`)".
+  - Added keyboard shortcuts directly on the tree canvas: `Delete` / `Backspace` removes only the hovered node and its branch, while `Shift + Delete` / `Shift + Backspace` removes all identical items and their branches across the entire tree.
+- **Complete Subtree Restoration When Re-Selecting Recipes After Deleting a Child Node**:
+  - Fixed an issue where deleting one of multiple child items and subsequently re-selecting the recipe did not restore the deleted child item.
+  - Re-selecting a parent node's recipe now automatically clears all descendant pruned paths (`prunedPaths`) and unprunes child keys (`prunedKeys` / `uncraftedKeys`). Furthermore, opening JEI via `R` / `U` keys and navigating to parent or child recipes before clicking `+` now intelligently resolves the target node and reliably restores all child ingredients.
+  - Unified duplicate ingredient slot aggregation across both initial tree generation and manual recipe selection.
+- **Crafting Tree Refactoring & Optimization**:
+  - Refactored `TreeLayout` anchor tracking to match nodes by `nodePath` and ingredient key, preventing camera jumping during layout recalculations.
+  - Prevented temporary cycling slot displays from polluting the global recipe UID cache in `TreeRecipeBuilder`.
+  - Cached lowercase tooltip strings per ingredient key to eliminate per-frame tooltip generation overhead during search highlighting.
+
 ---
 
 ### [15.59.0.212-jeiuu.4-beta20] - 2026-11-13 (Beta)
 #### Fixed & Improved
-- **Clean Node Pruning via Tree Paths (prunedPaths) & Full Tag Ingredient Substitution**:
+- **Clean Node Pruning via Tree Paths (`prunedPaths`) & Full Tag Ingredient Substitution**:
   - **Complete Node Deletion**: Replaced the behavior of leaving pruned nodes as uncrafted leaves with complete visual and structural removal of the selected node and its entire subtree from the canvas and requirements list upon deletion.
-  - **Path-Based Pruning (prunedPaths)**: Introduced hierarchical node path tracking (
-odePath) for deterministic, collision-free pruning. Pruning an item in one branch will never accidentally affect identical items in other branches, eliminating key-clash issues and residual ghost keys blocking recipe expansions.
-  - **Tag Ingredient Substitution (Colored Glass Switching)**: When switching a tag-resolved ingredient (e.g., clear glass) to another candidate (e.g., red stained glass) via the recipe GUI transfer button, the parent node's component inputs (customRecipeInputs) are automatically updated to replace the old ingredient with the chosen one, reliably reflecting custom materials in the tree.
-  - **Session Persistence**: Fully serialized prunedPaths into crafting_tree_session.json to guarantee deleted branches and substituted components remain faithfully preserved across game restarts.
+  - **Path-Based Pruning (`prunedPaths`)**: Introduced hierarchical node path tracking (`nodePath`) for deterministic, collision-free pruning. Pruning an item in one branch will never accidentally affect identical items in other branches, eliminating key-clash issues and residual ghost keys blocking recipe expansions.
+  - **Tag Ingredient Substitution (Colored Glass Switching)**: When switching a tag-resolved ingredient (e.g., clear glass) to another candidate (e.g., red stained glass) via the recipe GUI transfer button, the parent node's component inputs (`customRecipeInputs`) are automatically updated to replace the old ingredient with the chosen one, reliably reflecting custom materials in the tree.
+  - **Session Persistence**: Fully serialized `prunedPaths` into `crafting_tree_session.json` to guarantee deleted branches and substituted components remain faithfully preserved across game restarts.
 
 ---
 

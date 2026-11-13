@@ -17,18 +17,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Core crafting tree calculation engine with BigInteger precision.
- * Resolves recipe trees, handles stock allocation, manual quantity/recipe overrides,
- * non-consumable catalysts/molds, and builds the TreeGraph.
+ * Core calculation engine for the crafting tree.
+ * Resolves recipes, inventory deductions, craft multipliers, and recursive dependencies
+ * using arbitrary-precision BigInteger arithmetic.
  */
 public final class TreeMath {
-	private static final int MAX_DEPTH = 32;
+	private static final int MAX_DEPTH = 48;
 
 	private final List<RecipeChainInput> rootInputs;
 	private final Map<BookmarkIngredientKey, BigInteger> inventory;
@@ -150,22 +151,24 @@ public final class TreeMath {
 			|| uid.contains("mold")
 			|| uid.contains("cast")
 			|| uid.contains("die")
-			|| uid.contains("stamp")
+			|| uid.contains("template")
+			|| uid.contains("lens")
+			|| uid.contains("catalyst")
 			|| uid.contains("programmed_circuit");
 	}
 
 	/**
-	 * Executes full tree calculation and builds the TreeGraph.
+	 * Performs a full tree recalculation and returns the populated TreeGraph.
 	 */
 	public TreeGraph calculate() {
 		graph.clear();
 		allocatedInventory.clear();
 
-		// 1. Identify all ingredient keys consumed as inputs by any recipe in rootInputs
+		// 1. Scan which items are consumed as inputs by ANY recipe in this tree
 		Set<BookmarkIngredientKey> consumedKeys = new HashSet<>();
 		for (RecipeChainInput input : rootInputs) {
 			BookmarkItemMetadata meta = input.metadata();
-			if (meta.type().isGraphInput() || meta.type() == BookmarkItemType.INGREDIENT || meta.type() == BookmarkItemType.NONCONSUMABLE) {
+			if (meta.type().isGraphInput() || meta.type() == BookmarkItemType.INGREDIENT) {
 				BookmarkIngredientKey inKey = input.selectedKey();
 				if (inKey == null && !meta.permutations().isEmpty()) {
 					inKey = meta.permutations().iterator().next();
@@ -328,6 +331,7 @@ public final class TreeMath {
 		node.setForceCraft(force);
 		node.setManualAmountOverride(manualAmountOverrides.get(key));
 		node.setManualRecipeOverride(manualRecipeOverrides.get(key));
+		node.setNodePath(nodePath);
 		if (chosenRecipe != null && collapsedRecipes.contains(chosenRecipe)) {
 			node.setCollapsed(true);
 		}
@@ -336,12 +340,12 @@ public final class TreeMath {
 		if (chosenRecipe != null && depth < MAX_DEPTH && !visitedRecipes.contains(chosenRecipe)) {
 			visitedRecipes.add(chosenRecipe);
 
-			node.setNodePath(nodePath);
 			List<RecipeChildIngredient> subIngredients = findRecipeInputs(chosenRecipe, key, typedIngredient);
 			int childIdx = 0;
 			for (RecipeChildIngredient sub : subIngredients) {
-				String childPath = nodePath + "/" + childIdx++ + ":" + sub.key().ingredientUid();
-				if (isPathPruned(childPath) || prunedKeys.contains(sub.key())) {
+				String childPath = nodePath + "/" + sub.key().ingredientUid();
+				String legacyIndexedPath = nodePath + "/" + childIdx++ + ":" + sub.key().ingredientUid();
+				if (isPathPruned(childPath) || isPathPruned(legacyIndexedPath) || prunedKeys.contains(sub.key())) {
 					continue;
 				}
 				// Non-consumable items (molds, circuits) stay fixed at base amount without multiplier
@@ -352,7 +356,7 @@ public final class TreeMath {
 					sub.typedIngredient(),
 					sub.defaultRecipeUid(),
 					sub.recipeTypeUid(),
-					BigInteger.ONE, // Child node's base factor starts at 1, will use child recipe's own factor if configured
+					BigInteger.ONE,
 					BigInteger.ZERO,
 					subRequested,
 					visitedRecipes,
@@ -368,7 +372,6 @@ public final class TreeMath {
 			visitedRecipes.remove(chosenRecipe);
 		}
 
-		node.setNodePath(nodePath);
 		return node;
 	}
 
@@ -393,7 +396,7 @@ public final class TreeMath {
 		boolean hasCustomInputs = customRecipeInputs.containsKey(parentKey);
 
 		if (!hasManualOverride && !hasCustomInputs) {
-			// Check if inputs are available from rootInputs metadata
+			Map<BookmarkIngredientKey, RecipeChildIngredient> aggregated = new LinkedHashMap<>();
 			for (RecipeChainInput input : rootInputs) {
 				BookmarkItemMetadata meta = input.metadata();
 				if (recipeUid.equals(meta.recipeUid()) && (meta.type().isGraphInput() || meta.type() == BookmarkItemType.NONCONSUMABLE || meta.type() == BookmarkItemType.INGREDIENT)) {
@@ -402,16 +405,29 @@ public final class TreeMath {
 						inKey = meta.permutations().iterator().next();
 					}
 					if (inKey != null && !prunedKeys.contains(inKey)) {
-						results.add(new RecipeChildIngredient(
-							inKey,
-							input.selectedIngredient() != null ? input.selectedIngredient() : inKey.typedIngredient(),
-							meta.bigAmount().max(BigInteger.ONE),
-							manualRecipeOverrides.get(inKey),
-							meta.recipeTypeUid()
-						));
+						BigInteger count = meta.bigAmount().max(BigInteger.ONE);
+						RecipeChildIngredient existing = aggregated.get(inKey);
+						if (existing != null) {
+							aggregated.put(inKey, new RecipeChildIngredient(
+								inKey,
+								existing.typedIngredient(),
+								existing.amount().add(count),
+								existing.defaultRecipeUid(),
+								existing.recipeTypeUid()
+							));
+						} else {
+							aggregated.put(inKey, new RecipeChildIngredient(
+								inKey,
+								input.selectedIngredient() != null ? input.selectedIngredient() : inKey.typedIngredient(),
+								count,
+								manualRecipeOverrides.get(inKey),
+								meta.recipeTypeUid()
+							));
+						}
 					}
 				}
 			}
+			results.addAll(aggregated.values());
 		}
 
 		if (results.isEmpty()) {
@@ -422,7 +438,7 @@ public final class TreeMath {
 				effectiveInputs = info.inputs();
 			}
 			if (effectiveInputs != null && !effectiveInputs.isEmpty()) {
-				Map<BookmarkIngredientKey, RecipeChildIngredient> aggregated = new java.util.LinkedHashMap<>();
+				Map<BookmarkIngredientKey, RecipeChildIngredient> aggregated = new LinkedHashMap<>();
 				ResourceLocation catUid = info != null ? info.categoryUid() : null;
 				for (ITypedIngredient<?> inIng : effectiveInputs) {
 					BookmarkIngredientKey inKey = BookmarkItemMetadataFactory.createPermutationKey(inIng, Internal.getJeiRuntime().getIngredientManager());
@@ -430,7 +446,7 @@ public final class TreeMath {
 						continue;
 					}
 					RecipeChildIngredient existing = aggregated.get(inKey);
-					BigInteger count = BigInteger.valueOf(Math.max(1, BookmarkIngredientAmountResolver.getAmount(inIng, Internal.getJeiRuntime().getIngredientManager())));
+					BigInteger count = BigInteger.valueOf(Math.max(1L, BookmarkIngredientAmountResolver.getAmount(inIng, Internal.getJeiRuntime().getIngredientManager())));
 					if (existing != null) {
 						aggregated.put(inKey, new RecipeChildIngredient(
 							inKey,
@@ -450,9 +466,59 @@ public final class TreeMath {
 					}
 				}
 				results.addAll(aggregated.values());
+			} else {
+				// Last-resort fallback: scan rootInputs regardless of manual override flag
+				for (RecipeChainInput input : rootInputs) {
+					BookmarkItemMetadata meta = input.metadata();
+					if (recipeUid.equals(meta.recipeUid()) && (meta.type().isGraphInput() || meta.type() == BookmarkItemType.NONCONSUMABLE || meta.type() == BookmarkItemType.INGREDIENT)) {
+						BookmarkIngredientKey inKey = input.selectedKey();
+						if (inKey == null && !meta.permutations().isEmpty()) {
+							inKey = meta.permutations().iterator().next();
+						}
+						if (inKey != null && !prunedKeys.contains(inKey)) {
+							results.add(new RecipeChildIngredient(
+								inKey,
+								input.selectedIngredient() != null ? input.selectedIngredient() : inKey.typedIngredient(),
+								meta.bigAmount().max(BigInteger.ONE),
+								manualRecipeOverrides.get(inKey),
+								meta.recipeTypeUid()
+							));
+						}
+					}
+				}
 			}
 		}
 
-		return results;
+		// Populate default recipes for child ingredients if they appear as outputs in rootInputs
+		List<RecipeChildIngredient> resolvedResults = new ArrayList<>(results.size());
+		for (RecipeChildIngredient child : results) {
+			ResourceLocation defRecipe = child.defaultRecipeUid();
+			ResourceLocation defType = child.recipeTypeUid();
+			if (defRecipe == null) {
+				for (RecipeChainInput input : rootInputs) {
+					BookmarkItemMetadata meta = input.metadata();
+					if (meta.type().isGraphOutput() && meta.recipeUid() != null) {
+						BookmarkIngredientKey outKey = input.selectedKey();
+						if (outKey == null && !meta.permutations().isEmpty()) {
+							outKey = meta.permutations().iterator().next();
+						}
+						if (child.key().equals(outKey)) {
+							defRecipe = meta.recipeUid();
+							defType = meta.recipeTypeUid();
+							break;
+						}
+					}
+				}
+			}
+			resolvedResults.add(new RecipeChildIngredient(
+				child.key(),
+				child.typedIngredient(),
+				child.amount(),
+				defRecipe,
+				defType
+			));
+		}
+
+		return resolvedResults;
 	}
 }
