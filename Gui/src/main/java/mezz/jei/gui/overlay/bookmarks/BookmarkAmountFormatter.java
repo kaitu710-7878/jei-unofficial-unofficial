@@ -67,7 +67,7 @@ public final class BookmarkAmountFormatter {
 		} else if (amount < 1_000_000_000) {
 			formatted = formatCompact(amount, 1_000_000, "M");
 		} else if (amount < 1_000_000_000_000L) {
-			formatted = formatCompact(amount, 1_000_000_000L, "B");
+			formatted = formatCompact(amount, 1_000_000_000L, "G");
 		} else if (amount < 1_000_000_000_000_000L) {
 			formatted = formatCompact(amount, 1_000_000_000_000L, "T");
 		} else if (amount < 1_000_000_000_000_000_000L) {

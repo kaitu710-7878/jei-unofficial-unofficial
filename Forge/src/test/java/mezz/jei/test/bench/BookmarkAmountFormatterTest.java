@@ -39,8 +39,8 @@ public class BookmarkAmountFormatterTest {
 
 	@Test
 	public void formatItemAmountBillions() {
-		assertEquals("1B", BookmarkAmountFormatter.formatItemAmount(1_000_000_000L));
-		assertEquals("3.3B", BookmarkAmountFormatter.formatItemAmount(3_300_000_000L));
+		assertEquals("1G", BookmarkAmountFormatter.formatItemAmount(1_000_000_000L));
+		assertEquals("3.3G", BookmarkAmountFormatter.formatItemAmount(3_300_000_000L));
 	}
 
 	@Test

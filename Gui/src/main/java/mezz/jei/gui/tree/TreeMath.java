@@ -309,9 +309,10 @@ public final class TreeMath {
 		boolean force = forceCraftOverrides.contains(key);
 		BigInteger totalDemand = inheritAmount.add(requestedAmount);
 
-		// Determine stock allocation
-		BigInteger inStock = inventory.getOrDefault(key, BigInteger.ZERO);
-		BigInteger alreadyAllocated = allocatedInventory.getOrDefault(key, BigInteger.ZERO);
+		// Determine stock allocation (supports relaxed availability key matching like recipe chains)
+		BookmarkIngredientKey stockKey = inventory.containsKey(key) ? key : key.getCraftingAvailabilityKey();
+		BigInteger inStock = inventory.getOrDefault(stockKey, BigInteger.ZERO);
+		BigInteger alreadyAllocated = allocatedInventory.getOrDefault(stockKey, BigInteger.ZERO);
 		BigInteger availableStock = inStock.subtract(alreadyAllocated).max(BigInteger.ZERO);
 
 		BigInteger usedStock = BigInteger.ZERO;
@@ -319,7 +320,7 @@ public final class TreeMath {
 
 		if (!force && availableStock.signum() > 0) {
 			usedStock = availableStock.min(totalDemand);
-			allocatedInventory.put(key, alreadyAllocated.add(usedStock));
+			allocatedInventory.put(stockKey, alreadyAllocated.add(usedStock));
 			remainingToCraft = totalDemand.subtract(usedStock);
 		}
 

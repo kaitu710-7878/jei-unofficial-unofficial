@@ -35,8 +35,8 @@ public class BookmarkAmountFormatterTest {
 		Assertions.assertEquals("25M", BookmarkAmountFormatter.formatItemAmount(25_000_000));
 
 		// B (1,000,000,000)
-		Assertions.assertEquals("2B", BookmarkAmountFormatter.formatItemAmount(2_000_000_000L));
-		Assertions.assertEquals("100B", BookmarkAmountFormatter.formatItemAmount(100_000_000_000L));
+		Assertions.assertEquals("2G", BookmarkAmountFormatter.formatItemAmount(2_000_000_000L));
+		Assertions.assertEquals("100G", BookmarkAmountFormatter.formatItemAmount(100_000_000_000L));
 
 		// T (1,000,000,000,000)
 		Assertions.assertEquals("5T", BookmarkAmountFormatter.formatItemAmount(5_000_000_000_000L));

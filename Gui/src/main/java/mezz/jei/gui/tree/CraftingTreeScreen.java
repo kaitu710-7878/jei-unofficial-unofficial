@@ -437,7 +437,7 @@ public final class CraftingTreeScreen extends Screen {
 		this.groupId = -1;
 		this.ingredientManager = ingredientManager;
 		this.inventoryProvider = new PlayerInventoryRecipeChainTooltipInventoryProvider(Minecraft.getInstance(), ingredientManager);
-		this.targetIngredient = targetIngredient;
+		this.targetIngredient = normalizeTargetIngredient(targetIngredient, ingredientManager);
 		this.targetAmount = targetAmount.max(BigInteger.ONE);
 		this.targetRecipeOverride = targetRecipeOverride;
 
@@ -541,14 +541,34 @@ public final class CraftingTreeScreen extends Screen {
 		saveSession();
 	}
 
+	@SuppressWarnings("unchecked")
+	private static <T> @Nullable ITypedIngredient<?> normalizeTargetIngredient(@Nullable ITypedIngredient<T> ingredient, IIngredientManager ingredientManager) {
+		if (ingredient == null) {
+			return null;
+		}
+		try {
+			mezz.jei.api.ingredients.IIngredientHelper<T> helper = ingredientManager.getIngredientHelper(ingredient.getType());
+			T normalized = helper.normalizeIngredient(ingredient.getIngredient());
+			return ingredientManager.createTypedIngredient(ingredient.getType(), normalized).orElse(ingredient);
+		} catch (RuntimeException ignored) {
+			return ingredient;
+		}
+	}
+
 	private Map<BookmarkIngredientKey, BigInteger> readInventory() {
 		Map<BookmarkIngredientKey, BigInteger> stock = new HashMap<>();
 		for (ItemStack stack : inventoryProvider.getAvailableStacks()) {
 			if (!stack.isEmpty()) {
-				ingredientManager.createTypedIngredient(VanillaTypes.ITEM_STACK, stack.copy())
+				long count = stack.getCount();
+				if (count <= 0) {
+					continue;
+				}
+				ItemStack normalized = stack.copy();
+				normalized.setCount(1);
+				ingredientManager.createTypedIngredient(VanillaTypes.ITEM_STACK, normalized)
 					.ifPresent(typed -> {
 						BookmarkIngredientKey key = BookmarkItemMetadataFactory.createPermutationKey(typed, ingredientManager);
-						stock.merge(key, BigInteger.valueOf(stack.getCount()), BigInteger::add);
+						stock.merge(key, BigInteger.valueOf(count), BigInteger::add);
 					});
 			}
 		}

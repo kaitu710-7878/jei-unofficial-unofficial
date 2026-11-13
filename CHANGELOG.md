@@ -15,6 +15,16 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta26] - 2026-11-13 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **アイテム数量表記のSI接頭辞統一 (`B` → `G`)**:
+  - `BookmarkAmountFormatter.formatItemAmount` において、10^9 単位の表記が流体（`Gmb`）と異なり `"B"` になっていた箇所をSI接頭辞の `"G"` へ統一し、アイテム・流体ともに `K, M, G, T, P, E, Z, Y` および `e27` 以降の指数表記で完全に統一。
+- **BiggerStacks 環境におけるクラフトツリー完全対応**:
+  - `CraftingTreeScreen.readInventory` およびターゲットアイテム保持において、BiggerStacks 環境での 64 超え（127 超えを含む）巨大スタックをそのまま `createTypedIngredient` や NBT シリアライズへ渡さず、`count = 1` に正規化した上で実際の数量（`BigInteger`）を分離集計・引当するよう修正。
+  - `TreeMath` の在庫引当にも `getCraftingAvailabilityKey()` による柔軟なキー照合を導入し、レシピチェーンと同等の在庫引当・BiggerStacks 環境互換性を実現。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta25] - 2026-11-13 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **画面下部統計バーの「機械・ハンドラ別実行数」アイコンおよびツールチップ描画の修正**:
@@ -301,6 +311,16 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta26] - 2026-11-13 (Beta)
+#### Fixed & Improved
+- **Standardized Item Amount Formatting to SI Prefixes (`B` -> `G`)**:
+  - Updated `BookmarkAmountFormatter.formatItemAmount` to use the SI prefix `"G"` (Giga) instead of `"B"` for 10^9 quantities, aligning item formatting completely with fluid formatting (`K, M, G, T, P, E, Z, Y` and scientific notation above 10^27).
+- **Full BiggerStacks Compatibility for Crafting Trees**:
+  - Updated `CraftingTreeScreen.readInventory` and target ingredient normalization to normalize `ItemStack` counts to `1` before creating `ITypedIngredient` keys/snapshots while accumulating true `BigInteger` counts separately, preventing 64/127-byte stack count limits from breaking in BiggerStacks environments.
+  - Added `getCraftingAvailabilityKey()` fallback matching in `TreeMath` inventory allocation to match recipe chain stock behavior.
 
 ---
 
