@@ -15,6 +15,14 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta28] - 2026-11-24 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **検索システムおよびレシピ検索最適化MODとの非競合設計へ整理**:
+  - `BakedSubstringIndexBuilder` から不要なフォールバックラッパーを除去し、正規の shaded 構成におけるゼロオーバーヘッドな直接委譲を維持。
+  - `TreeRecipeBuilder` の独自レシピUID全件インデックス構築を撤去し、従来の JEI `IRecipeManager` 経由の検索へ一任することで、レシピ検索を高速化・最適化する外部MODと競合しないよう整理。汎用的なレシピ抽出の例外保護は維持。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta27] - 2026-11-24 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **検索インデックスのフォールバック保護 (`BakedSubstringIndexBuilder`)**:
@@ -326,6 +334,14 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta28] - 2026-11-24 (Beta)
+#### Fixed & Improved
+- **Streamlined Search & Recipe Lookup Compatibility with External Optimization Mods**:
+  - Removed the redundant fallback wrapper in `BakedSubstringIndexBuilder` to eliminate unnecessary runtime overhead in standard shaded builds.
+  - Removed the custom recipe UID pre-indexing in `TreeRecipeBuilder` and delegated recipe lookups back to JEI's `IRecipeManager` so external recipe search optimization mods can operate without conflict, while retaining generic exception isolation during recipe extraction.
 
 ---
 

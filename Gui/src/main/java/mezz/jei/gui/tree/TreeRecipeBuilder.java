@@ -61,46 +61,14 @@ public final class TreeRecipeBuilder {
 	}
 
 	public record RecipeTargetKey(ResourceLocation recipeUid, @Nullable BookmarkIngredientKey targetKey) {}
-	private record IndexedRecipe(IRecipeCategory<?> category, Object recipe) {}
 
 	// High-performance concurrency caches
 	private static final Map<RecipeTargetKey, RecipeInfo<?>> RECIPE_UID_CACHE = new ConcurrentHashMap<>();
 	private static final Map<BookmarkIngredientKey, List<RecipeInfo<?>>> CANDIDATES_CACHE = new ConcurrentHashMap<>();
-	private static volatile @Nullable Map<ResourceLocation, List<IndexedRecipe>> RECIPE_UID_INDEX;
 
 	public static void clearCache() {
 		RECIPE_UID_CACHE.clear();
 		CANDIDATES_CACHE.clear();
-		RECIPE_UID_INDEX = null;
-	}
-
-	private static Map<ResourceLocation, List<IndexedRecipe>> getOrBuildRecipeIndex(IRecipeManager recipeManager) {
-		Map<ResourceLocation, List<IndexedRecipe>> index = RECIPE_UID_INDEX;
-		if (index != null) {
-			return index;
-		}
-		Map<ResourceLocation, List<IndexedRecipe>> built = new ConcurrentHashMap<>(4096);
-		List<IRecipeCategory<?>> categories = recipeManager.createRecipeCategoryLookup().get().toList();
-		categories.parallelStream().forEach(category -> {
-			try {
-				List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().toList();
-				for (Object recipe : recipes) {
-					try {
-						ResourceLocation uid = category.getRegistryName(cast(recipe));
-						if (uid != null) {
-							built.computeIfAbsent(uid, k -> java.util.Collections.synchronizedList(new ArrayList<>(2)))
-								.add(new IndexedRecipe(category, recipe));
-						}
-					} catch (RuntimeException | LinkageError ignored) {
-						// Skip broken third-party recipes gracefully
-					}
-				}
-			} catch (RuntimeException | LinkageError ignored) {
-				// Skip broken third-party categories gracefully
-			}
-		});
-		RECIPE_UID_INDEX = built;
-		return built;
 	}
 
 	/**
@@ -174,28 +142,47 @@ public final class TreeRecipeBuilder {
 		}
 
 		IRecipeManager recipeManager = Internal.getJeiRuntime().getRecipeManager();
-		List<IndexedRecipe> indexed = getOrBuildRecipeIndex(recipeManager).getOrDefault(recipeUid, List.of());
+		List<IRecipeCategory<?>> categories = recipeManager.createRecipeCategoryLookup().get().toList();
 
-		// Fast O(1) lookup via indexed recipes matching matchTarget
+		// Delegate recipe lookup to JEI's IRecipeManager so external recipe-search optimization mods remain compatible
 		boolean requireMatch = matchTarget != null;
-		RecipeInfo<?> baseInfo = null;
-		for (IndexedRecipe entry : indexed) {
-			RecipeInfo<?> info = extractRecipeInfo(entry.category(), entry.recipe(), recipeUid, matchTarget, requireMatch);
-			if (info != null) {
-				baseInfo = info;
-				break;
-			}
-		}
+		RecipeInfo<?> baseInfo = categories.parallelStream()
+			.<RecipeInfo<?>>map(category -> {
+				List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().toList();
+				for (Object recipe : recipes) {
+					ResourceLocation uid = category.getRegistryName(cast(recipe));
+					if (recipeUid.equals(uid)) {
+						RecipeInfo<?> info = extractRecipeInfo(category, recipe, uid, matchTarget, requireMatch);
+						if (info != null) {
+							return info;
+						}
+					}
+				}
+				return null;
+			})
+			.filter(Objects::nonNull)
+			.findFirst()
+			.orElse(null);
 
 		if (baseInfo == null && matchTarget != null) {
 			// Fallback: search without target filter only if the category does not expose output slots
-			for (IndexedRecipe entry : indexed) {
-				RecipeInfo<?> info = extractRecipeInfo(entry.category(), entry.recipe(), recipeUid, null, false);
-				if (info != null) {
-					baseInfo = info;
-					break;
-				}
-			}
+			baseInfo = categories.parallelStream()
+				.<RecipeInfo<?>>map(category -> {
+					List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().toList();
+					for (Object recipe : recipes) {
+						ResourceLocation uid = category.getRegistryName(cast(recipe));
+						if (recipeUid.equals(uid)) {
+							RecipeInfo<?> info = extractRecipeInfo(category, recipe, uid, null, false);
+							if (info != null) {
+								return info;
+							}
+						}
+					}
+					return null;
+				})
+				.filter(Objects::nonNull)
+				.findFirst()
+				.orElse(null);
 
 			if (baseInfo != null) {
 				if (!baseInfo.outputs().isEmpty() && !hasMatchingOutput(baseInfo, matchTarget, ingredientManager)) {
