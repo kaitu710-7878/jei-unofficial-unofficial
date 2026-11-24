@@ -127,8 +127,8 @@ public class BookmarkInputHandler implements IUserInputHandler {
 			(input.getKey().getType() == com.mojang.blaze3d.platform.InputConstants.Type.MOUSE && input.getKey().getValue() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_MIDDLE);
 
 		if (isTreeTrigger) {
-			// 1. Check if hovering over a group (chain or regular) in bookmark overlay
-			Optional<Integer> groupIdOpt = bookmarkOverlay.getPullGroupIdUnderMouse(input.getMouseX(), input.getMouseY());
+			// 1. Check if hovering over a group (chain or custom group) in bookmark overlay
+			Optional<Integer> groupIdOpt = bookmarkOverlay.getTreeGroupIdUnderMouse(input.getMouseX(), input.getMouseY());
 			if (groupIdOpt.isPresent()) {
 				int targetGid = groupIdOpt.get();
 				if (!input.isSimulate()) {

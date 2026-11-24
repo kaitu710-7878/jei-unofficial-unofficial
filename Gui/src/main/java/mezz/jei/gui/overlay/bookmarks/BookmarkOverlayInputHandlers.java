@@ -137,7 +137,7 @@ public final class BookmarkOverlayInputHandlers {
 				(input.getKey().getType() == InputConstants.Type.KEYSYM && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_T);
 
 			if (isTreeKey) {
-				Optional<Integer> pullGid = overlay.getPullGroupIdUnderMouse(input.getMouseX(), input.getMouseY());
+				Optional<Integer> pullGid = overlay.getTreeGroupIdUnderMouse(input.getMouseX(), input.getMouseY());
 				if (pullGid.isPresent()) {
 					if (!input.isSimulate()) {
 						mezz.jei.gui.tree.CraftingTreeScreen.open(screen, overlay.getBookmarkList(), pullGid.get());
@@ -161,7 +161,7 @@ public final class BookmarkOverlayInputHandlers {
 
 			int mouseButton = input.getKey().getValue();
 			if (mouseButton == InputConstants.MOUSE_BUTTON_MIDDLE) {
-				Optional<Integer> pullGid = overlay.getPullGroupIdUnderMouse(input.getMouseX(), input.getMouseY());
+				Optional<Integer> pullGid = overlay.getTreeGroupIdUnderMouse(input.getMouseX(), input.getMouseY());
 				if (pullGid.isPresent()) {
 					if (!input.isSimulate()) {
 						mezz.jei.gui.tree.CraftingTreeScreen.open(screen, overlay.getBookmarkList(), pullGid.get());

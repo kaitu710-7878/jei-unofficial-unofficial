@@ -15,6 +15,15 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta29] - 2026-11-24 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **お気に入り登録アイテムからのツリー展開・レシピチェーン保存・セッション共有/履歴保持の根本修正**:
+  - **単体お気に入りアイテムのツリー展開経路の統一 (`BookmarkOverlay.getTreeGroupIdUnderMouse`)**: デフォルトグループ（`DEFAULT_GROUP_ID = 0`、かつ非チェーン）に属する通常のお気に入りアイテム上でツリーを開いた際、グループ全体（`groupId = 0`）ではなくアイテム単体（`openForIngredient`）として開くよう修正。これにより、お気に入り・インベントリ・JEI一覧のどこから同名アイテムを開いても同一のツリーセッションを共有できるようになりました。
+  - **レシピチェーン保存の確実な出力 (`CraftingTreeScreen.exportToBookmarkChain`)**: `groupId == 0` の場合やツリー編集が行われている場合に既存グループへのフラグ変更のみで終わってしまいチェーンが出力されなかった不具合を修正し、確実に新規レシピチェーンとして出力・登録されるよう改善（また保存後も元のアイテムセッションを破壊しないよう維持）。
+  - **マルチセッション履歴保持 (`sessionHistory`)**: 単一セッションの上書き保存から最大16件のLRU履歴保持へ拡張し、途中でインベントリの同名・別アイテムのツリーを開いても、お気に入りや別アイテムのツリー編集履歴が消滅せず復元されるよう強化。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta28] - 2026-11-24 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **検索システムおよびレシピ検索最適化MODとの非競合設計へ整理**:
@@ -334,6 +343,15 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta29] - 2026-11-24 (Beta)
+#### Fixed & Improved
+- **Fixed Bookmarked Item Tree Opening, Recipe Chain Export, and Multi-Session History Retention**:
+  - **Unified Tree Launch for Standalone Bookmarked Items (`BookmarkOverlay.getTreeGroupIdUnderMouse`)**: Opening a crafting tree from a regular bookmarked item in `DEFAULT_GROUP_ID` (non-chain) now opens it as an ingredient tree (`openForIngredient`) rather than treating the entire default group (`groupId = 0`) as a single tree. Bookmarks, inventory slots, and JEI ingredient list entries for the same item now seamlessly share the exact same tree session.
+  - **Reliable Recipe Chain Export (`CraftingTreeScreen.exportToBookmarkChain`)**: Fixed an issue where saving a tree while `groupId == 0` only toggled crafting mode on the default group without outputting a recipe chain. Saving now reliably creates a new recipe chain bookmark group whenever the tree originates from an item, the default group, or contains tree edits, without corrupting the active ingredient session.
+  - **Multi-Session LRU History (`sessionHistory`)**: Upgraded `crafting_tree_session.json` to retain up to 16 recent item/group sessions instead of overwriting a single active session, preventing tree customization history from being wiped when opening another item from the inventory.
 
 ---
 

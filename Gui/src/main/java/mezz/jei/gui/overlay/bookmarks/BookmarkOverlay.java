@@ -1034,6 +1034,16 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay, IC
 			.or(() -> getGroupIdUnderMouse(mouseX, mouseY));
 	}
 
+	public Optional<Integer> getTreeGroupIdUnderMouse(double mouseX, double mouseY) {
+		if (hasDefaultGroupBookmarks() && getDefaultGroupControlArea().contains(mouseX, mouseY)) {
+			return Optional.of(BookmarkGroupManager.DEFAULT_GROUP_ID);
+		}
+		return getGroupIdUnderMouseGroupPanel(mouseX, mouseY)
+			.or(() -> getGroupIdUnderMouse(mouseX, mouseY)
+				.filter(gid -> gid != BookmarkGroupManager.DEFAULT_GROUP_ID ||
+					bookmarkList.getGroup(gid).map(mezz.jei.gui.bookmarks.BookmarkGroup::craftingMode).orElse(false)));
+	}
+
 	public Optional<Integer> getPatternEncodeGroupIdUnderMouse(double mouseX, double mouseY) {
 		if (hasDefaultGroupBookmarks() && getDefaultGroupControlArea().contains(mouseX, mouseY)) {
 			return Optional.of(BookmarkGroupManager.DEFAULT_GROUP_ID);

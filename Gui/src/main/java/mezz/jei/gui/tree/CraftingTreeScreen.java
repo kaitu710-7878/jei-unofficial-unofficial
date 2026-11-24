@@ -129,90 +129,105 @@ public final class CraftingTreeScreen extends Screen {
 				.resolve("crafting_tree_session.json");
 		}
 
-		public void saveToFile(IIngredientManager ingredientManager) {
+		public @Nullable String getSessionKey(IIngredientManager ingredientManager) {
+			if (targetIngredientKey != null) {
+				return "item:" + targetIngredientKey.stableKey();
+			}
+			if (targetIngredient != null) {
+				return "item:" + BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager).stableKey();
+			}
+			if (groupId >= 0) {
+				return "group:" + groupId;
+			}
+			return null;
+		}
+
+		public JsonObject toJson(IIngredientManager ingredientManager) {
+			JsonObject root = new JsonObject();
+			root.addProperty("groupId", groupId);
+			root.addProperty("targetAmount", targetAmount.toString());
+			if (targetRecipeOverride != null) {
+				root.addProperty("targetRecipeOverride", targetRecipeOverride.toString());
+			}
+			if (targetIngredientKey != null) {
+				root.add("targetIngredientKey", BookmarkIngredientKeySerializer.serialize(targetIngredientKey));
+			} else if (targetIngredient != null) {
+				BookmarkIngredientKey key = BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager);
+				root.add("targetIngredientKey", BookmarkIngredientKeySerializer.serialize(key));
+			}
+			if (targetIngredient != null) {
+				TypedIngredientSerializer serializer = new TypedIngredientSerializer(ingredientManager);
+				root.addProperty("targetIngredient", serializer.serialize(targetIngredient));
+			}
+
+			JsonArray manualArr = new JsonArray();
+			for (Map.Entry<BookmarkIngredientKey, ResourceLocation> entry : manualRecipes.entrySet()) {
+				JsonObject item = new JsonObject();
+				item.add("key", BookmarkIngredientKeySerializer.serialize(entry.getKey()));
+				item.addProperty("recipe", entry.getValue().toString());
+				manualArr.add(item);
+			}
+			root.add("manualRecipes", manualArr);
+
+			JsonArray prunedArr = new JsonArray();
+			for (BookmarkIngredientKey pruned : prunedKeys) {
+				prunedArr.add(BookmarkIngredientKeySerializer.serialize(pruned));
+			}
+			root.add("prunedKeys", prunedArr);
+
+			JsonArray uncraftedArr = new JsonArray();
+			for (BookmarkIngredientKey uncrafted : uncraftedKeys) {
+				uncraftedArr.add(BookmarkIngredientKeySerializer.serialize(uncrafted));
+			}
+			root.add("uncraftedKeys", uncraftedArr);
+
+			JsonArray prunedPathsArr = new JsonArray();
+			for (String pathStr : prunedPaths) {
+				prunedPathsArr.add(pathStr);
+			}
+			root.add("prunedPaths", prunedPathsArr);
+
+			JsonArray customInputsArr = new JsonArray();
+			for (Map.Entry<BookmarkIngredientKey, List<ITypedIngredient<?>>> entry : customRecipeInputs.entrySet()) {
+				JsonObject obj = new JsonObject();
+				obj.add("key", BookmarkIngredientKeySerializer.serialize(entry.getKey()));
+				JsonArray inputsArr = new JsonArray();
+				for (ITypedIngredient<?> input : entry.getValue()) {
+					BookmarkIngredientKey inKey = BookmarkItemMetadataFactory.createPermutationKey(input, ingredientManager);
+					inputsArr.add(BookmarkIngredientKeySerializer.serialize(inKey));
+				}
+				obj.add("inputs", inputsArr);
+				customInputsArr.add(obj);
+			}
+			root.add("customRecipeInputs", customInputsArr);
+
+			root.addProperty("checkInventory", checkInventory);
+			root.addProperty("showStats", showStats);
+			root.addProperty("statsLabelMode", statsLabelMode);
+			root.addProperty("cameraPanX", cameraPanX);
+			root.addProperty("cameraPanY", cameraPanY);
+			root.addProperty("cameraZoom", cameraZoom);
+			return root;
+		}
+
+		public void saveToFile(IIngredientManager ingredientManager, Map<String, TreeSession> history) {
 			try {
 				Path path = getSessionFilePath();
 				Files.createDirectories(path.getParent());
-				JsonObject root = new JsonObject();
-				root.addProperty("groupId", groupId);
-				root.addProperty("targetAmount", targetAmount.toString());
-				if (targetRecipeOverride != null) {
-					root.addProperty("targetRecipeOverride", targetRecipeOverride.toString());
-				}
-				if (targetIngredientKey != null) {
-					root.add("targetIngredientKey", BookmarkIngredientKeySerializer.serialize(targetIngredientKey));
-				} else if (targetIngredient != null) {
-					BookmarkIngredientKey key = BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager);
-					root.add("targetIngredientKey", BookmarkIngredientKeySerializer.serialize(key));
-				}
-				if (targetIngredient != null) {
-					TypedIngredientSerializer serializer = new TypedIngredientSerializer(ingredientManager);
-					root.addProperty("targetIngredient", serializer.serialize(targetIngredient));
-				}
-
-				JsonArray manualArr = new JsonArray();
-				for (Map.Entry<BookmarkIngredientKey, ResourceLocation> entry : manualRecipes.entrySet()) {
-					JsonObject item = new JsonObject();
-					item.add("key", BookmarkIngredientKeySerializer.serialize(entry.getKey()));
-					item.addProperty("recipe", entry.getValue().toString());
-					manualArr.add(item);
-				}
-				root.add("manualRecipes", manualArr);
-
-				JsonArray prunedArr = new JsonArray();
-				for (BookmarkIngredientKey pruned : prunedKeys) {
-					prunedArr.add(BookmarkIngredientKeySerializer.serialize(pruned));
-				}
-				root.add("prunedKeys", prunedArr);
-
-				JsonArray uncraftedArr = new JsonArray();
-				for (BookmarkIngredientKey uncrafted : uncraftedKeys) {
-					uncraftedArr.add(BookmarkIngredientKeySerializer.serialize(uncrafted));
-				}
-				root.add("uncraftedKeys", uncraftedArr);
-
-				JsonArray prunedPathsArr = new JsonArray();
-				for (String pathStr : prunedPaths) {
-					prunedPathsArr.add(pathStr);
-				}
-				root.add("prunedPaths", prunedPathsArr);
-
-				JsonArray customInputsArr = new JsonArray();
-				for (Map.Entry<BookmarkIngredientKey, List<ITypedIngredient<?>>> entry : customRecipeInputs.entrySet()) {
-					JsonObject obj = new JsonObject();
-					obj.add("key", BookmarkIngredientKeySerializer.serialize(entry.getKey()));
-					JsonArray inputsArr = new JsonArray();
-					for (ITypedIngredient<?> input : entry.getValue()) {
-						BookmarkIngredientKey inKey = BookmarkItemMetadataFactory.createPermutationKey(input, ingredientManager);
-						inputsArr.add(BookmarkIngredientKeySerializer.serialize(inKey));
+				JsonObject root = toJson(ingredientManager);
+				JsonArray historyArr = new JsonArray();
+				for (TreeSession entry : history.values()) {
+					if (entry != this) {
+						historyArr.add(entry.toJson(ingredientManager));
 					}
-					obj.add("inputs", inputsArr);
-					customInputsArr.add(obj);
 				}
-				root.add("customRecipeInputs", customInputsArr);
-
-				root.addProperty("checkInventory", checkInventory);
-				root.addProperty("showStats", showStats);
-				root.addProperty("statsLabelMode", statsLabelMode);
-				root.addProperty("cameraPanX", cameraPanX);
-				root.addProperty("cameraPanY", cameraPanY);
-				root.addProperty("cameraZoom", cameraZoom);
-
+				root.add("history", historyArr);
 				Files.writeString(path, root.toString(), StandardCharsets.UTF_8);
 			} catch (Throwable ignored) {}
 		}
 
-		public static @Nullable TreeSession loadFromFile(IIngredientManager ingredientManager) {
+		public static @Nullable TreeSession fromJson(JsonObject root, IIngredientManager ingredientManager) {
 			try {
-				Path path = getSessionFilePath();
-				if (!Files.exists(path)) {
-					return null;
-				}
-				String content = Files.readString(path, StandardCharsets.UTF_8);
-				if (content.isBlank()) {
-					return null;
-				}
-				JsonObject root = JsonParser.parseString(content).getAsJsonObject();
 				TreeSession session = new TreeSession();
 				session.groupId = root.has("groupId") ? root.get("groupId").getAsInt() : -1;
 				if (root.has("targetAmount")) {
@@ -307,8 +322,51 @@ public final class CraftingTreeScreen extends Screen {
 			} catch (Throwable ignored) {}
 			return null;
 		}
+
+		public static @Nullable TreeSession loadFromFile(IIngredientManager ingredientManager, Map<String, TreeSession> history) {
+			try {
+				Path path = getSessionFilePath();
+				if (!Files.exists(path)) {
+					return null;
+				}
+				String content = Files.readString(path, StandardCharsets.UTF_8);
+				if (content.isBlank()) {
+					return null;
+				}
+				JsonObject root = JsonParser.parseString(content).getAsJsonObject();
+				if (root.has("history") && root.get("history").isJsonArray()) {
+					for (JsonElement elem : root.getAsJsonArray("history")) {
+						if (elem.isJsonObject()) {
+							TreeSession histSession = fromJson(elem.getAsJsonObject(), ingredientManager);
+							if (histSession != null) {
+								String key = histSession.getSessionKey(ingredientManager);
+								if (key != null) {
+									history.put(key, histSession);
+								}
+							}
+						}
+					}
+				}
+				TreeSession active = fromJson(root, ingredientManager);
+				if (active != null) {
+					String key = active.getSessionKey(ingredientManager);
+					if (key != null) {
+						history.put(key, active);
+					}
+				}
+				return active;
+			} catch (Throwable ignored) {}
+			return null;
+		}
 	}
 
+	private static final int MAX_SESSION_HISTORY = 16;
+	private static final Map<String, TreeSession> sessionHistory = new LinkedHashMap<>(16, 0.75f, true) {
+		@Override
+		protected boolean removeEldestEntry(Map.Entry<String, TreeSession> eldest) {
+			return size() > MAX_SESSION_HISTORY;
+		}
+	};
 	private static @Nullable TreeSession activeSession = null;
 	private @Nullable TreeSlot pendingRecipeTarget;
 
@@ -319,7 +377,7 @@ public final class CraftingTreeScreen extends Screen {
 		if (activeSession == null) {
 			try {
 				IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
-				activeSession = TreeSession.loadFromFile(ingredientManager);
+				activeSession = TreeSession.loadFromFile(ingredientManager, sessionHistory);
 			} catch (Throwable ignored) {}
 		}
 	}
@@ -406,18 +464,9 @@ public final class CraftingTreeScreen extends Screen {
 		this.targetAmount = BigInteger.ONE;
 		this.targetRecipeOverride = null;
 
-		if (activeSession != null && activeSession.groupId == groupId && groupId >= 0) {
-			this.manualRecipes.putAll(activeSession.manualRecipes);
-			this.customRecipeInputs.putAll(activeSession.customRecipeInputs);
-			this.prunedKeys.addAll(activeSession.prunedKeys);
-			this.uncraftedKeys.addAll(activeSession.uncraftedKeys);
-			this.prunedPaths.addAll(activeSession.prunedPaths);
-			this.checkInventory = activeSession.checkInventory;
-			this.showStats = activeSession.showStats;
-			this.statsLabelMode = activeSession.statsLabelMode;
-			this.camera.setScroll(activeSession.cameraPanX, activeSession.cameraPanY);
-			this.camera.setZoomLevel(activeSession.cameraZoom);
-			this.cameraInitialized = true;
+		TreeSession restored = findGroupSession(groupId);
+		if (restored != null) {
+			restoreFromSession(restored, false);
 		}
 
 		rebuildTreeMath();
@@ -442,64 +491,105 @@ public final class CraftingTreeScreen extends Screen {
 		this.targetAmount = targetAmount.max(BigInteger.ONE);
 		this.targetRecipeOverride = targetRecipeOverride;
 
-		// Restore session if working on the same target ingredient
-		if (activeSession != null) {
-			BookmarkIngredientKey activeKey = activeSession.targetIngredientKey != null
-				? activeSession.targetIngredientKey
-				: (activeSession.targetIngredient != null ? BookmarkItemMetadataFactory.createPermutationKey(activeSession.targetIngredient, ingredientManager) : null);
-			BookmarkIngredientKey currentKey = BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager);
-			if (activeKey != null && (activeKey.equals(currentKey) || activeKey.matchesCraftingAvailable(currentKey))) {
-				this.manualRecipes.putAll(activeSession.manualRecipes);
-				this.customRecipeInputs.putAll(activeSession.customRecipeInputs);
-				this.prunedKeys.addAll(activeSession.prunedKeys);
-				this.uncraftedKeys.addAll(activeSession.uncraftedKeys);
-				this.prunedPaths.addAll(activeSession.prunedPaths);
-				if (activeSession.targetRecipeOverride != null) {
-					this.targetRecipeOverride = activeSession.targetRecipeOverride;
-				}
-				this.targetAmount = activeSession.targetAmount.max(BigInteger.ONE);
-				this.checkInventory = activeSession.checkInventory;
-				this.showStats = activeSession.showStats;
-				this.statsLabelMode = activeSession.statsLabelMode;
-				this.camera.setScroll(activeSession.cameraPanX, activeSession.cameraPanY);
-				this.camera.setZoomLevel(activeSession.cameraZoom);
-				this.cameraInitialized = true;
-			}
+		// Restore session if working on the same target ingredient (across bookmarks, inventory, JEI list, or history)
+		ITypedIngredient<?> effectiveIng = this.targetIngredient != null ? this.targetIngredient : targetIngredient;
+		BookmarkIngredientKey currentKey = BookmarkItemMetadataFactory.createPermutationKey(effectiveIng, ingredientManager);
+		TreeSession restored = findIngredientSession(currentKey);
+		if (restored != null) {
+			restoreFromSession(restored, true);
 		}
 
 		rebuildTreeMath();
+	}
+
+	private @Nullable TreeSession findGroupSession(int gid) {
+		if (gid < 0) {
+			return null;
+		}
+		TreeSession hist = sessionHistory.get("group:" + gid);
+		if (hist != null) {
+			return hist;
+		}
+		if (activeSession != null && activeSession.groupId == gid) {
+			return activeSession;
+		}
+		return null;
+	}
+
+	private @Nullable TreeSession findIngredientSession(BookmarkIngredientKey currentKey) {
+		TreeSession exact = sessionHistory.get("item:" + currentKey.stableKey());
+		if (exact != null) {
+			return exact;
+		}
+		if (activeSession != null && matchesSessionKey(activeSession, currentKey)) {
+			return activeSession;
+		}
+		// Search history in reverse insertion/access order for relaxed crafting availability match
+		List<TreeSession> candidates = new ArrayList<>(sessionHistory.values());
+		for (int i = candidates.size() - 1; i >= 0; i--) {
+			TreeSession s = candidates.get(i);
+			if (matchesSessionKey(s, currentKey)) {
+				return s;
+			}
+		}
+		return null;
+	}
+
+	private boolean matchesSessionKey(TreeSession session, BookmarkIngredientKey currentKey) {
+		BookmarkIngredientKey sessionKey = session.targetIngredientKey != null
+			? session.targetIngredientKey
+			: (session.targetIngredient != null ? BookmarkItemMetadataFactory.createPermutationKey(session.targetIngredient, ingredientManager) : null);
+		return sessionKey != null && (sessionKey.equals(currentKey) || sessionKey.matchesCraftingAvailable(currentKey));
+	}
+
+	private void restoreFromSession(TreeSession session, boolean restoreTargetFields) {
+		this.manualRecipes.putAll(session.manualRecipes);
+		this.customRecipeInputs.putAll(session.customRecipeInputs);
+		this.prunedKeys.addAll(session.prunedKeys);
+		this.uncraftedKeys.addAll(session.uncraftedKeys);
+		this.prunedPaths.addAll(session.prunedPaths);
+		if (restoreTargetFields) {
+			if (session.targetRecipeOverride != null) {
+				this.targetRecipeOverride = session.targetRecipeOverride;
+			}
+			this.targetAmount = session.targetAmount.max(BigInteger.ONE);
+		}
+		this.checkInventory = session.checkInventory;
+		this.showStats = session.showStats;
+		this.statsLabelMode = session.statsLabelMode;
+		this.camera.setScroll(session.cameraPanX, session.cameraPanY);
+		this.camera.setZoomLevel(session.cameraZoom);
+		this.cameraInitialized = true;
 	}
 
 	private void saveSession() {
 		if (targetIngredient == null && groupId < 0) {
 			return;
 		}
-		if (activeSession == null) {
-			activeSession = new TreeSession();
-		}
-		activeSession.groupId = this.groupId;
-		activeSession.targetIngredient = this.targetIngredient;
-		activeSession.targetIngredientKey = this.targetIngredient != null ? BookmarkItemMetadataFactory.createPermutationKey(this.targetIngredient, this.ingredientManager) : null;
-		activeSession.targetAmount = this.targetAmount;
-		activeSession.targetRecipeOverride = this.targetRecipeOverride;
-		activeSession.manualRecipes.clear();
-		activeSession.manualRecipes.putAll(this.manualRecipes);
-		activeSession.customRecipeInputs.clear();
-		activeSession.customRecipeInputs.putAll(this.customRecipeInputs);
-		activeSession.prunedKeys.clear();
-		activeSession.prunedKeys.addAll(this.prunedKeys);
-		activeSession.uncraftedKeys.clear();
-		activeSession.uncraftedKeys.addAll(this.uncraftedKeys);
-		activeSession.prunedPaths.clear();
-		activeSession.prunedPaths.addAll(this.prunedPaths);
-		activeSession.checkInventory = this.checkInventory;
-		activeSession.showStats = this.showStats;
-		activeSession.statsLabelMode = this.statsLabelMode;
-		activeSession.cameraPanX = this.camera.getScrollX();
-		activeSession.cameraPanY = this.camera.getScrollY();
-		activeSession.cameraZoom = this.camera.getZoomLevel();
+		TreeSession session = new TreeSession();
+		session.groupId = this.groupId;
+		session.targetIngredient = this.targetIngredient;
+		session.targetIngredientKey = this.targetIngredient != null ? BookmarkItemMetadataFactory.createPermutationKey(this.targetIngredient, this.ingredientManager) : null;
+		session.targetAmount = this.targetAmount;
+		session.targetRecipeOverride = this.targetRecipeOverride;
+		session.manualRecipes.putAll(this.manualRecipes);
+		session.customRecipeInputs.putAll(this.customRecipeInputs);
+		session.prunedKeys.addAll(this.prunedKeys);
+		session.uncraftedKeys.addAll(this.uncraftedKeys);
+		session.prunedPaths.addAll(this.prunedPaths);
+		session.checkInventory = this.checkInventory;
+		session.showStats = this.showStats;
+		session.statsLabelMode = this.statsLabelMode;
+		session.cameraPanX = this.camera.getScrollX();
+		session.cameraPanY = this.camera.getScrollY();
+		session.cameraZoom = this.camera.getZoomLevel();
 
-		activeSession.saveToFile(this.ingredientManager);
+		activeSession = session;
+		String key = session.getSessionKey(this.ingredientManager);
+		if (key != null) {
+			sessionHistory.put(key, session);
+		}
+		session.saveToFile(this.ingredientManager, sessionHistory);
 	}
 
 	private void rebuildTreeMath() {
@@ -1010,18 +1100,18 @@ public final class CraftingTreeScreen extends Screen {
 	}
 
 	private void exportToBookmarkChain() {
-		if (groupId >= 0) {
-			TreeChainBridge.exportTreeToBookmarkGroup(bookmarks, groupId, graph, treeMath.getCollapsedRecipes());
-			if (minecraft != null && minecraft.player != null) {
-				minecraft.player.displayClientMessage(Component.translatable("jei.tree.save_chain.success").withStyle(ChatFormatting.GREEN), false);
-			}
-		} else {
+		boolean hasTreeEdits = !manualRecipes.isEmpty() || !prunedPaths.isEmpty() || !prunedKeys.isEmpty() || !uncraftedKeys.isEmpty() || !customRecipeInputs.isEmpty() || targetRecipeOverride != null;
+		if (groupId < 0 || groupId == mezz.jei.gui.bookmarks.BookmarkGroupManager.DEFAULT_GROUP_ID || hasTreeEdits) {
 			Optional<Integer> newGid = TreeChainBridge.saveTreeAsNewBookmarkGroup(bookmarks, graph, ingredientManager);
 			if (newGid.isPresent()) {
-				this.groupId = newGid.get();
 				if (minecraft != null && minecraft.player != null) {
 					minecraft.player.displayClientMessage(Component.translatable("jei.tree.save_chain.success").withStyle(ChatFormatting.GREEN), false);
 				}
+			}
+		} else {
+			TreeChainBridge.exportTreeToBookmarkGroup(bookmarks, groupId, graph, treeMath.getCollapsedRecipes());
+			if (minecraft != null && minecraft.player != null) {
+				minecraft.player.displayClientMessage(Component.translatable("jei.tree.save_chain.success").withStyle(ChatFormatting.GREEN), false);
 			}
 		}
 	}
