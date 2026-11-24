@@ -29,6 +29,9 @@ public class Ae2BookmarkPullTransferHandler implements ServerBookmarkPullTransfe
 	public static Optional<Ae2BookmarkPullTransferHandler> createIfLoaded() {
 		try {
 			return Optional.of(new Ae2BookmarkPullTransferHandler(new ReflectionStorageAccess()));
+		} catch (ClassNotFoundException e) {
+			LOGGER.debug("AE2 not present, skipping AE2 bookmark pull bridge");
+			return Optional.empty();
 		} catch (ReflectiveOperationException | LinkageError e) {
 			LOGGER.warn("Failed to initialize AE2 bookmark pull bridge", e);
 			return Optional.empty();

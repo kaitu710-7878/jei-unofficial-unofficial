@@ -15,6 +15,21 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta27] - 2026-11-24 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **検索インデックスのフォールバック保護 (`BakedSubstringIndexBuilder`)**:
+  - 万が一 `BakedSubstringIndex` ライブラリが見つからない環境（誤って `-unshaded.jar` が導入された場合やクラスローダー競合時など）でも、`NoClassDefFoundError` で `ForgeGuiPlugin` や検索UIがクラッシュせず、軽量のインメモリ部分一致検索ストレージへ安全にフォールバックするよう防御機構を追加。
+- **クラフトツリーレシピ検索の O(1) インデックス化と他MOD互換性強化 (`TreeRecipeBuilder`)**:
+  - `TreeRecipeBuilder.findRecipe` が毎回全カテゴリ（145以上）× 全レシピを線形走査していた処理を、初回構築型の並列 `RECIPE_UID_INDEX`（O(1) ルックアップ）へ改修し、大規模Modpack（GTCEu, EnderIO等）でのツリー展開・再計算速度を大幅に高速化。
+  - `extractRecipeInfo` およびインデックス構築に例外保護（`RuntimeException` / `LinkageError` キャッチ）を追加し、他MODの破損レシピや特殊カテゴリがツリー全体の計算を巻き添え停止させないよう耐性を強化。
+- **起動時デバッグ自己チェックの撤去とログクリーン化**:
+  - `JeiRuntime` に残存していた起動時の全GTカテゴリ走査デバッグ処理（`[Bug5SelfCheck]`）を撤去し、起動速度・メモリ効率およびログ視認性を改善。
+  - AE2 未導入環境で `Ae2BookmarkPullTransferHandler` / `Ae2BookmarkStorageSnapshotProvider` が不要な `WARN` ログを出していた箇所を `DEBUG` レベルへ適正化。
+- **ツリー描画時の正規化キャッシュ (`CraftingTreeScreen`)**:
+  - `renderTypedIngredient` 内の `normalizeIngredient` 結果を `IdentityHashMap` でキャッシュし、毎フレーム描画時のスタックコピーによるGC負荷を削減。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta26] - 2026-11-13 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **アイテム数量表記のSI接頭辞統一 (`B` → `G`)**:
@@ -311,6 +326,21 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta27] - 2026-11-24 (Beta)
+#### Fixed & Improved
+- **Defensive Search Index Fallback (`BakedSubstringIndexBuilder`)**:
+  - Added a defensive availability check and in-memory substring fallback in `BakedSubstringIndexBuilder` so JEI GUI and recipe search no longer crash with `NoClassDefFoundError` if `BakedSubstringIndex` is unavailable (e.g., if an unshaded JAR is accidentally installed or a classloader conflict occurs).
+- **O(1) Recipe UID Indexing & Third-Party Mod Fault Isolation (`TreeRecipeBuilder`)**:
+  - Replaced repeated full-category linear scans in `TreeRecipeBuilder.findRecipe` with a lazily built parallel `RECIPE_UID_INDEX`, dramatically accelerating tree expansion and recalculation in large modpacks (GTCEu, EnderIO, etc.).
+  - Wrapped recipe layout extraction and index scanning in `RuntimeException | LinkageError` guards so broken third-party recipes cannot abort tree calculations.
+- **Removed Startup Debug Scan & Cleaned Up Logs**:
+  - Removed the leftover `[Bug5SelfCheck]` startup scan in `JeiRuntime` that was unnecessarily scanning GTCEu recipe layouts on every launch.
+  - Lowered expected `ClassNotFoundException` logs in `Ae2BookmarkPullTransferHandler` and `Ae2BookmarkStorageSnapshotProvider` from `WARN` to `DEBUG` when AE2 is not installed.
+- **Per-Frame Ingredient Normalization Cache (`CraftingTreeScreen`)**:
+  - Cached normalized ingredient objects in an `IdentityHashMap` inside `CraftingTreeScreen` to eliminate per-frame stack copy allocations during tree rendering.
 
 ---
 

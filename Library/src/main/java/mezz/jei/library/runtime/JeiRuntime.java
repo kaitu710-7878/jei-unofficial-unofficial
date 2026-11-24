@@ -71,60 +71,6 @@ public class JeiRuntime implements IJeiRuntime {
 		this.jeiHelpers = jeiHelpers;
 		this.screenHelper = screenHelper;
 		this.configManager = configManager;
-		debugSelfCheck(recipeManager, ingredientManager);
-	}
-
-	private static void debugSelfCheck(IRecipeManager recipeManager, IIngredientManager ingredientManager) {
-		try {
-			LOGGER.info("[Bug5SelfCheck] begin");
-			List<IRecipeCategory<?>> categories = recipeManager.createRecipeCategoryLookup().get().toList();
-			LOGGER.info("[Bug5SelfCheck] total categories: {}", categories.size());
-			int gtCategories = 0;
-			int recipesScanned = 0;
-			int multiSlotsFound = 0;
-			for (IRecipeCategory<?> category : categories) {
-				String uid = category.getRecipeType().getUid().toString();
-				if (!uid.contains("gregtech") && !uid.contains("gtceu")) {
-					continue;
-				}
-				gtCategories++;
-				List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().limit(60).toList();
-				LOGGER.info("[Bug5SelfCheck] GT category: {} scanRecipes={}", uid, recipes.size());
-				for (Object recipe : recipes) {
-					@SuppressWarnings({"unchecked", "rawtypes"})
-					Optional<? extends IRecipeLayoutDrawable<?>> layoutOpt = (Optional) recipeManager.createRecipeLayoutDrawable((IRecipeCategory) category, recipe, FocusGroup.EMPTY);
-					if (layoutOpt.isEmpty()) {
-						continue;
-					}
-					IRecipeLayoutDrawable<?> layout = layoutOpt.get();
-					IRecipeSlotsView slotsView = layout.getRecipeSlotsView();
-					List<IRecipeSlotView> inputSlots = slotsView.getSlotViews(RecipeIngredientRole.INPUT);
-					for (int i = 0; i < inputSlots.size(); i++) {
-						IRecipeSlotView slot = inputSlots.get(i);
-						List<ITypedIngredient<?>> ings = slot.getAllIngredients().toList();
-						if (ings.size() > 1) {
-							multiSlotsFound++;
-							String first = ings.get(0).getIngredient().toString();
-							LOGGER.info("[Bug5SelfCheck]   MULTI cat={} slotName={} count={} first={}", uid, slot.getSlotName().orElse("?"), ings.size(), first);
-							if (multiSlotsFound >= 12) {
-								break;
-							}
-						}
-					}
-					recipesScanned++;
-					if (multiSlotsFound >= 12) {
-						break;
-					}
-				}
-				if (multiSlotsFound >= 12) {
-					break;
-				}
-			}
-			LOGGER.info("[Bug5SelfCheck] gtCategories={} recipesScanned={} multiSlotsFound={}", gtCategories, recipesScanned, multiSlotsFound);
-			LOGGER.info("[Bug5SelfCheck] end");
-		} catch (Throwable t) {
-			LOGGER.error("[Bug5SelfCheck] FAILED", t);
-		}
 	}
 
 	@Override

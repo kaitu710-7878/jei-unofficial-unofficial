@@ -27,6 +27,9 @@ public class Ae2BookmarkStorageSnapshotProvider implements BookmarkExternalStora
 	public static Optional<Ae2BookmarkStorageSnapshotProvider> createIfLoaded() {
 		try {
 			return Optional.of(new Ae2BookmarkStorageSnapshotProvider(new ReflectionEntryReader()));
+		} catch (ClassNotFoundException e) {
+			LOGGER.debug("AE2 not present, skipping AE2 bookmark storage snapshot bridge");
+			return Optional.empty();
 		} catch (ReflectiveOperationException | LinkageError e) {
 			LOGGER.warn("Failed to initialize AE2 bookmark storage snapshot bridge", e);
 			return Optional.empty();

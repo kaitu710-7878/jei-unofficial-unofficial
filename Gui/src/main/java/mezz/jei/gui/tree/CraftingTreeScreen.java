@@ -83,6 +83,7 @@ public final class CraftingTreeScreen extends Screen {
 	private final Set<String> prunedPaths = new HashSet<>();
 	private final Map<BookmarkIngredientKey, List<ITypedIngredient<?>>> customRecipeInputs = new LinkedHashMap<>();
 	private final Map<BookmarkIngredientKey, String> searchTextCache = new HashMap<>();
+	private final Map<ITypedIngredient<?>, Object> normalizedIngredientCache = new java.util.IdentityHashMap<>();
 	private final Map<ResourceLocation, mezz.jei.api.recipe.category.IRecipeCategory<?>> categoryCache = new HashMap<>();
 
 	private final TreeCamera camera = new TreeCamera();
@@ -1195,13 +1196,16 @@ public final class CraftingTreeScreen extends Screen {
 	@SuppressWarnings("unchecked")
 	private <T> void renderTypedIngredient(GuiGraphics g, ITypedIngredient<T> typed, float x, float y, float scale) {
 		IIngredientRenderer<T> renderer = ingredientManager.getIngredientRenderer(typed.getType());
-		mezz.jei.api.ingredients.IIngredientHelper<T> helper = ingredientManager.getIngredientHelper(typed.getType());
-		T ingredient = helper.normalizeIngredient(typed.getIngredient());
-		if (ingredient instanceof ItemStack stack && stack.getCount() > 1) {
-			ItemStack single = stack.copy();
-			single.setCount(1);
-			ingredient = (T) single;
-		}
+		T ingredient = (T) normalizedIngredientCache.computeIfAbsent(typed, key -> {
+			mezz.jei.api.ingredients.IIngredientHelper<T> helper = ingredientManager.getIngredientHelper(typed.getType());
+			T norm = helper.normalizeIngredient(typed.getIngredient());
+			if (norm instanceof ItemStack stack && stack.getCount() > 1) {
+				ItemStack single = stack.copy();
+				single.setCount(1);
+				return single;
+			}
+			return norm;
+		});
 		int rendererW = Math.max(1, renderer.getWidth());
 		int rendererH = Math.max(1, renderer.getHeight());
 		float scaleX = scale * (16.0f / rendererW);
