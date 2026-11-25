@@ -192,9 +192,17 @@ public final class CraftingTreeScreen extends Screen {
 				JsonObject obj = new JsonObject();
 				obj.add("key", BookmarkIngredientKeySerializer.serialize(entry.getKey()));
 				JsonArray inputsArr = new JsonArray();
+				TypedIngredientSerializer typedSerializer = new TypedIngredientSerializer(ingredientManager);
 				for (ITypedIngredient<?> input : entry.getValue()) {
 					BookmarkIngredientKey inKey = BookmarkItemMetadataFactory.createPermutationKey(input, ingredientManager);
-					inputsArr.add(BookmarkIngredientKeySerializer.serialize(inKey));
+					JsonObject inObj = BookmarkIngredientKeySerializer.serialize(inKey);
+					try {
+						String serialized = typedSerializer.serialize(input);
+						if (serialized != null && !serialized.isBlank()) {
+							inObj.addProperty("typed", serialized);
+						}
+					} catch (Throwable ignored) {}
+					inputsArr.add(inObj);
 				}
 				obj.add("inputs", inputsArr);
 				customInputsArr.add(obj);
@@ -286,9 +294,21 @@ public final class CraftingTreeScreen extends Screen {
 							if (obj.has("inputs") && obj.get("inputs").isJsonArray()) {
 								List<ITypedIngredient<?>> resolvedList = new ArrayList<>();
 								JsonArray inArr = obj.getAsJsonArray("inputs");
+								TypedIngredientSerializer typedSerializer = new TypedIngredientSerializer(ingredientManager);
 								for (JsonElement inElem : inArr) {
-									BookmarkIngredientKey inKey = BookmarkIngredientKeySerializer.deserialize(inElem);
-									inKey.resolveIngredient(ingredientManager).ifPresent(resolvedList::add);
+									ITypedIngredient<?> resolved = null;
+									if (inElem.isJsonObject() && inElem.getAsJsonObject().has("typed")) {
+										try {
+											resolved = typedSerializer.deserialize(inElem.getAsJsonObject().get("typed").getAsString()).getResult().orElse(null);
+										} catch (Throwable ignored) {}
+									}
+									if (resolved == null) {
+										BookmarkIngredientKey inKey = BookmarkIngredientKeySerializer.deserialize(inElem);
+										resolved = inKey.resolveIngredient(ingredientManager).orElse(null);
+									}
+									if (resolved != null) {
+										resolvedList.add(resolved);
+									}
 								}
 								// Only store custom inputs if all elements were safely resolved to prevent ingredient loss
 								if (!resolvedList.isEmpty() && resolvedList.size() == inArr.size()) {
@@ -917,6 +937,7 @@ public final class CraftingTreeScreen extends Screen {
 
 		this.manualRecipes.put(targetKey, recipeUid);
 		applyCyclingCustomInputs(layout, info, targetKey);
+		lockAncestorsCustomInputs(effectiveTarget);
 
 		// Ensure target and all inputs of the newly selected recipe (plus base recipe inputs) are unpruned
 		this.uncraftedKeys.remove(targetKey);
@@ -944,6 +965,52 @@ public final class CraftingTreeScreen extends Screen {
 			this.customRecipeInputs.put(targetKey, new ArrayList<>(info.inputs()));
 		} else {
 			this.customRecipeInputs.remove(targetKey);
+		}
+	}
+
+	/**
+	 * Locks the currently chosen concrete child ingredients into each ancestor's customRecipeInputs
+	 * when a child branch is explicitly configured, ensuring tag/cycling choices stay deterministic across restarts.
+	 */
+	private void lockAncestorsCustomInputs(TreeSlot node) {
+		if (graph == null) {
+			return;
+		}
+		TreeSlot current = node;
+		TreeSlot parent = graph.getParent(current);
+		while (parent != null) {
+			BookmarkIngredientKey parentKey = parent.getKey();
+			if (parentKey != null && !this.customRecipeInputs.containsKey(parentKey)) {
+				ResourceLocation parentRec = parent.getRecipeUid();
+				if (parentRec != null) {
+					List<ITypedIngredient<?>> locked = new ArrayList<>();
+					for (TreeSlot child : graph.getChildren(parent)) {
+						child.getTypedIngredient().ifPresent(locked::add);
+					}
+					if (!locked.isEmpty()) {
+						// Preserve exact recipe base amounts if the parent recipe has multiple identical slots or extra items
+						TreeRecipeBuilder.RecipeInfo<?> pInfo = TreeRecipeBuilder.findRecipe(parentRec, parent.getTypedIngredient().orElse(null));
+						if (pInfo != null && pInfo.inputs().size() == locked.size()) {
+							this.customRecipeInputs.put(parentKey, locked);
+						} else if (pInfo != null && !pInfo.inputs().isEmpty()) {
+							List<ITypedIngredient<?>> merged = new ArrayList<>(pInfo.inputs());
+							for (int i = 0; i < merged.size(); i++) {
+								BookmarkIngredientKey baseK = BookmarkItemMetadataFactory.createPermutationKey(merged.get(i), ingredientManager);
+								for (ITypedIngredient<?> childIng : locked) {
+									BookmarkIngredientKey childK = BookmarkItemMetadataFactory.createPermutationKey(childIng, ingredientManager);
+									if (baseK.equals(childK)) {
+										merged.set(i, childIng);
+										break;
+									}
+								}
+							}
+							this.customRecipeInputs.put(parentKey, merged);
+						}
+					}
+				}
+			}
+			current = parent;
+			parent = graph.getParent(current);
 		}
 	}
 
@@ -1018,6 +1085,7 @@ public final class CraftingTreeScreen extends Screen {
 			}
 			this.manualRecipes.put(targetKey, recipeUid);
 			this.customRecipeInputs.remove(targetKey);
+			lockAncestorsCustomInputs(effectiveTarget);
 
 			// Ensure target is active and not marked uncrafted or pruned
 			this.uncraftedKeys.remove(targetKey);

@@ -15,6 +15,17 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta30] - 2026-11-25 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **レシピID未登録（`getRegistryName == null`）のカスタムレシピをツリーへ登録・永続化できるよう汎用対応 (`TreeRecipeBuilder`)**:
+  - 一部MODのカスタム機械・独自カテゴリ等で `IRecipeCategory.getRegistryName(recipe)` が `null` を返すレシピを選択した際、`findRecipesFor` でスキップされたり、`createFromLayout` が一時的な `System.identityHashCode` を生成して `findRecipe` で再取得できずツリーに登録できなかった問題を修正。
+  - カテゴリUIDおよび入出力スロットの構成から決定的なハッシュUID（`*_synth_<hash>`）を生成・照合する汎用ロジックを導入し、登録名を持たないレシピでもツリーへの登録・展開・再起動後のセッション復元が確実に動作するよう改善。
+- **タグ（サイクリングスロット）選択内容の再起動時シャッフル防止 (`TreeRecipeBuilder` & `CraftingTreeScreen`)**:
+  - `TreeRecipeBuilder.extractRecipeInfo` が時間経過で切り替わる `getDisplayedIngredient()` やタグの非決定的イテレーション順に依存していた箇所を、`stableKey()` 昇順の決定的なデフォルト選択へ変更し、再起動ごとにタグ候補が入れ替わる現象を解消。
+  - 子ノードのレシピを設定した際、先祖ノードの入力材料リスト（`customRecipeInputs`）へ具体的な選択材料を自動ロック（`lockAncestorsCustomInputs`）し、さらにセッション保存時に `TypedIngredientSerializer` を併用することで、再起動後も選択したタグ材料（AとBのうちA等）とその子ツリーが100%忠実に維持されるよう強化。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta29] - 2026-11-24 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **お気に入り登録アイテムからのツリー展開・レシピチェーン保存・セッション共有/履歴保持の根本修正**:
@@ -343,6 +354,17 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta30] - 2026-11-25 (Beta)
+#### Fixed & Improved
+- **Generic Support for Recipes Without Registry Names (`getRegistryName == null`) (`TreeRecipeBuilder`)**:
+  - Fixed an issue where custom mod recipes returning `null` from `IRecipeCategory.getRegistryName(recipe)` were skipped by `findRecipesFor` or assigned a transient `System.identityHashCode` in `createFromLayout` that `findRecipe` could not resolve, preventing them from being registered into the crafting tree.
+  - Introduced deterministic content-based synthetic recipe UIDs (`*_synth_<hash>`) derived from the category UID and sorted slot ingredients, enabling seamless tree registration, expansion, and session persistence for any custom recipe category without mod-specific workarounds.
+- **Prevented Tag/Cycling Ingredient Shuffling Across Restarts (`TreeRecipeBuilder` & `CraftingTreeScreen`)**:
+  - Replaced tick-dependent `getDisplayedIngredient()` / non-deterministic tag iteration in `TreeRecipeBuilder.extractRecipeInfo` with deterministic `stableKey()`-sorted ingredient selection so default tag choices never shuffle on restart.
+  - Added `lockAncestorsCustomInputs` when configuring child recipes and augmented `customRecipeInputs` serialization with `TypedIngredientSerializer` so chosen tag variants (e.g., A instead of B) and their child subtrees remain faithfully preserved across game restarts.
 
 ---
 

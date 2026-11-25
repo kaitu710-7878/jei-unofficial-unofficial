@@ -108,11 +108,9 @@ public final class TreeRecipeBuilder {
 				List<RecipeInfo<?>> catList = new ArrayList<>();
 				for (Object recipe : recipes) {
 					ResourceLocation recipeUid = category.getRegistryName(cast(recipe));
-					if (recipeUid != null) {
-						RecipeInfo<?> info = extractRecipeInfo(category, recipe, recipeUid, targetIngredient);
-						if (info != null) {
-							catList.add(info);
-						}
+					RecipeInfo<?> info = extractRecipeInfo(category, recipe, recipeUid, targetIngredient);
+					if (info != null) {
+						catList.add(info);
 					}
 				}
 				return catList.stream();
@@ -143,17 +141,28 @@ public final class TreeRecipeBuilder {
 
 		IRecipeManager recipeManager = Internal.getJeiRuntime().getRecipeManager();
 		List<IRecipeCategory<?>> categories = recipeManager.createRecipeCategoryLookup().get().toList();
+		boolean syntheticLookup = isSyntheticRecipeUid(recipeUid);
 
 		// Delegate recipe lookup to JEI's IRecipeManager so external recipe-search optimization mods remain compatible
 		boolean requireMatch = matchTarget != null;
 		RecipeInfo<?> baseInfo = categories.parallelStream()
 			.<RecipeInfo<?>>map(category -> {
+				if (syntheticLookup && !recipeUid.getPath().startsWith(category.getRecipeType().getUid().getPath() + "_synth_")) {
+					return null;
+				}
 				List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().toList();
 				for (Object recipe : recipes) {
 					ResourceLocation uid = category.getRegistryName(cast(recipe));
-					if (recipeUid.equals(uid)) {
-						RecipeInfo<?> info = extractRecipeInfo(category, recipe, uid, matchTarget, requireMatch);
-						if (info != null) {
+					if (uid != null) {
+						if (recipeUid.equals(uid)) {
+							RecipeInfo<?> info = extractRecipeInfo(category, recipe, uid, matchTarget, requireMatch);
+							if (info != null) {
+								return info;
+							}
+						}
+					} else if (syntheticLookup) {
+						RecipeInfo<?> info = extractRecipeInfo(category, recipe, null, matchTarget, requireMatch);
+						if (info != null && recipeUid.equals(info.recipeUid())) {
 							return info;
 						}
 					}
@@ -168,12 +177,22 @@ public final class TreeRecipeBuilder {
 			// Fallback: search without target filter only if the category does not expose output slots
 			baseInfo = categories.parallelStream()
 				.<RecipeInfo<?>>map(category -> {
+					if (syntheticLookup && !recipeUid.getPath().startsWith(category.getRecipeType().getUid().getPath() + "_synth_")) {
+						return null;
+					}
 					List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType()).get().toList();
 					for (Object recipe : recipes) {
 						ResourceLocation uid = category.getRegistryName(cast(recipe));
-						if (recipeUid.equals(uid)) {
-							RecipeInfo<?> info = extractRecipeInfo(category, recipe, uid, null, false);
-							if (info != null) {
+						if (uid != null) {
+							if (recipeUid.equals(uid)) {
+								RecipeInfo<?> info = extractRecipeInfo(category, recipe, uid, null, false);
+								if (info != null) {
+									return info;
+								}
+							}
+						} else if (syntheticLookup) {
+							RecipeInfo<?> info = extractRecipeInfo(category, recipe, null, null, false);
+							if (info != null && recipeUid.equals(info.recipeUid())) {
 								return info;
 							}
 						}
@@ -204,12 +223,13 @@ public final class TreeRecipeBuilder {
 	public static <T> @Nullable RecipeInfo<T> createFromLayout(IRecipeLayoutDrawable<T> layout, @Nullable ITypedIngredient<?> targetIngredient) {
 		IRecipeCategory<T> category = layout.getRecipeCategory();
 		T recipe = layout.getRecipe();
-		ResourceLocation recipeUid = category.getRegistryName(recipe);
-		if (recipeUid == null) {
-			recipeUid = new ResourceLocation(category.getRecipeType().getUid().getNamespace(), category.getRecipeType().getUid().getPath() + "_" + Math.abs(System.identityHashCode(recipe)));
-		}
 		IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
 		IRecipeSlotsView slotsView = layout.getRecipeSlotsView();
+
+		ResourceLocation recipeUid = category.getRegistryName(recipe);
+		if (recipeUid == null) {
+			recipeUid = buildSyntheticRecipeUid(category.getRecipeType().getUid(), slotsView, ingredientManager);
+		}
 
 		List<ITypedIngredient<?>> inputs = new ArrayList<>();
 		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.INPUT)) {
@@ -316,15 +336,17 @@ public final class TreeRecipeBuilder {
 
 			List<ITypedIngredient<?>> inputs = new ArrayList<>();
 			for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.INPUT)) {
-				Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
-				ingOpt.ifPresent(inputs::add);
+				pickDeterministicIngredient(slot, ingredientManager).ifPresent(inputs::add);
 			}
 
 			List<ITypedIngredient<?>> outputs = new ArrayList<>();
 			for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.OUTPUT)) {
-				Optional<ITypedIngredient<?>> ingOpt = slot.getDisplayedIngredient().or(() -> slot.getAllIngredients().findFirst());
-				ingOpt.ifPresent(outputs::add);
+				pickDeterministicIngredient(slot, ingredientManager).ifPresent(outputs::add);
 			}
+
+			ResourceLocation effectiveUid = recipeUid != null
+				? recipeUid
+				: buildSyntheticRecipeUid(category.getRecipeType().getUid(), slotsView, ingredientManager);
 
 			long factor = 1;
 			if (targetIngredient != null) {
@@ -354,7 +376,7 @@ public final class TreeRecipeBuilder {
 			return new RecipeInfo<>(
 				category,
 				recipe,
-				recipeUid,
+				effectiveUid,
 				category.getRecipeType().getUid(),
 				inputs,
 				outputs,
@@ -363,6 +385,71 @@ public final class TreeRecipeBuilder {
 		} catch (RuntimeException | LinkageError ignored) {
 			return null;
 		}
+	}
+
+	private static Optional<ITypedIngredient<?>> pickDeterministicIngredient(IRecipeSlotView slot, IIngredientManager ingredientManager) {
+		List<ITypedIngredient<?>> all = slot.getAllIngredients().toList();
+		if (all.isEmpty()) {
+			return slot.getDisplayedIngredient();
+		}
+		if (all.size() == 1) {
+			return Optional.of(all.get(0));
+		}
+		ITypedIngredient<?> best = all.get(0);
+		String bestKey = BookmarkItemMetadataFactory.createPermutationKey(best, ingredientManager).stableKey();
+		for (int i = 1; i < all.size(); i++) {
+			ITypedIngredient<?> cand = all.get(i);
+			String candKey = BookmarkItemMetadataFactory.createPermutationKey(cand, ingredientManager).stableKey();
+			if (candKey.compareTo(bestKey) < 0) {
+				best = cand;
+				bestKey = candKey;
+			}
+		}
+		return Optional.of(best);
+	}
+
+	private static boolean isSyntheticRecipeUid(ResourceLocation uid) {
+		return uid.getPath().contains("_synth_");
+	}
+
+	private static ResourceLocation buildSyntheticRecipeUid(
+		ResourceLocation categoryUid,
+		IRecipeSlotsView slotsView,
+		IIngredientManager ingredientManager
+	) {
+		long hash = 0xcbf29ce484222325L;
+		hash = fnvUpdate(hash, categoryUid.toString());
+		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.OUTPUT)) {
+			hash = fnvUpdate(hash, "O");
+			List<String> keys = slot.getAllIngredients()
+				.map(ing -> BookmarkItemMetadataFactory.createPermutationKey(ing, ingredientManager).stableKey() + "#" + BookmarkIngredientAmountResolver.getAmount(ing, ingredientManager))
+				.sorted()
+				.toList();
+			for (String k : keys) {
+				hash = fnvUpdate(hash, k);
+			}
+		}
+		for (IRecipeSlotView slot : slotsView.getSlotViews(RecipeIngredientRole.INPUT)) {
+			hash = fnvUpdate(hash, "I");
+			List<String> keys = slot.getAllIngredients()
+				.map(ing -> BookmarkItemMetadataFactory.createPermutationKey(ing, ingredientManager).stableKey() + "#" + BookmarkIngredientAmountResolver.getAmount(ing, ingredientManager))
+				.sorted()
+				.toList();
+			for (String k : keys) {
+				hash = fnvUpdate(hash, k);
+			}
+		}
+		return new ResourceLocation(categoryUid.getNamespace(), categoryUid.getPath() + "_synth_" + Long.toUnsignedString(hash, 16));
+	}
+
+	private static long fnvUpdate(long hash, String s) {
+		for (int i = 0; i < s.length(); i++) {
+			hash ^= s.charAt(i);
+			hash *= 0x100000001b3L;
+		}
+		hash ^= 0xff;
+		hash *= 0x100000001b3L;
+		return hash;
 	}
 
 	/**
