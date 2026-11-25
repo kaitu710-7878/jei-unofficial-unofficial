@@ -99,16 +99,18 @@ public class FocusInputHandler implements IUserInputHandler {
 
 		// 1.21.1 parity: while a tooltip is pinned by the pin key, the show-recipe and
 		// show-uses keys must still work even though the pin key is an extra modifier.
+		boolean isTKey = input.getKey().getType() == com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_T;
 		boolean isTreeTrigger = input.is(keyBindings.getShowRecipeTree()) ||
 			input.is(keyBindings.getOpenCraftingTree()) ||
-			(input.getKey().getType() == com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_T);
+			isTKey;
+		boolean forceNewTab = isTKey && Screen.hasShiftDown();
 		if (isTreeTrigger) {
 			var clicked = focusSource.getIngredientUnderMouse(input, keyBindings)
 				.filter(c -> c.getElement().isVisible())
 				.findFirst();
 			if (clicked.isPresent()) {
 				if (!input.isSimulate()) {
-					mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, (mezz.jei.gui.bookmarks.BookmarkList) mezz.jei.common.Internal.getJeiRuntime().getBookmarkManager(), clicked.get().getTypedIngredient(), ingredientManager);
+					mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, (mezz.jei.gui.bookmarks.BookmarkList) mezz.jei.common.Internal.getJeiRuntime().getBookmarkManager(), clicked.get().getTypedIngredient(), ingredientManager, forceNewTab);
 					mezz.jei.common.util.JeiClientSoundUtil.playClickSound();
 				}
 				return Optional.of(new SameElementInputHandler(this, clicked.get()::isMouseOver));

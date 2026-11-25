@@ -103,10 +103,15 @@ public final class CraftingTreeScreen extends Screen {
 	private String searchQuery = "";
 	private @Nullable EditBox searchBox;
 
+	private final String tabId;
 	private @Nullable TreeSlot hoveredNode;
 	private @Nullable TreeSlot hoveredCollapseBtn;
+	private @Nullable String contextMenuTabKey = null;
+	private int contextMenuX = 0;
+	private int contextMenuY = 0;
 
 	public static final class TreeSession {
+		public String tabId = java.util.UUID.randomUUID().toString();
 		public int groupId = -1;
 		public @Nullable ITypedIngredient<?> targetIngredient;
 		public @Nullable BookmarkIngredientKey targetIngredientKey;
@@ -132,6 +137,9 @@ public final class CraftingTreeScreen extends Screen {
 		}
 
 		public @Nullable String getSessionKey(IIngredientManager ingredientManager) {
+			if (tabId != null && !tabId.isBlank()) {
+				return tabId;
+			}
 			if (targetIngredientKey != null) {
 				return "item:" + targetIngredientKey.stableKey();
 			}
@@ -144,8 +152,33 @@ public final class CraftingTreeScreen extends Screen {
 			return null;
 		}
 
+		public TreeSession copyWithNewTabId() {
+			TreeSession copy = new TreeSession();
+			copy.tabId = java.util.UUID.randomUUID().toString();
+			copy.groupId = this.groupId;
+			copy.targetIngredient = this.targetIngredient;
+			copy.targetIngredientKey = this.targetIngredientKey;
+			copy.targetAmount = this.targetAmount;
+			copy.targetRecipeOverride = this.targetRecipeOverride;
+			copy.manualRecipes.putAll(this.manualRecipes);
+			copy.prunedKeys.addAll(this.prunedKeys);
+			copy.uncraftedKeys.addAll(this.uncraftedKeys);
+			copy.prunedPaths.addAll(this.prunedPaths);
+			for (Map.Entry<BookmarkIngredientKey, List<ITypedIngredient<?>>> entry : this.customRecipeInputs.entrySet()) {
+				copy.customRecipeInputs.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+			}
+			copy.checkInventory = this.checkInventory;
+			copy.showStats = this.showStats;
+			copy.statsLabelMode = this.statsLabelMode;
+			copy.cameraPanX = this.cameraPanX;
+			copy.cameraPanY = this.cameraPanY;
+			copy.cameraZoom = this.cameraZoom;
+			return copy;
+		}
+
 		public JsonObject toJson(IIngredientManager ingredientManager) {
 			JsonObject root = new JsonObject();
+			root.addProperty("tabId", tabId);
 			root.addProperty("groupId", groupId);
 			root.addProperty("targetAmount", targetAmount.toString());
 			if (targetRecipeOverride != null) {
@@ -239,6 +272,9 @@ public final class CraftingTreeScreen extends Screen {
 		public static @Nullable TreeSession fromJson(JsonObject root, IIngredientManager ingredientManager) {
 			try {
 				TreeSession session = new TreeSession();
+				if (root.has("tabId") && !root.get("tabId").getAsString().isBlank()) {
+					session.tabId = root.get("tabId").getAsString();
+				}
 				session.groupId = root.has("groupId") ? root.get("groupId").getAsInt() : -1;
 				if (root.has("targetAmount")) {
 					try {
@@ -405,16 +441,23 @@ public final class CraftingTreeScreen extends Screen {
 	}
 
 	public static void open(Screen parent, BookmarkList bookmarks, int groupId) {
-		IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
-		Minecraft.getInstance().setScreen(new CraftingTreeScreen(parent, bookmarks, groupId, ingredientManager));
+		open(parent, bookmarks, groupId, Internal.getJeiRuntime().getIngredientManager(), false);
 	}
 
 	public static void open(Screen parent, BookmarkList bookmarks, int groupId, IIngredientManager ingredientManager) {
-		Minecraft.getInstance().setScreen(new CraftingTreeScreen(parent, bookmarks, groupId, ingredientManager));
+		open(parent, bookmarks, groupId, ingredientManager, false);
+	}
+
+	public static void open(Screen parent, BookmarkList bookmarks, int groupId, IIngredientManager ingredientManager, boolean forceNewTab) {
+		Minecraft.getInstance().setScreen(new CraftingTreeScreen(parent, bookmarks, groupId, ingredientManager, null, forceNewTab));
 	}
 
 	public static void openForIngredient(Screen parent, BookmarkList bookmarks, ITypedIngredient<?> target, IIngredientManager ingredientManager) {
-		CraftingTreeScreen screen = new CraftingTreeScreen(parent, bookmarks, target, BigInteger.ONE, null, ingredientManager);
+		openForIngredient(parent, bookmarks, target, ingredientManager, false);
+	}
+
+	public static void openForIngredient(Screen parent, BookmarkList bookmarks, ITypedIngredient<?> target, IIngredientManager ingredientManager, boolean forceNewTab) {
+		CraftingTreeScreen screen = new CraftingTreeScreen(parent, bookmarks, target, BigInteger.ONE, null, ingredientManager, null, forceNewTab);
 		Minecraft.getInstance().setScreen(screen);
 	}
 
@@ -443,7 +486,9 @@ public final class CraftingTreeScreen extends Screen {
 					activeSession.targetIngredient,
 					activeSession.targetAmount,
 					activeSession.targetRecipeOverride,
-					ingredientManager
+					ingredientManager,
+					activeSession.tabId,
+					false
 				));
 				return;
 			} else if (activeSession.groupId >= 0) {
@@ -451,7 +496,9 @@ public final class CraftingTreeScreen extends Screen {
 					parent,
 					bookmarks,
 					activeSession.groupId,
-					ingredientManager
+					ingredientManager,
+					activeSession.tabId,
+					false
 				));
 				return;
 			}
@@ -460,7 +507,7 @@ public final class CraftingTreeScreen extends Screen {
 		if (!bookmarks.getBookmarks().isEmpty()) {
 			var firstBm = bookmarks.getBookmarks().get(0);
 			int gid = bookmarks.getBookmarkGroupId(firstBm);
-			if (gid >= 0) {
+			if (gid >= 0 && gid != mezz.jei.gui.bookmarks.BookmarkGroupManager.DEFAULT_GROUP_ID) {
 				Minecraft.getInstance().setScreen(new CraftingTreeScreen(parent, bookmarks, gid, ingredientManager));
 				return;
 			}
@@ -475,6 +522,17 @@ public final class CraftingTreeScreen extends Screen {
 		int groupId,
 		IIngredientManager ingredientManager
 	) {
+		this(parentScreen, bookmarks, groupId, ingredientManager, null, false);
+	}
+
+	public CraftingTreeScreen(
+		@Nullable Screen parentScreen,
+		BookmarkList bookmarks,
+		int groupId,
+		IIngredientManager ingredientManager,
+		@Nullable String preferredTabId,
+		boolean forceNewTab
+	) {
 		super(Component.translatable("jei.tree.title"));
 		ensureActiveSessionLoaded();
 		this.parentScreen = parentScreen;
@@ -486,9 +544,12 @@ public final class CraftingTreeScreen extends Screen {
 		this.targetAmount = BigInteger.ONE;
 		this.targetRecipeOverride = null;
 
-		TreeSession restored = findGroupSession(groupId);
+		TreeSession restored = forceNewTab ? null : (preferredTabId != null ? sessionHistory.get(preferredTabId) : findGroupSession(groupId));
 		if (restored != null) {
+			this.tabId = restored.tabId;
 			restoreFromSession(restored, false);
+		} else {
+			this.tabId = java.util.UUID.randomUUID().toString();
 		}
 
 		rebuildTreeMath();
@@ -502,6 +563,19 @@ public final class CraftingTreeScreen extends Screen {
 		@Nullable ResourceLocation targetRecipeOverride,
 		IIngredientManager ingredientManager
 	) {
+		this(parentScreen, bookmarks, targetIngredient, targetAmount, targetRecipeOverride, ingredientManager, null, false);
+	}
+
+	public CraftingTreeScreen(
+		@Nullable Screen parentScreen,
+		BookmarkList bookmarks,
+		ITypedIngredient<?> targetIngredient,
+		BigInteger targetAmount,
+		@Nullable ResourceLocation targetRecipeOverride,
+		IIngredientManager ingredientManager,
+		@Nullable String preferredTabId,
+		boolean forceNewTab
+	) {
 		super(Component.translatable("jei.tree.title"));
 		ensureActiveSessionLoaded();
 		this.parentScreen = parentScreen;
@@ -513,12 +587,15 @@ public final class CraftingTreeScreen extends Screen {
 		this.targetAmount = targetAmount.max(BigInteger.ONE);
 		this.targetRecipeOverride = targetRecipeOverride;
 
-		// Restore session if working on the same target ingredient (across bookmarks, inventory, JEI list, or history)
+		// Restore session if working on the same target ingredient unless forceNewTab is requested
 		ITypedIngredient<?> effectiveIng = this.targetIngredient != null ? this.targetIngredient : targetIngredient;
 		BookmarkIngredientKey currentKey = BookmarkItemMetadataFactory.createPermutationKey(effectiveIng, ingredientManager);
-		TreeSession restored = findIngredientSession(currentKey);
+		TreeSession restored = forceNewTab ? null : (preferredTabId != null ? sessionHistory.get(preferredTabId) : findIngredientSession(currentKey));
 		if (restored != null) {
+			this.tabId = restored.tabId;
 			restoreFromSession(restored, true);
+		} else {
+			this.tabId = java.util.UUID.randomUUID().toString();
 		}
 
 		rebuildTreeMath();
@@ -528,25 +605,24 @@ public final class CraftingTreeScreen extends Screen {
 		if (gid < 0) {
 			return null;
 		}
-		TreeSession hist = sessionHistory.get("group:" + gid);
-		if (hist != null) {
-			return hist;
-		}
-		if (activeSession != null && activeSession.groupId == gid) {
+		if (activeSession != null && activeSession.groupId == gid && activeSession.targetIngredient == null) {
 			return activeSession;
+		}
+		List<TreeSession> candidates = new ArrayList<>(sessionHistory.values());
+		for (int i = candidates.size() - 1; i >= 0; i--) {
+			TreeSession s = candidates.get(i);
+			if (s.groupId == gid && s.targetIngredient == null) {
+				return s;
+			}
 		}
 		return null;
 	}
 
 	private @Nullable TreeSession findIngredientSession(BookmarkIngredientKey currentKey) {
-		TreeSession exact = sessionHistory.get("item:" + currentKey.stableKey());
-		if (exact != null) {
-			return exact;
-		}
 		if (activeSession != null && matchesSessionKey(activeSession, currentKey)) {
 			return activeSession;
 		}
-		// Search history in reverse insertion/access order for relaxed crafting availability match
+		// Search history in reverse insertion order for matching item tab
 		List<TreeSession> candidates = new ArrayList<>(sessionHistory.values());
 		for (int i = candidates.size() - 1; i >= 0; i--) {
 			TreeSession s = candidates.get(i);
@@ -589,6 +665,7 @@ public final class CraftingTreeScreen extends Screen {
 			return;
 		}
 		TreeSession session = new TreeSession();
+		session.tabId = this.tabId;
 		session.groupId = this.groupId;
 		session.targetIngredient = this.targetIngredient;
 		session.targetIngredientKey = this.targetIngredient != null ? BookmarkItemMetadataFactory.createPermutationKey(this.targetIngredient, this.ingredientManager) : null;
@@ -1212,18 +1289,16 @@ public final class CraftingTreeScreen extends Screen {
 		// 4. Render UI Widgets (Buttons and Search Box)
 		super.render(g, mouseX, mouseY, partialTick);
 
-		// 5. Draw Tooltips
-		renderTooltips(g, mouseX, mouseY);
+		// 5. Draw Tooltips or Tab Context Menu
+		if (contextMenuTabKey != null) {
+			renderTabContextMenu(g, mouseX, mouseY);
+		} else {
+			renderTooltips(g, mouseX, mouseY);
+		}
 	}
 
 	private @Nullable String getCurrentSessionKey() {
-		if (targetIngredient != null) {
-			return "item:" + BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager).stableKey();
-		}
-		if (groupId >= 0) {
-			return "group:" + groupId;
-		}
-		return null;
+		return tabId;
 	}
 
 	private String getSessionDisplayName(TreeSession session) {
@@ -1324,23 +1399,16 @@ public final class CraftingTreeScreen extends Screen {
 				TreeSession tabSession = entry.getValue();
 				boolean isCloseClick = (button == 2) || (button == 0 && mouseX >= x + tabW - 12);
 				if (isCloseClick) {
-					sessionHistory.remove(tabKey);
-					if (tabKey.equals(activeKey)) {
-						List<TreeSession> remaining = new ArrayList<>(sessionHistory.values());
-						if (!remaining.isEmpty()) {
-							TreeSession next = remaining.get(Math.min(i, remaining.size() - 1));
-							activeSession = next;
-							next.saveToFile(ingredientManager, sessionHistory);
-							switchToSession(next);
-						} else {
-							activeSession = null;
-							Minecraft.getInstance().setScreen(parentScreen);
-						}
-					} else {
-						saveSession();
-					}
+					contextMenuTabKey = null;
+					closeTab(tabKey);
+					return true;
+				} else if (button == 1) {
+					contextMenuTabKey = tabKey;
+					contextMenuX = (int) mouseX;
+					contextMenuY = (int) mouseY;
 					return true;
 				} else if (button == 0) {
+					contextMenuTabKey = null;
 					if (!tabKey.equals(activeKey)) {
 						saveSession();
 						switchToSession(tabSession);
@@ -1353,6 +1421,146 @@ public final class CraftingTreeScreen extends Screen {
 		return false;
 	}
 
+	private void closeTab(String tabKey) {
+		String activeKey = getCurrentSessionKey();
+		List<String> keysBefore = new ArrayList<>(sessionHistory.keySet());
+		int idx = keysBefore.indexOf(tabKey);
+		sessionHistory.remove(tabKey);
+		if (tabKey.equals(activeKey)) {
+			List<TreeSession> remaining = new ArrayList<>(sessionHistory.values());
+			if (!remaining.isEmpty()) {
+				TreeSession next = remaining.get(Math.min(Math.max(0, idx), remaining.size() - 1));
+				activeSession = next;
+				next.saveToFile(ingredientManager, sessionHistory);
+				switchToSession(next);
+			} else {
+				activeSession = null;
+				Minecraft.getInstance().setScreen(parentScreen);
+			}
+		} else {
+			saveSession();
+		}
+	}
+
+	private void duplicateTab(String tabKey) {
+		if (tabKey.equals(getCurrentSessionKey())) {
+			saveSession();
+		}
+		TreeSession source = sessionHistory.get(tabKey);
+		if (source == null) {
+			return;
+		}
+		TreeSession copy = source.copyWithNewTabId();
+		Map<String, TreeSession> reordered = new LinkedHashMap<>();
+		for (Map.Entry<String, TreeSession> entry : sessionHistory.entrySet()) {
+			reordered.put(entry.getKey(), entry.getValue());
+			if (entry.getKey().equals(tabKey)) {
+				reordered.put(copy.tabId, copy);
+			}
+		}
+		sessionHistory.clear();
+		sessionHistory.putAll(reordered);
+		activeSession = copy;
+		copy.saveToFile(ingredientManager, sessionHistory);
+		switchToSession(copy);
+	}
+
+	private void resetTab(String tabKey) {
+		if (tabKey.equals(getCurrentSessionKey())) {
+			resetTree();
+			return;
+		}
+		TreeSession target = sessionHistory.get(tabKey);
+		if (target == null) {
+			return;
+		}
+		target.targetAmount = BigInteger.ONE;
+		target.manualRecipes.clear();
+		target.prunedPaths.clear();
+		target.prunedKeys.clear();
+		target.uncraftedKeys.clear();
+		target.customRecipeInputs.clear();
+		target.targetRecipeOverride = null;
+		target.cameraPanX = 0f;
+		target.cameraPanY = 0f;
+		target.cameraZoom = 1.0f;
+		saveSession();
+		switchToSession(target);
+	}
+
+	private int[] getContextMenuBounds() {
+		int itemHeight = 16;
+		int padding = 4;
+		Component dupLabel = Component.translatable("jei.tree.tab.duplicate");
+		Component resetLabel = Component.translatable("jei.tree.tab.reset");
+		Component closeLabel = Component.translatable("jei.tree.tab.close");
+		int maxTextW = Math.max(font.width(dupLabel), Math.max(font.width(resetLabel), font.width(closeLabel)));
+		int menuW = Math.max(88, maxTextW + 16);
+		int menuH = itemHeight * 3 + padding * 2;
+		int menuX = Math.max(2, Math.min(contextMenuX, width - menuW - 2));
+		int menuY = Math.max(TOP_BAR_HEIGHT, Math.min(contextMenuY, height - menuH - 2));
+		return new int[]{menuX, menuY, menuW, menuH, itemHeight, padding};
+	}
+
+	private void renderTabContextMenu(GuiGraphics g, int mouseX, int mouseY) {
+		if (contextMenuTabKey == null || !sessionHistory.containsKey(contextMenuTabKey)) {
+			contextMenuTabKey = null;
+			return;
+		}
+		int[] b = getContextMenuBounds();
+		int mx = b[0], my = b[1], mw = b[2], mh = b[3], ih = b[4], pad = b[5];
+
+		g.pose().pushPose();
+		g.pose().translate(0, 0, 400);
+		g.fill(mx - 1, my - 1, mx + mw + 1, my + mh + 1, 0xFF606060);
+		g.fill(mx, my, mx + mw, my + mh, 0xF2242424);
+
+		Component[] labels = {
+			Component.translatable("jei.tree.tab.duplicate"),
+			Component.translatable("jei.tree.tab.reset"),
+			Component.translatable("jei.tree.tab.close")
+		};
+		for (int i = 0; i < labels.length; i++) {
+			int iy = my + pad + i * ih;
+			boolean hovered = mouseX >= mx && mouseX < mx + mw && mouseY >= iy && mouseY < iy + ih;
+			if (hovered) {
+				g.fill(mx + 1, iy, mx + mw - 1, iy + ih, 0xFF3E5A8A);
+			}
+			int color = (i == 2 && hovered) ? 0xFFFF8888 : (hovered ? 0xFFFFFFFF : 0xFFE0E0E0);
+			g.drawString(font, labels[i], mx + 8, iy + (ih - 8) / 2, color, false);
+		}
+		g.pose().popPose();
+	}
+
+	private boolean handleTabContextMenuClick(double mouseX, double mouseY, int button) {
+		if (contextMenuTabKey == null) {
+			return false;
+		}
+		String targetKey = contextMenuTabKey;
+		if (!sessionHistory.containsKey(targetKey)) {
+			contextMenuTabKey = null;
+			return false;
+		}
+		int[] b = getContextMenuBounds();
+		int mx = b[0], my = b[1], mw = b[2], mh = b[3], ih = b[4], pad = b[5];
+		if (mouseX >= mx && mouseX < mx + mw && mouseY >= my && mouseY < my + mh) {
+			if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+				int idx = (int) ((mouseY - (my + pad)) / ih);
+				contextMenuTabKey = null;
+				if (idx == 0) {
+					duplicateTab(targetKey);
+				} else if (idx == 1) {
+					resetTab(targetKey);
+				} else if (idx == 2) {
+					closeTab(targetKey);
+				}
+			}
+			return true;
+		}
+		contextMenuTabKey = null;
+		return false;
+	}
+
 	private void switchToSession(TreeSession session) {
 		if (session.targetIngredient != null) {
 			Minecraft.getInstance().setScreen(new CraftingTreeScreen(
@@ -1361,14 +1569,18 @@ public final class CraftingTreeScreen extends Screen {
 				session.targetIngredient,
 				session.targetAmount,
 				session.targetRecipeOverride,
-				ingredientManager
+				ingredientManager,
+				session.tabId,
+				false
 			));
 		} else if (session.groupId >= 0) {
 			Minecraft.getInstance().setScreen(new CraftingTreeScreen(
 				parentScreen,
 				bookmarks,
 				session.groupId,
-				ingredientManager
+				ingredientManager,
+				session.tabId,
+				false
 			));
 		}
 	}
@@ -1890,6 +2102,10 @@ public final class CraftingTreeScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (handleTabContextMenuClick(mouseX, mouseY, button)) {
+			return true;
+		}
+
 		if (searchBox != null && searchBox.mouseClicked(mouseX, mouseY, button)) {
 			return true;
 		}
@@ -2001,6 +2217,10 @@ public final class CraftingTreeScreen extends Screen {
 
 	@Override
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		if (keyCode == GLFW.GLFW_KEY_ESCAPE && contextMenuTabKey != null) {
+			contextMenuTabKey = null;
+			return true;
+		}
 		if (searchBox != null && searchBox.isFocused()) {
 			if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 				searchBox.setFocused(false);

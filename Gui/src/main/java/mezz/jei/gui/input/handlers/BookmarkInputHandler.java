@@ -121,10 +121,12 @@ public class BookmarkInputHandler implements IUserInputHandler {
 				return handler;
 			}
 		}
+		boolean isTKey = input.getKey().getType() == com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_T;
 		boolean isTreeTrigger = input.is(keyBindings.getShowRecipeTree()) ||
 			input.is(keyBindings.getOpenCraftingTree()) ||
-			(input.getKey().getType() == com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_T) ||
+			isTKey ||
 			(input.getKey().getType() == com.mojang.blaze3d.platform.InputConstants.Type.MOUSE && input.getKey().getValue() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_MIDDLE);
+		boolean forceNewTab = isTKey && net.minecraft.client.gui.screens.Screen.hasShiftDown();
 
 		if (isTreeTrigger) {
 			// 1. Check if hovering over a group (chain or custom group) in bookmark overlay
@@ -132,7 +134,7 @@ public class BookmarkInputHandler implements IUserInputHandler {
 			if (groupIdOpt.isPresent()) {
 				int targetGid = groupIdOpt.get();
 				if (!input.isSimulate()) {
-					mezz.jei.gui.tree.CraftingTreeScreen.open(screen, bookmarkList, targetGid, ingredientManager);
+					mezz.jei.gui.tree.CraftingTreeScreen.open(screen, bookmarkList, targetGid, ingredientManager, forceNewTab);
 					mezz.jei.common.util.JeiClientSoundUtil.playClickSound();
 				}
 				return Optional.of(this);
@@ -143,7 +145,7 @@ public class BookmarkInputHandler implements IUserInputHandler {
 				.findFirst();
 			if (hoveredIngredient.isPresent()) {
 				if (!input.isSimulate()) {
-					mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, bookmarkList, hoveredIngredient.get(), ingredientManager);
+					mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, bookmarkList, hoveredIngredient.get(), ingredientManager, forceNewTab);
 					mezz.jei.common.util.JeiClientSoundUtil.playClickSound();
 				}
 				return Optional.of(this);
@@ -155,7 +157,7 @@ public class BookmarkInputHandler implements IUserInputHandler {
 				.findFirst();
 			if (focusIngredient.isPresent()) {
 				if (!input.isSimulate()) {
-					mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, bookmarkList, focusIngredient.get().getTypedIngredient(), ingredientManager);
+					mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, bookmarkList, focusIngredient.get().getTypedIngredient(), ingredientManager, forceNewTab);
 					mezz.jei.common.util.JeiClientSoundUtil.playClickSound();
 				}
 				return Optional.of(this);

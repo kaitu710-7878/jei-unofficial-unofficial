@@ -132,15 +132,17 @@ public final class BookmarkOverlayInputHandlers {
 
 		@Override
 		public Optional<IUserInputHandler> handleUserInput(Screen screen, UserInput input, IInternalKeyMappings keyBindings) {
+			boolean isTKey = input.getKey().getType() == InputConstants.Type.KEYSYM && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_T;
 			boolean isTreeKey = keyBindings.getShowRecipeTree().isActiveAndMatches(input.getKey()) ||
 				keyBindings.getOpenCraftingTree().isActiveAndMatches(input.getKey()) ||
-				(input.getKey().getType() == InputConstants.Type.KEYSYM && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_T);
+				isTKey;
+			boolean forceNewTab = isTKey && net.minecraft.client.gui.screens.Screen.hasShiftDown();
 
 			if (isTreeKey) {
 				Optional<Integer> pullGid = overlay.getTreeGroupIdUnderMouse(input.getMouseX(), input.getMouseY());
 				if (pullGid.isPresent()) {
 					if (!input.isSimulate()) {
-						mezz.jei.gui.tree.CraftingTreeScreen.open(screen, overlay.getBookmarkList(), pullGid.get());
+						mezz.jei.gui.tree.CraftingTreeScreen.open(screen, overlay.getBookmarkList(), pullGid.get(), mezz.jei.common.Internal.getJeiRuntime().getIngredientManager(), forceNewTab);
 						playClickSound();
 					}
 					return Optional.of(this);
@@ -148,7 +150,7 @@ public final class BookmarkOverlayInputHandlers {
 				Optional<mezz.jei.gui.input.IClickableIngredientInternal<?>> clickedIng = overlay.getIngredientUnderMouse(input.getMouseX(), input.getMouseY()).findFirst();
 				if (clickedIng.isPresent()) {
 					if (!input.isSimulate()) {
-						mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, overlay.getBookmarkList(), clickedIng.get().getTypedIngredient(), mezz.jei.common.Internal.getJeiRuntime().getIngredientManager());
+						mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, overlay.getBookmarkList(), clickedIng.get().getTypedIngredient(), mezz.jei.common.Internal.getJeiRuntime().getIngredientManager(), forceNewTab);
 						playClickSound();
 					}
 					return Optional.of(this);
@@ -172,7 +174,7 @@ public final class BookmarkOverlayInputHandlers {
 				Optional<mezz.jei.gui.input.IClickableIngredientInternal<?>> clickedIng = overlay.getIngredientUnderMouse(input.getMouseX(), input.getMouseY()).findFirst();
 				if (clickedIng.isPresent()) {
 					if (!input.isSimulate()) {
-						mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, overlay.getBookmarkList(), clickedIng.get().getTypedIngredient(), mezz.jei.common.Internal.getJeiRuntime().getIngredientManager());
+						mezz.jei.gui.tree.CraftingTreeScreen.openForIngredient(screen, overlay.getBookmarkList(), clickedIng.get().getTypedIngredient(), mezz.jei.common.Internal.getJeiRuntime().getIngredientManager(), forceNewTab);
 						playClickSound();
 					}
 					return Optional.of(this);
