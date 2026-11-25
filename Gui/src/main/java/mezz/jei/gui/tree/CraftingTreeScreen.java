@@ -1574,6 +1574,9 @@ public final class CraftingTreeScreen extends Screen {
 			targetKey = BookmarkItemMetadataFactory.createPermutationKey(target.getTypedIngredient().get(), ingredientManager);
 		}
 
+		TreeSlot parent = graph.getParent(target);
+		boolean parentBecomesEmpty = parent != null && graph.getChildren(parent).size() <= 1;
+
 		if (target.equals(graph.getRootSlot())) {
 			if (targetKey != null) {
 				uncraftedKeys.add(targetKey);
@@ -1590,7 +1593,10 @@ public final class CraftingTreeScreen extends Screen {
 				customRecipeInputs.remove(targetKey);
 				uncraftedKeys.remove(targetKey);
 			}
-			rebuildTreeMath(graph.getParent(target));
+			if (parentBecomesEmpty) {
+				revertParentToUncrafted(parent);
+			}
+			rebuildTreeMath(parent);
 		} else {
 			// Mode 2: Remove ONLY this specific node and its branch (path-based single pruning)
 			if (target.getNodePath() != null && !target.getNodePath().isEmpty()) {
@@ -1602,9 +1608,25 @@ public final class CraftingTreeScreen extends Screen {
 				customRecipeInputs.remove(targetKey);
 				uncraftedKeys.remove(targetKey);
 			}
-			rebuildTreeMath(graph.getParent(target));
+			if (parentBecomesEmpty) {
+				revertParentToUncrafted(parent);
+			}
+			rebuildTreeMath(parent);
 		}
 		saveSession();
+	}
+
+	private void revertParentToUncrafted(TreeSlot parent) {
+		BookmarkIngredientKey parentKey = parent.getKey();
+		if (parentKey != null) {
+			uncraftedKeys.add(parentKey);
+			manualRecipes.remove(parentKey);
+			customRecipeInputs.remove(parentKey);
+		}
+		if (graph != null && parent.equals(graph.getRootSlot())) {
+			this.targetRecipeOverride = null;
+		}
+		clearPrunedPathsForSubtree(parent);
 	}
 
 	private int countOccurrencesInGraph(BookmarkIngredientKey key) {

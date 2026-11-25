@@ -15,6 +15,14 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta31] - 2026-11-25 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **子項目を全削除して取り消した際、親項目がクラフト可能（青経路）のまま残る不具合を修正**:
+  - 親ノードに誤ってレシピを割り当てて子項目を展開した後、その子項目をすべて削除して取り消した場合でも、親ノードが未クラフト状態（赤経路・赤枠、生産量0）へ確実に復帰するよう `CraftingTreeScreen.removeNodeAndBranch` および `TreeMath.buildNode` を修正。
+  - 最後の子ノード削除時に親ノードのレシピ割り当てと一時的な削除パスをクリーンアップするため、ホバー情報でも「未設定」として正しく表示され、再度レシピを割り当て直したい場合もスムーズに再展開できるようになりました。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta30] - 2026-11-25 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **レシピID未登録（`getRegistryName == null`）のカスタムレシピをツリーへ登録・永続化できるよう汎用対応 (`TreeRecipeBuilder`)**:
@@ -354,6 +362,14 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta31] - 2026-11-25 (Beta)
+#### Fixed & Improved
+- **Fixed Parent Node Remaining Craftable (Blue Path) When All Created Children Are Deleted**:
+  - Fixed an issue where deleting all child ingredients created by accidentally assigning a recipe left the parent node in a craftable state (blue border/line and non-zero produced amount in tooltips) instead of reverting to an uncrafted missing state (red border/line).
+  - Updated `CraftingTreeScreen.removeNodeAndBranch` and `TreeMath.buildNode` to revert a node whose recipe inputs were all pruned back to an uncrafted state and clean up its temporary pruned child paths for seamless subsequent recipe re-assignment.
 
 ---
 

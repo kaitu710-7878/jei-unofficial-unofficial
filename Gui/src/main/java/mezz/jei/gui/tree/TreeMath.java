@@ -382,6 +382,7 @@ public final class TreeMath {
 
 			List<RecipeChildIngredient> subIngredients = findRecipeInputs(chosenRecipe, key, typedIngredient);
 			int childIdx = 0;
+			int addedChildren = 0;
 			for (RecipeChildIngredient sub : subIngredients) {
 				String childPath = nodePath + "/" + sub.key().stableKey();
 				String legacyIndexedPath = nodePath + "/" + childIdx++ + ":" + sub.key().ingredientUid();
@@ -406,10 +407,33 @@ public final class TreeMath {
 
 				if (childSlot != null) {
 					graph.addChild(node, childSlot);
+					addedChildren++;
 				}
 			}
 
 			visitedRecipes.remove(visitKey);
+
+			// If all child ingredients of a recipe were pruned, revert this node to uncrafted/missing state
+			if (!subIngredients.isEmpty() && addedChildren == 0) {
+				TreeSlot uncraftedNode = new TreeSlot(
+					key,
+					typedIngredient,
+					null,
+					null,
+					BigInteger.ONE,
+					inheritAmount,
+					requestedAmount,
+					BigInteger.ZERO,
+					usedStock,
+					remainingToCraft,
+					BigInteger.ZERO,
+					isNodeNonConsumable(key, typedIngredient)
+				);
+				uncraftedNode.setForceCraft(force);
+				uncraftedNode.setManualAmountOverride(manualAmountOverrides.get(key));
+				uncraftedNode.setNodePath(nodePath);
+				return uncraftedNode;
+			}
 		}
 
 		return node;
