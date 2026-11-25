@@ -15,6 +15,14 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta32] - 2026-11-25 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **GregTech (GTCEu) / LDLib 等のレシピ画面でホバー中アイテムのツールチップがMod名のみになる上流バグを修正 (`IIngredientRenderer`)**:
+  - JEI 15.54.0 で導入された4引数版 `IIngredientRenderer.getTooltip(ITooltipBuilder, T, Player, TooltipFlag)` のデフォルト実装が、従来の3引数版 `getTooltip(ITooltipBuilder, T, TooltipFlag)` へフォールバックせず、2引数版（空リストを返す実装が多い）のみを参照していたため、GTCEu/LDLib など旧3引数版 `ITooltipBuilder` オーバーロードを実装しているMODの機械レシピでアイテム名・説明・確率等のツールチップがすべて欠落しMod名（`GregTech`）のみ表示されていた不具合を修正。
+  - `getTooltip(ingredient, player, tooltipFlag)` が空リストを返した場合に3引数版 `getTooltip(tooltip, ingredient, tooltipFlag)` へフォールバックするよう修正し、すべてのカスタム `IIngredientRenderer` 実装と後方互換性を完全に回復。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta31] - 2026-11-25 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **子項目を全削除して取り消した際、親項目がクラフト可能（青経路）のまま残る不具合を修正**:
@@ -362,6 +370,14 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta32] - 2026-11-25 (Beta)
+#### Fixed & Improved
+- **Fixed Missing Recipe Slot Tooltips (Showing Only Mod Name) in GregTech / LDLib and Legacy Custom Renderers (`IIngredientRenderer`)**:
+  - Fixed an upstream compatibility bug in `IIngredientRenderer.getTooltip(ITooltipBuilder, T, Player, TooltipFlag)` (introduced in JEI 15.54.0) where the default implementation delegated only to `getTooltip(T, Player, TooltipFlag)` instead of falling back to the legacy 3-argument `getTooltip(ITooltipBuilder, T, TooltipFlag)` overload.
+  - Because mods such as GregTech CEu / LDLib override `getTooltip(ITooltipBuilder, T, TooltipFlag)` while returning an empty list from `getTooltip(T, TooltipFlag)`, hovering over recipe slots showed only the mod name (`GregTech`). Falling back to `getTooltip(tooltip, ingredient, tooltipFlag)` when the component list is empty restores full tooltips across all custom renderers.
 
 ---
 

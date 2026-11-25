@@ -121,9 +121,14 @@ public interface IIngredientRenderer<T> {
 	 *
 	 * @since 15.54.0
 	 */
+	@SuppressWarnings("removal")
 	default void getTooltip(ITooltipBuilder tooltip, T ingredient, @Nullable Player player, TooltipFlag tooltipFlag) {
 		List<Component> components = getTooltip(ingredient, player, tooltipFlag);
-		tooltip.addAll(components);
+		if (!components.isEmpty()) {
+			tooltip.addAll(components);
+		} else {
+			getTooltip(tooltip, ingredient, tooltipFlag);
+		}
 	}
 
 	/**
