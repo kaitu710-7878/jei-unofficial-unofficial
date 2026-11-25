@@ -17,7 +17,7 @@ Preserving JEIU's philosophy of providing rich GTNH NEI-inspired conveniences on
 - **Multi-Tab Interactive Crafting Tree (JEIU-Tree Foundation with NEI for JEI Enhancements)**:
   - **Multi-Tab Workspace (Up to 16 Tabs)**: Manage up to 16 independent crafting tree tabs simultaneously in the top tab bar, including multiple independent tabs for the same target item (e.g., comparing progression-unlocked recipes or alternate routes).
   - **Tab Context Menu & Safe Tab Limit Handling**: Right-click any tab to **Duplicate**, **Reset**, or **Close** it. When opening or duplicating a tree at the 16-tab limit, a warning dialog lets you choose which existing tab to delete (or cancel safely without losing any work).
-  - **Clearer Readability & Zoom Limits**: Enlarged `20×20` icons in `24×24` slots, always-visible `1` quantity labels, and zoom-scaled limits for amount labels, collapse toggles, and branch lines so zoomed-out views stay clean.
+  - **Improved Readability & Zoom Limits over JEIU**: Compared to the upstream JEIU (JEI unofficial), features enlarged `20×20` icons in `24×24` slots, always-visible `1` quantity labels, and zoom-scaled size limits for amount labels, collapse toggles, and branch lines so zoomed-out views remain clean and legible.
   - **Optimization & Lightweight Rendering**: Frustum culling for off-screen nodes and lines, geometry caching, and minimal GC allocations.
   - **Bidirectional Chain-Tree Conversion**: Open crafting trees directly from bookmark recipe chains and save/export modified trees back into bookmark chains—including custom mod recipes without registered recipe IDs (`getRegistryName == null`).
   - **Recipe Specification & Tag Locking**: Right-click any node to pick alternate recipes from JEI's Recipes GUI; cycling/tag selections remain deterministically locked across restarts.
@@ -107,7 +107,7 @@ This project maintains a dual/multi-license structure:
 - **複数タブ対応の対話型クラフトツリー（JEIUツリー基盤 + NEI for JEI着想）**:
   - **マルチタブ管理（最大16タブ）**: 画面上部のタブバーで最大16個の独立したクラフトツリーを同時に管理可能。同一目標アイテムであっても複数タブを作成して進捗別のレシピ比較などができます。
   - **タブ右クリックメニューと上限保護**: タブを右クリックして **タブを複製**・**リセット**・**閉じる** を実行可能。16個の上限到達時に新規作成・複製を行う場合は、自動で古いタブを消さずに警告ダイアログを表示し、削除したい既存タブを指定して続行（またはキャンセル）できます。
-  - **視認性向上とズームリミット**: `24×24` スロット・`20×20` アイコンへの大型化、数量 `1` の常時表示、画面縮小時に数量・折りたたみボタン・分岐線がアイコンを覆わないサイズ制限を搭載。
+  - **JEIUと比較して強化された視認性とズームリミット**: 本家JEIU（JEI unofficial）と比較して、`24×24` スロット・`20×20` アイコンへの大型化、数量 `1` の常時表示、画面縮小時に数量・折りたたみボタン・分岐線がアイコンを覆い隠さないサイズ制限を搭載し、視認性を大幅に向上させています。
   - **最適化・軽量化**: 画面外ノードや接続線のフラスタムカリング、幾何レイアウトキャッシュにより大規模ツリーでも高速に動作。
   - **チェーン・ツリー間の双方向相互変換**: ブックマークのレシピチェーンからツリーを展開でき、編集したツリーをチェーンとして保存可能。レシピID未登録（`getRegistryName == null`）のカスタム機械レシピでも正しく連動します。
   - **レシピ指定とタグ固定**: ノード右クリックでJEIレシピ画面を開き、`+` ボタンでレシピを個別指定。タグ／サイクリング素材を選択した内容も再起動をまたいで決定的に維持されます。
