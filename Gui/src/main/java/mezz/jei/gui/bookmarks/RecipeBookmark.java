@@ -37,10 +37,12 @@ public class RecipeBookmark<R, I> implements IBookmark {
 	) {
 		T recipe = recipeLayoutDrawable.getRecipe();
 		IRecipeCategory<T> recipeCategory = recipeLayoutDrawable.getRecipeCategory();
-		ResourceLocation recipeUid = recipeCategory.getRegistryName(recipe);
-		if (recipeUid == null) {
-			return null;
-		}
+		ResourceLocation recipeUid = mezz.jei.gui.tree.TreeRecipeBuilder.getOrBuildRecipeUid(
+			recipeCategory,
+			recipe,
+			recipeLayoutDrawable.getRecipeSlotsView(),
+			ingredientManager
+		);
 
 		IRecipeSlotsView recipeSlotsView = recipeLayoutDrawable.getRecipeSlotsView();
 		{
@@ -176,6 +178,9 @@ public class RecipeBookmark<R, I> implements IBookmark {
 			Class<? extends R> recipeClass = recipeType.getRecipeClass();
 			if (recipeClass.isInstance(otherRecipe)) {
 				R castRecipe = recipeClass.cast(otherRecipe);
+				if (castRecipe == this.recipe) {
+					return true;
+				}
 				ResourceLocation otherUid = recipeCategory.getRegistryName(castRecipe);
 				return recipeUid.equals(otherUid);
 			}

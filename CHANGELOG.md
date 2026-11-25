@@ -15,6 +15,16 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta36] - 2026-11-25 (Beta)
+#### 修正・改善 (Fixed & Improved)
+- **レシピID未登録（`getRegistryName == null`）のカスタムレシピをチェーン生成・ブックマーク登録した際に数量計算が連動しない不具合を修正 (`RecipeBookmarkEntryFactory` & `RecipeBookmarkSerializer`)**:
+  - `IRecipeCategory.getRegistryName(recipe)` が `null` を返すカスタム機械レシピ（Voltex mod の工業用組立機など）をツリーからレシピチェーンとして保存・登録した際、`RecipeBookmark` ではなく単なるアイテムブックマーク（`factor=1`、レシピ紐づけなし）へフォールバックしていたため、すべての入出力が 1 個表示になり、目標数量を変更しても子アイテムの必要数が連動して計算されなかった問題を修正。
+  - ツリーと共通の合成レシピUID（`*_synth_<hash>`）を用いて `RecipeBookmark` および入出力の `factor` メタデータを正しく生成し、再起動時のブックマーク復元 (`RecipeBookmarkSerializer`) でも合成UIDを照合できるよう改善。
+- **クラフトツリー上で数量が 1 のアイテムにも `1` を表示 (`CraftingTreeScreen`)**:
+  - ツリーノードおよび統計表示において、数量が 1 個のアイテムでも常に `1` の数量ラベルを描画するように改善。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta35] - 2026-11-25 (Beta)
 #### 機能追加・改善 (Added & Improved)
 - **同一目標アイテムでの複数タブ管理に対応**:
@@ -24,18 +34,6 @@
 - **ツリー展開キー操作 (`T` / `Shift+T` / `Shift+B`) の挙動を刷新**:
   - `T` キー単体および `Shift+B`：カーソル下のアイテム/グループの既存ツリータブがあればそのタブへ移動し、なければ新規タブを作成します。
   - `Shift+T`：既存タブの有無にかかわらず、無条件で新しいクラフトツリータブを新規作成します。
-
----
-
-### [15.59.0.212-jeiuu.4-beta35] - 2026-11-25 (Beta)
-#### Added & Improved
-- **Multiple Independent Tabs for the Same Target Item/Group**:
-  - Tree sessions are now keyed by a unique `tabId` instead of deduplicating by ingredient/group key, allowing multiple independent crafting tree tabs for the same target item (e.g., comparing progression-unlocked recipes or alternate routes).
-- **Tab Right-Click Context Menu & Tab Duplication**:
-  - Right-clicking any crafting tree tab now opens a context menu with **Duplicate Tab** (creates a new tab with the exact same tree state, recipes, edits, and camera), **Reset**, and **Close**.
-- **Updated Tree Keybind Behavior (`T` / `Shift+T` / `Shift+B`)**:
-  - `T` and `Shift+B`: Focuses an existing tab for the hovered item/group if one is already open, or creates a new tab otherwise.
-  - `Shift+T`: Unconditionally creates a brand-new crafting tree tab even if an existing tab for that item/group is already open.
 
 ---
 
@@ -413,15 +411,13 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 
 ---
 
-### [15.59.0.212-jeiuu.4-beta35] - 2026-11-25 (Beta)
-#### 機能追加・改善 (Added & Improved)
-- **同一目標アイテムでの複数タブ管理に対応**:
-  - ツリーセッションを一意の `tabId` で識別するように変更し、同一目標アイテム（または同一グループ）であっても独立した複数のクラフトツリータブを保持・切り替えできるようになりました（進捗に応じたレシピ解放や別ルートの比較に対応）。
-- **タブ右クリックメニューとタブ複製機能を追加**:
-  - クラフトツリー画面のタブを右クリックするとコンテキストメニューが開き、「タブを複製（ツリー構成・手動レシピ・折りたたみやカメラ位置をそのままコピーした新規タブを作成）」「リセット」「閉じる」を実行できるようになりました。
-- **ツリー展開キー操作 (`T` / `Shift+T` / `Shift+B`) の挙動を刷新**:
-  - `T` キー単体および `Shift+B`：カーソル下のアイテム/グループの既存ツリータブがあればそのタブへ移動し、なければ新規タブを作成します。
-  - `Shift+T`：既存タブの有無にかかわらず、無条件で新しいクラフトツリータブを新規作成します。
+### [15.59.0.212-jeiuu.4-beta36] - 2026-11-25 (Beta)
+#### Fixed & Improved
+- **Fixed Recipe Chain Generation & Quantity Scaling for Custom Recipes Without Registry Names (`getRegistryName == null`)**:
+  - Fixed an issue in `RecipeBookmarkEntryFactory` and `RecipeBookmark` where recipes returning `null` from `IRecipeCategory.getRegistryName(recipe)` (such as custom machine recipes like Voltex mod's Industrial Assembler) fell back to plain `IngredientBookmark` entries (`factor=1`, no recipe link), causing all chain entries to appear as `1` and child ingredient quantities not to scale when changing the target amount.
+  - Now generates proper `RecipeBookmark` entries with synthetic recipe UIDs (`*_synth_<hash>`) and accurate input/output `factor` metadata, and updates `RecipeBookmarkSerializer` to resolve synthetic UIDs when reloading `bookmarks.json`.
+- **Always Display `1` for Single-Count Items in Crafting Tree (`CraftingTreeScreen`)**:
+  - Updated `drawFormattedAmountOverlay` so items with a quantity of `1` also display the `1` amount label.
 
 ---
 

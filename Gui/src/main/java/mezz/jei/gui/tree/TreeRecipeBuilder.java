@@ -408,11 +408,24 @@ public final class TreeRecipeBuilder {
 		return Optional.of(best);
 	}
 
-	private static boolean isSyntheticRecipeUid(ResourceLocation uid) {
-		return uid.getPath().contains("_synth_");
+	public static boolean isSyntheticRecipeUid(@Nullable ResourceLocation uid) {
+		return uid != null && uid.getPath().contains("_synth_");
 	}
 
-	private static ResourceLocation buildSyntheticRecipeUid(
+	public static <R> ResourceLocation getOrBuildRecipeUid(
+		IRecipeCategory<R> category,
+		R recipe,
+		IRecipeSlotsView slotsView,
+		IIngredientManager ingredientManager
+	) {
+		ResourceLocation uid = category.getRegistryName(recipe);
+		if (uid != null) {
+			return uid;
+		}
+		return buildSyntheticRecipeUid(category.getRecipeType().getUid(), slotsView, ingredientManager);
+	}
+
+	public static ResourceLocation buildSyntheticRecipeUid(
 		ResourceLocation categoryUid,
 		IRecipeSlotsView slotsView,
 		IIngredientManager ingredientManager

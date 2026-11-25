@@ -153,7 +153,7 @@ public class RecipeBookmarkSerializer implements IJeiConfigValueSerializer<Recip
 			.get()
 			.toList();
 		Optional<RecipeBookmark<?, ?>> result = focused.stream()
-			.filter(recipe -> Objects.equals(rawCategory.getRegistryName(recipe), recipeUid))
+			.filter(recipe -> matchesRecipeUid(rawCategory, recipe, recipeUid))
 			.findFirst()
 			.map(recipe -> new RecipeBookmark(rawCategory, recipe, recipeUid, output, displayRole));
 		return result;
@@ -181,8 +181,26 @@ public class RecipeBookmarkSerializer implements IJeiConfigValueSerializer<Recip
 		return recipeManager.createRecipeLookup(recipeType)
 			.limitFocus(focus)
 			.get()
-			.filter(r -> Objects.equals(recipeCategory.getRegistryName(r), recipeUid))
+			.filter(r -> matchesRecipeUid(recipeCategory, r, recipeUid))
 			.findFirst();
+	}
+
+	private <T> boolean matchesRecipeUid(IRecipeCategory<T> recipeCategory, T recipe, ResourceLocation targetUid) {
+		ResourceLocation uid = recipeCategory.getRegistryName(recipe);
+		if (uid != null) {
+			return targetUid.equals(uid);
+		}
+		if (!mezz.jei.gui.tree.TreeRecipeBuilder.isSyntheticRecipeUid(targetUid)) {
+			return false;
+		}
+		return recipeManager.createRecipeLayoutDrawable(recipeCategory, recipe, focusFactory.getEmptyFocusGroup())
+			.map(layout -> mezz.jei.gui.tree.TreeRecipeBuilder.buildSyntheticRecipeUid(
+				recipeCategory.getRecipeType().getUid(),
+				layout.getRecipeSlotsView(),
+				ingredientManager
+			))
+			.map(targetUid::equals)
+			.orElse(false);
 	}
 
 	@Override

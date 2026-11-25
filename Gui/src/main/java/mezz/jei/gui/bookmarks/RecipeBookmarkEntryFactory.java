@@ -168,11 +168,12 @@ final class RecipeBookmarkEntryFactory {
 		ITypedIngredient<T> ingredient = (ITypedIngredient<T>) virtualInput.ingredient();
 		IRecipeCategory<R> recipeCategory = recipeLayout.getRecipeCategory();
 		R recipe = recipeLayout.getRecipe();
-		ResourceLocation recipeUid = recipeCategory.getRegistryName(recipe);
-		if (recipeUid == null) {
-			IBookmark bookmark = preserveAmount ? IngredientBookmark.createPreservingAmount(ingredient, ingredientManager) : IngredientBookmark.create(ingredient, ingredientManager);
-			return new RecipeBookmarkEntry(bookmark, BookmarkItemMetadata.defaultForGroup(BookmarkGroupManager.DEFAULT_GROUP_ID));
-		}
+		ResourceLocation recipeUid = mezz.jei.gui.tree.TreeRecipeBuilder.getOrBuildRecipeUid(
+			recipeCategory,
+			recipe,
+			recipeLayout.getRecipeSlotsView(),
+			ingredientManager
+		);
 		ITypedIngredient<T> bookmarkIngredient = preserveAmount ? ingredient : ingredientManager.normalizeTypedIngredient(ingredient);
 		IBookmark bookmark = new RecipeBookmark<>(recipeCategory, recipe, recipeUid, bookmarkIngredient, RecipeIngredientRole.INPUT, equalityScope);
 		long factor = virtualInput.programmedCircuit() ? 0 : BookmarkIngredientAmountResolver.getAmount(ingredient, ingredientManager);
@@ -247,11 +248,12 @@ final class RecipeBookmarkEntryFactory {
 		IRecipeCategory<R> recipeCategory = recipeLayout.getRecipeCategory();
 		R recipe = recipeLayout.getRecipe();
 		ITypedIngredient<T> bookmarkIngredient = preserveAmount ? ingredient : ingredientManager.normalizeTypedIngredient(ingredient);
-		ResourceLocation recipeUid = recipeCategory.getRegistryName(recipe);
-		if (recipeUid == null) {
-			IBookmark bookmark = preserveAmount ? IngredientBookmark.createPreservingAmount(ingredient, ingredientManager) : IngredientBookmark.create(ingredient, ingredientManager);
-			return new RecipeBookmarkEntry(bookmark, BookmarkItemMetadata.defaultForGroup(BookmarkGroupManager.DEFAULT_GROUP_ID));
-		}
+		ResourceLocation recipeUid = mezz.jei.gui.tree.TreeRecipeBuilder.getOrBuildRecipeUid(
+			recipeCategory,
+			recipe,
+			recipeLayout.getRecipeSlotsView(),
+			ingredientManager
+		);
 		IBookmark bookmark = new RecipeBookmark<>(recipeCategory, recipe, recipeUid, bookmarkIngredient, role, equalityScope);
 		boolean virtualInput = role == RecipeIngredientRole.INPUT && virtualInputs.inputs().stream()
 			.map(GtmVirtualCircuitCompat.VirtualInput::ingredient)

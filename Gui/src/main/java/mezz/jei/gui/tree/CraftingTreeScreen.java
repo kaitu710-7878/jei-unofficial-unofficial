@@ -1805,8 +1805,7 @@ public final class CraftingTreeScreen extends Screen {
 			// Hide amount text when zoomed out far so it does not obscure the entire slot
 			return;
 		}
-		boolean isFluidOrGas = key != null && BookmarkAmountFormatter.usesFluidAmountUnits(key.ingredientTypeUid());
-		boolean shouldRender = (alwaysShowPositive || isFluidOrGas) ? amount.signum() > 0 : amount.compareTo(BigInteger.ONE) > 0;
+		boolean shouldRender = amount.signum() > 0;
 		if (!shouldRender) {
 			return;
 		}
