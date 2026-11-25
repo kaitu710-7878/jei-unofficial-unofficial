@@ -1465,11 +1465,11 @@ public final class CraftingTreeScreen extends Screen {
 
 		// 4. Render Amount Overlays & Collapse Buttons on top (with zoom-out size limits)
 		float zoom = camera.getZoomLevel();
-		int collapseBtnSize = zoom < 0.35f ? 0 : Math.max(4, Math.min(9, Math.round(9.0f * zoom)));
+		int collapseBtnSize = zoom < 0.35f ? 0 : Math.max(4, Math.min(11, Math.round(11.0f * zoom)));
 		for (VisibleTreeNode node : visibleNodes) {
 			TreeSlot slot = node.slot();
 			BigInteger amount = slot.hasRecipe() ? slot.getProducedAmount() : slot.getRequestedAmount();
-			drawFormattedAmountOverlay(g, amount, slot.getKey(), node.screenX(), node.screenY(), node.scaledSlotSize(), false, zoom);
+			drawFormattedAmountOverlay(g, amount, slot.getKey(), node.screenX(), node.screenY(), node.scaledSlotSize(), false, zoom, 1.2f);
 
 			if (collapseBtnSize >= 4 && graph.hasChildren(slot)) {
 				int collapseX = node.screenX() + (node.scaledSlotSize() - collapseBtnSize) / 2;
@@ -1575,7 +1575,7 @@ public final class CraftingTreeScreen extends Screen {
 		int slotSize,
 		boolean alwaysShowPositive
 	) {
-		drawFormattedAmountOverlay(g, amount, key, screenX, screenY, slotSize, alwaysShowPositive, 1.0f);
+		drawFormattedAmountOverlay(g, amount, key, screenX, screenY, slotSize, alwaysShowPositive, 1.0f, 1.0f);
 	}
 
 	private void drawFormattedAmountOverlay(
@@ -1586,7 +1586,8 @@ public final class CraftingTreeScreen extends Screen {
 		int screenY,
 		int slotSize,
 		boolean alwaysShowPositive,
-		float zoom
+		float zoom,
+		float maxScale
 	) {
 		if (slotSize < 10) {
 			// Hide amount text when zoomed out far so it does not obscure the entire slot
@@ -1601,7 +1602,9 @@ public final class CraftingTreeScreen extends Screen {
 			? BookmarkAmountFormatter.formatTypedAmount(amount, key.ingredientTypeUid())
 			: BookmarkAmountFormatter.formatItemAmount(amount);
 		int textWidth = font.width(text);
-		float scale = Math.min(1.0f, Math.max(0.42f, zoom * 0.95f));
+		float scale = maxScale > 1.0f
+			? Math.min(maxScale, Math.max(0.48f, zoom * 1.14f))
+			: Math.min(1.0f, Math.max(0.42f, zoom * 0.95f));
 		int availableWidth = slotSize - 2;
 		if (textWidth * scale > availableWidth && availableWidth > 0 && textWidth > 0) {
 			scale = (float) availableWidth / textWidth;

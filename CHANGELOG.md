@@ -15,6 +15,13 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta34] - 2026-11-25 (Beta)
+#### 改善 (Improved)
+- **折りたたみボタンと数量表示のサイズ上限・同倍率サイズを約1.2倍へ拡大**:
+  - 折りたたみボタンの上限サイズおよびズーム比例係数を `9px` → `11px` へ、ツリーノード上の数量テキストスケール上限を `1.0f` → `1.2f`（縮小比例係数も約1.2倍）へ引き上げ、拡大表示時・通常表示時の視認性をさらに向上させました（分岐線の太さは現状維持）。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta33] - 2026-11-25 (Beta)
 #### 改善 (Improved)
 - **クラフトツリー UI の視認性・操作性向上**:
@@ -379,6 +386,13 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta34] - 2026-11-25 (Beta)
+#### Improved
+- **Increased Collapse Button & Amount Overlay Size Limits by ~1.2x**:
+  - Increased the collapse toggle button cap and zoom scaling factor from `9px` to `11px`, and raised the tree node amount text scale cap from `1.0f` to `1.2f` (with ~1.2x scaling at equivalent zoom levels) for better readability while keeping branch line thickness unchanged.
 
 ---
 

@@ -117,7 +117,7 @@ public final class TreeDraw {
 
 		String symbol = collapsed ? "+" : "-";
 		int textW = font.width(symbol);
-		float textScale = Math.min(1.0f, (float) size / 9.0f);
+		float textScale = Math.min(1.2f, (float) size / 9.0f);
 		g.pose().pushPose();
 		g.pose().translate(x + (size - textW * textScale) / 2.0f, y + (size - 7.0f * textScale) / 2.0f, 0.0f);
 		if (textScale != 1.0f) {
