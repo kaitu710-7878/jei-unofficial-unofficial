@@ -584,5 +584,8 @@
   "jei.tree.tooltip.handler_recipes": "対象レシピ数: %s",
   "jei.tree.tab.duplicate": "タブを複製",
   "jei.tree.tab.reset": "リセット",
-  "jei.tree.tab.close": "閉じる"
+  "jei.tree.tab.close": "閉じる",
+  "jei.tree.tab_limit.title": "タブ上限 (16個) に達しています",
+  "jei.tree.tab_limit.description": "現在 %s 個のタブが開かれています。新しいツリーを作成または複製するには、削除するタブを1つ選択してください。",
+  "jei.tree.tab_limit.confirm": "選択したタブを削除して作成"
 }

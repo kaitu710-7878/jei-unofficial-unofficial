@@ -15,6 +15,16 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta37] - 2026-11-25 (Beta)
+#### 改善 (Improved)
+- **タブバーに最大 16 個すべてのタブを表示できるよう改善 (`CraftingTreeScreen`)**:
+  - タブ幅の最小下限（従来の `58px` 固定下限）を見直し、タブ数に応じて最大 16 個までウィンドウ幅内に収まるよう動的調整するようにしました（14 個以上でタブが画面外にはみ出て見えなくなる問題を解消）。また、タブへカーソルを合わせた際にフルネームのツールチップを表示するようにしました。
+- **タブ上限（16 個）到達時の自動削除を廃止し、警告・削除タブ選択ダイアログを追加 (`TreeTabLimitScreen`)**:
+  - タブが 16 個を超えた際に古いタブが自動的に消えてしまっていた仕様を廃止しました。
+  - タブが 16 個存在する状態で新規ツリー作成またはタブ複製を実行すると警告ダイアログが開き、削除する既存タブを任意に 1 つ指定して作成／複製するか、キャンセルして既存タブを保護するかを選択できるようになりました。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta36] - 2026-11-25 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **レシピID未登録（`getRegistryName == null`）のカスタムレシピをチェーン生成・ブックマーク登録した際に数量計算が連動しない不具合を修正 (`RecipeBookmarkEntryFactory` & `RecipeBookmarkSerializer`)**:
@@ -408,6 +418,16 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta37] - 2026-11-25 (Beta)
+#### Improved
+- **Display All 16 Tabs in the Crafting Tree Tab Bar (`CraftingTreeScreen`)**:
+  - Removed the `58px` minimum tab width clamp and dynamically fit up to all 16 tabs within the screen width (fixing tabs overflowing past 14 tabs), and added full tab name tooltips on hover.
+- **Replaced Silent Tab Eviction at 16 Tabs with Warning & Tab Deletion Picker (`TreeTabLimitScreen`)**:
+  - Removed automatic eviction of the oldest tab when exceeding 16 tabs.
+  - Creating a new tree tab or duplicating a tab while 16 tabs are open now opens a warning dialog allowing the user to pick which existing tab to delete before proceeding, or cancel without losing any tab.
 
 ---
 

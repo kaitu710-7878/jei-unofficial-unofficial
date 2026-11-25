@@ -590,5 +590,8 @@
   "jei.tree.tooltip.handler_recipes": "Recipes used: %s",
   "jei.tree.tab.duplicate": "Duplicate Tab",
   "jei.tree.tab.reset": "Reset",
-  "jei.tree.tab.close": "Close"
+  "jei.tree.tab.close": "Close",
+  "jei.tree.tab_limit.title": "Tab Limit Reached (16 Tabs)",
+  "jei.tree.tab_limit.description": "You currently have %s tabs open. Select one existing tab to delete before creating or duplicating a tree:",
+  "jei.tree.tab_limit.confirm": "Delete Selected & Create"
 }

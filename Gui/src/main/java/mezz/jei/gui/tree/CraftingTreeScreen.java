@@ -419,12 +419,7 @@ public final class CraftingTreeScreen extends Screen {
 	}
 
 	private static final int MAX_SESSION_HISTORY = 16;
-	private static final Map<String, TreeSession> sessionHistory = new LinkedHashMap<>(16, 0.75f, false) {
-		@Override
-		protected boolean removeEldestEntry(Map.Entry<String, TreeSession> eldest) {
-			return size() > MAX_SESSION_HISTORY;
-		}
-	};
+	private static final Map<String, TreeSession> sessionHistory = new LinkedHashMap<>(16, 0.75f, false);
 	private static @Nullable TreeSession activeSession = null;
 	private @Nullable TreeSlot pendingRecipeTarget;
 
@@ -449,6 +444,15 @@ public final class CraftingTreeScreen extends Screen {
 	}
 
 	public static void open(Screen parent, BookmarkList bookmarks, int groupId, IIngredientManager ingredientManager, boolean forceNewTab) {
+		ensureActiveSessionLoaded();
+		boolean willCreateNewTab = forceNewTab || findGroupSession(groupId) == null;
+		if (willCreateNewTab && sessionHistory.size() >= MAX_SESSION_HISTORY) {
+			openTabLimitDialog(parent, bookmarks, ingredientManager, deletedKey -> {
+				deleteTabForReplacement(deletedKey, ingredientManager);
+				Minecraft.getInstance().setScreen(new CraftingTreeScreen(parent, bookmarks, groupId, ingredientManager, null, forceNewTab));
+			});
+			return;
+		}
 		Minecraft.getInstance().setScreen(new CraftingTreeScreen(parent, bookmarks, groupId, ingredientManager, null, forceNewTab));
 	}
 
@@ -457,8 +461,76 @@ public final class CraftingTreeScreen extends Screen {
 	}
 
 	public static void openForIngredient(Screen parent, BookmarkList bookmarks, ITypedIngredient<?> target, IIngredientManager ingredientManager, boolean forceNewTab) {
+		ensureActiveSessionLoaded();
+		BookmarkIngredientKey key = BookmarkItemMetadataFactory.createPermutationKey(target, ingredientManager);
+		boolean willCreateNewTab = forceNewTab || findIngredientSession(key, ingredientManager) == null;
+		if (willCreateNewTab && sessionHistory.size() >= MAX_SESSION_HISTORY) {
+			openTabLimitDialog(parent, bookmarks, ingredientManager, deletedKey -> {
+				deleteTabForReplacement(deletedKey, ingredientManager);
+				Minecraft.getInstance().setScreen(new CraftingTreeScreen(parent, bookmarks, target, BigInteger.ONE, null, ingredientManager, null, forceNewTab));
+			});
+			return;
+		}
 		CraftingTreeScreen screen = new CraftingTreeScreen(parent, bookmarks, target, BigInteger.ONE, null, ingredientManager, null, forceNewTab);
 		Minecraft.getInstance().setScreen(screen);
+	}
+
+	private static void openTabLimitDialog(
+		Screen parent,
+		BookmarkList bookmarks,
+		IIngredientManager ingredientManager,
+		java.util.function.Consumer<String> onConfirmDelete
+	) {
+		String activeKey = activeSession != null ? activeSession.getSessionKey(ingredientManager) : null;
+		List<TreeTabLimitScreen.TabOption> options = new ArrayList<>();
+		for (Map.Entry<String, TreeSession> entry : sessionHistory.entrySet()) {
+			TreeSession s = entry.getValue();
+			String name = getSessionDisplayNameStatic(s, ingredientManager, bookmarks);
+			options.add(new TreeTabLimitScreen.TabOption(entry.getKey(), name, s.targetIngredient, entry.getKey().equals(activeKey)));
+		}
+		Minecraft.getInstance().setScreen(new TreeTabLimitScreen(parent, options, ingredientManager, onConfirmDelete));
+	}
+
+	private static void deleteTabForReplacement(String tabKey, IIngredientManager ingredientManager) {
+		TreeSession removed = sessionHistory.remove(tabKey);
+		if (removed != null && removed == activeSession) {
+			activeSession = null;
+		}
+		if (activeSession != null) {
+			activeSession.saveToFile(ingredientManager, sessionHistory);
+		} else if (!sessionHistory.isEmpty()) {
+			TreeSession first = sessionHistory.values().iterator().next();
+			first.saveToFile(ingredientManager, sessionHistory);
+		}
+	}
+
+	private static <T> String getTypedDisplayName(ITypedIngredient<T> typed, IIngredientManager ingredientManager) {
+		try {
+			String name = ingredientManager.getIngredientHelper(typed.getType()).getDisplayName(typed.getIngredient());
+			if (name != null && !name.isBlank()) {
+				return name;
+			}
+		} catch (Throwable ignored) {}
+		return typed.getIngredient().toString();
+	}
+
+	private static String getSessionDisplayNameStatic(
+		TreeSession session,
+		IIngredientManager ingredientManager,
+		@Nullable BookmarkList bookmarks
+	) {
+		if (session.targetIngredient != null) {
+			return getTypedDisplayName(session.targetIngredient, ingredientManager);
+		}
+		if (session.targetIngredientKey != null) {
+			return session.targetIngredientKey.ingredientUid();
+		}
+		if (session.groupId >= 0 && bookmarks != null) {
+			return bookmarks.getGroup(session.groupId)
+				.map(g -> g.title().isBlank() ? "Group #" + session.groupId : g.title())
+				.orElse("Group #" + session.groupId);
+		}
+		return "Tree";
 	}
 
 	public static void clearSession() {
@@ -590,7 +662,7 @@ public final class CraftingTreeScreen extends Screen {
 		// Restore session if working on the same target ingredient unless forceNewTab is requested
 		ITypedIngredient<?> effectiveIng = this.targetIngredient != null ? this.targetIngredient : targetIngredient;
 		BookmarkIngredientKey currentKey = BookmarkItemMetadataFactory.createPermutationKey(effectiveIng, ingredientManager);
-		TreeSession restored = forceNewTab ? null : (preferredTabId != null ? sessionHistory.get(preferredTabId) : findIngredientSession(currentKey));
+		TreeSession restored = forceNewTab ? null : (preferredTabId != null ? sessionHistory.get(preferredTabId) : findIngredientSession(currentKey, ingredientManager));
 		if (restored != null) {
 			this.tabId = restored.tabId;
 			restoreFromSession(restored, true);
@@ -601,7 +673,7 @@ public final class CraftingTreeScreen extends Screen {
 		rebuildTreeMath();
 	}
 
-	private @Nullable TreeSession findGroupSession(int gid) {
+	private static @Nullable TreeSession findGroupSession(int gid) {
 		if (gid < 0) {
 			return null;
 		}
@@ -618,22 +690,22 @@ public final class CraftingTreeScreen extends Screen {
 		return null;
 	}
 
-	private @Nullable TreeSession findIngredientSession(BookmarkIngredientKey currentKey) {
-		if (activeSession != null && matchesSessionKey(activeSession, currentKey)) {
+	private static @Nullable TreeSession findIngredientSession(BookmarkIngredientKey currentKey, IIngredientManager ingredientManager) {
+		if (activeSession != null && matchesSessionKey(activeSession, currentKey, ingredientManager)) {
 			return activeSession;
 		}
 		// Search history in reverse insertion order for matching item tab
 		List<TreeSession> candidates = new ArrayList<>(sessionHistory.values());
 		for (int i = candidates.size() - 1; i >= 0; i--) {
 			TreeSession s = candidates.get(i);
-			if (matchesSessionKey(s, currentKey)) {
+			if (matchesSessionKey(s, currentKey, ingredientManager)) {
 				return s;
 			}
 		}
 		return null;
 	}
 
-	private boolean matchesSessionKey(TreeSession session, BookmarkIngredientKey currentKey) {
+	private static boolean matchesSessionKey(TreeSession session, BookmarkIngredientKey currentKey, IIngredientManager ingredientManager) {
 		BookmarkIngredientKey sessionKey = session.targetIngredientKey != null
 			? session.targetIngredientKey
 			: (session.targetIngredient != null ? BookmarkItemMetadataFactory.createPermutationKey(session.targetIngredient, ingredientManager) : null);
@@ -1322,6 +1394,14 @@ public final class CraftingTreeScreen extends Screen {
 		return "Tree";
 	}
 
+	private int[] getTabBarLayout(int tabCount) {
+		int gap = tabCount > 12 ? 1 : 2;
+		int maxTabsWidth = Math.max(1, width - 8);
+		int tabW = Math.max(20, Math.min(115, (maxTabsWidth - Math.max(0, tabCount - 1) * gap) / Math.max(1, tabCount)));
+		int closeW = tabW >= 34 ? 11 : 9;
+		return new int[]{tabW, gap, closeW};
+	}
+
 	private void renderTabBar(GuiGraphics g, int mouseX, int mouseY) {
 		g.fill(0, TOP_BAR_HEIGHT, width, HEADER_HEIGHT, 0xEE161616);
 		g.fill(0, HEADER_HEIGHT - 1, width, HEADER_HEIGHT, 0xFF3A3A3A);
@@ -1332,48 +1412,52 @@ public final class CraftingTreeScreen extends Screen {
 		}
 
 		String activeKey = getCurrentSessionKey();
-		int maxTabsWidth = Math.max(1, width - 8);
-		int tabW = Math.max(58, Math.min(115, (maxTabsWidth - (tabs.size() - 1) * 2) / tabs.size()));
+		int[] layout = getTabBarLayout(tabs.size());
+		int tabW = layout[0];
+		int gap = layout[1];
+		int closeW = layout[2];
 		int x = 4;
 		int y = TOP_BAR_HEIGHT + 2;
 		int h = TAB_BAR_HEIGHT - 2;
 
-		for (Map.Entry<String, TreeSession> entry : tabs) {
-			if (x + tabW > width - 4) {
-				break;
-			}
+		for (int i = 0; i < tabs.size(); i++) {
+			Map.Entry<String, TreeSession> entry = tabs.get(i);
+			int currentW = (i == tabs.size() - 1) ? Math.min(tabW, Math.max(18, width - 4 - x)) : tabW;
 			String tabKey = entry.getKey();
 			TreeSession tabSession = entry.getValue();
 			boolean isActive = tabKey.equals(activeKey);
-			boolean isHover = mouseX >= x && mouseX < x + tabW && mouseY >= y && mouseY < y + h;
-			boolean isCloseHover = isHover && mouseX >= x + tabW - 12;
+			boolean isHover = mouseX >= x && mouseX < x + currentW && mouseY >= y && mouseY < y + h;
+			boolean isCloseHover = isHover && mouseX >= x + currentW - closeW;
 
 			int bg = isActive ? 0xFF343A46 : (isHover ? 0xFF282828 : 0xFF1E1E1E);
 			int border = isActive ? 0xFF5599FF : 0xFF383838;
-			g.fill(x, y, x + tabW, y + h, bg);
-			g.fill(x, y, x + tabW, y + 1, border);
+			g.fill(x, y, x + currentW, y + h, bg);
+			g.fill(x, y, x + currentW, y + 1, border);
 			g.fill(x, y, x + 1, y + h, border);
-			g.fill(x + tabW - 1, y, x + tabW, y + h, border);
+			g.fill(x + currentW - 1, y, x + currentW, y + h, border);
 			if (isActive) {
-				g.fill(x + 1, y + h - 1, x + tabW - 1, y + h, 0xFF5599FF);
+				g.fill(x + 1, y + h - 1, x + currentW - 1, y + h, 0xFF5599FF);
 			}
 
 			int textStartX = x + 4;
 			if (tabSession.targetIngredient != null) {
-				renderTypedIngredient(g, tabSession.targetIngredient, x + 3, y + 3, 12.0f / 16.0f);
-				textStartX = x + 17;
+				int iconX = currentW < 30 ? x + 2 : x + 3;
+				renderTypedIngredient(g, tabSession.targetIngredient, iconX, y + 3, 12.0f / 16.0f);
+				textStartX = iconX + 14;
 			}
 
-			int closeX = x + tabW - 11;
-			int maxLabelW = Math.max(8, closeX - textStartX - 2);
-			String label = getSessionDisplayName(tabSession);
-			if (font.width(label) > maxLabelW) {
-				label = font.plainSubstrByWidth(label, Math.max(4, maxLabelW - font.width("..."))) + "...";
+			int closeX = x + currentW - closeW;
+			int maxLabelW = closeX - textStartX - 2;
+			if (maxLabelW >= 10) {
+				String label = getSessionDisplayName(tabSession);
+				if (font.width(label) > maxLabelW) {
+					label = font.plainSubstrByWidth(label, Math.max(4, maxLabelW - font.width("..."))) + "...";
+				}
+				g.drawString(font, label, textStartX, y + 5, isActive ? 0xFFFFFFFF : 0xFFBBBBBB, false);
 			}
-			g.drawString(font, label, textStartX, y + 5, isActive ? 0xFFFFFFFF : 0xFFBBBBBB, false);
-			g.drawString(font, "x", closeX + 2, y + 4, isCloseHover ? 0xFFFF5555 : 0xFF888888, false);
+			g.drawString(font, "x", closeX + (closeW >= 11 ? 2 : 1), y + 4, isCloseHover ? 0xFFFF5555 : 0xFF888888, false);
 
-			x += tabW + 2;
+			x += currentW + gap;
 		}
 	}
 
@@ -1382,22 +1466,22 @@ public final class CraftingTreeScreen extends Screen {
 		if (tabs.isEmpty()) {
 			return false;
 		}
-		int maxTabsWidth = Math.max(1, width - 8);
-		int tabW = Math.max(58, Math.min(115, (maxTabsWidth - (tabs.size() - 1) * 2) / tabs.size()));
+		int[] layout = getTabBarLayout(tabs.size());
+		int tabW = layout[0];
+		int gap = layout[1];
+		int closeW = layout[2];
 		int x = 4;
 		int y = TOP_BAR_HEIGHT + 2;
 		int h = TAB_BAR_HEIGHT - 2;
 
 		String activeKey = getCurrentSessionKey();
 		for (int i = 0; i < tabs.size(); i++) {
-			if (x + tabW > width - 4) {
-				break;
-			}
+			int currentW = (i == tabs.size() - 1) ? Math.min(tabW, Math.max(18, width - 4 - x)) : tabW;
 			Map.Entry<String, TreeSession> entry = tabs.get(i);
-			if (mouseX >= x && mouseX < x + tabW && mouseY >= y && mouseY < y + h) {
+			if (mouseX >= x && mouseX < x + currentW && mouseY >= y && mouseY < y + h) {
 				String tabKey = entry.getKey();
 				TreeSession tabSession = entry.getValue();
-				boolean isCloseClick = (button == 2) || (button == 0 && mouseX >= x + tabW - 12);
+				boolean isCloseClick = (button == 2) || (button == 0 && mouseX >= x + currentW - closeW);
 				if (isCloseClick) {
 					contextMenuTabKey = null;
 					closeTab(tabKey);
@@ -1416,9 +1500,33 @@ public final class CraftingTreeScreen extends Screen {
 					return true;
 				}
 			}
-			x += tabW + 2;
+			x += currentW + gap;
 		}
 		return false;
+	}
+
+	private @Nullable TreeSession getHoveredTabSession(double mouseX, double mouseY) {
+		if (mouseY < TOP_BAR_HEIGHT || mouseY >= HEADER_HEIGHT) {
+			return null;
+		}
+		List<Map.Entry<String, TreeSession>> tabs = new ArrayList<>(sessionHistory.entrySet());
+		if (tabs.isEmpty()) {
+			return null;
+		}
+		int[] layout = getTabBarLayout(tabs.size());
+		int tabW = layout[0];
+		int gap = layout[1];
+		int x = 4;
+		int y = TOP_BAR_HEIGHT + 2;
+		int h = TAB_BAR_HEIGHT - 2;
+		for (int i = 0; i < tabs.size(); i++) {
+			int currentW = (i == tabs.size() - 1) ? Math.min(tabW, Math.max(18, width - 4 - x)) : tabW;
+			if (mouseX >= x && mouseX < x + currentW && mouseY >= y && mouseY < y + h) {
+				return tabs.get(i).getValue();
+			}
+			x += currentW + gap;
+		}
+		return null;
 	}
 
 	private void closeTab(String tabKey) {
@@ -1451,12 +1559,30 @@ public final class CraftingTreeScreen extends Screen {
 			return;
 		}
 		TreeSession copy = source.copyWithNewTabId();
+		if (sessionHistory.size() >= MAX_SESSION_HISTORY) {
+			openTabLimitDialog(this, bookmarks, ingredientManager, deletedKey -> {
+				performDuplicateTab(tabKey, copy, deletedKey);
+			});
+			return;
+		}
+		performDuplicateTab(tabKey, copy, null);
+	}
+
+	private void performDuplicateTab(String sourceTabKey, TreeSession copy, @Nullable String deleteTabKey) {
 		Map<String, TreeSession> reordered = new LinkedHashMap<>();
+		boolean inserted = false;
 		for (Map.Entry<String, TreeSession> entry : sessionHistory.entrySet()) {
-			reordered.put(entry.getKey(), entry.getValue());
-			if (entry.getKey().equals(tabKey)) {
-				reordered.put(copy.tabId, copy);
+			String key = entry.getKey();
+			if (!key.equals(deleteTabKey)) {
+				reordered.put(key, entry.getValue());
 			}
+			if (key.equals(sourceTabKey)) {
+				reordered.put(copy.tabId, copy);
+				inserted = true;
+			}
+		}
+		if (!inserted) {
+			reordered.put(copy.tabId, copy);
 		}
 		sessionHistory.clear();
 		sessionHistory.putAll(reordered);
@@ -2038,6 +2164,11 @@ public final class CraftingTreeScreen extends Screen {
 	}
 
 	private void renderTooltips(GuiGraphics g, int mouseX, int mouseY) {
+		TreeSession hoveredTab = getHoveredTabSession(mouseX, mouseY);
+		if (hoveredTab != null) {
+			g.renderTooltip(font, Component.literal(getSessionDisplayName(hoveredTab)), mouseX, mouseY);
+			return;
+		}
 		if (hoveredNode != null) {
 			List<Component> tooltip = new ArrayList<>();
 			Optional<ITypedIngredient<?>> typedOpt = hoveredNode.getTypedIngredient();
