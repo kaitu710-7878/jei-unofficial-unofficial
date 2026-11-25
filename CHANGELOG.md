@@ -15,6 +15,15 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4] - 2026-11-26 (Release)
+#### 正式リリース (Release)
+- `4-beta1` 〜 `4-beta37` にわたるクラフトツリー・レシピチェーンの大幅な機能強化、UI刷新、および各MOD互換性・安定性修正を統合した正式リリースです。
+  - **複数タブ管理・タブ複製・上限保護**: 最大 16 タブの同時表示、右クリックメニュー（複製・リセット・閉じる）、`T`/`Shift+B`（既存タブ移動）と `Shift+T`（無条件新規作成）、16 タブ上限到達時の削除タブ選択ダイアログを追加。
+  - **UI視認性向上**: アイテム・流体アイコンおよびスロットの大型化、数量 `1` の常時表示、縮小時の数量・折りたたみボタン・分岐線サイズ制限を実装。
+  - **互換性・不具合修正**: 登録名を持たないカスタム機械レシピ（`getRegistryName == null`）のツリー＆チェーン双方での完全対応（合成レシピUID）、タグ素材選択の再起動時保持、GTCEu / LDLib 等の3引数版 `IIngredientRenderer.getTooltip` フォールバック対応、子ノード全削除時の親ノード状態復帰、お気に入り保存時のツリー履歴分離など。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta37] - 2026-11-25 (Beta)
 #### 改善 (Improved)
 - **タブバーに最大 16 個すべてのタブを表示できるよう改善 (`CraftingTreeScreen`)**:
@@ -418,6 +427,15 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4] - 2026-11-26 (Release)
+#### Release
+- Official release consolidating all enhancements, UI improvements, and mod compatibility fixes from `4-beta1` through `4-beta37`:
+  - **Multi-Tab Crafting Tree Workspace**: Displays up to 16 independent tabs (including multiple tabs for the same item), right-click tab context menu (**Duplicate**, **Reset**, **Close**), `T`/`Shift+B` (focus existing tab or create) vs `Shift+T` (force new tab), and a deletion-picker warning dialog when at the 16-tab limit.
+  - **UI Readability & Scaling**: Enlarged `20×20` icons in `24×24` slots, always-visible `1` quantity labels, and zoom-scaled limits for amount labels, collapse toggles, and branch lines.
+  - **Compatibility & Bug Fixes**: Synthetic recipe UID support for custom mod recipes without registry names (`getRegistryName == null`) across both Crafting Tree and Bookmark Recipe Chains, deterministic tag variant locking across restarts, fallback support for legacy 3-argument `IIngredientRenderer.getTooltip` (GTCEu / LDLib), clean parent state restoration on pruning all children, and isolated favorite/tree histories.
 
 ---
 
