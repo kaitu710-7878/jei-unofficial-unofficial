@@ -15,6 +15,15 @@
 
 ---
 
+### [15.59.0.212-jeiuu.4-beta33] - 2026-11-25 (Beta)
+#### 改善 (Improved)
+- **クラフトツリー UI の視認性・操作性向上**:
+  - **アイテム・流体アイコンの大型化 (`TreeLayout` & `CraftingTreeScreen`)**: ツリースロットサイズを `18×18` から `24×24` へ、アイコン描画基準サイズを `16×16` から `20×20` へ拡大し、ノード間隔（`X_SPACING = 34`, `Y_SPACING = 28`）を広げることでアイテムや流体を見やすく改善。
+  - **ツリータブバーの実装**: 画面上部に複数ツリーセッションをタブ形式で一覧表示するタブバーを追加。タブのクリックで別アイテム・グループのツリーへ瞬時に切り替え、右端の `x` ボタン（または中クリック）でタブを閉じられるように対応。
+  - **縮小時の数量表示・折りたたみボタン・分岐線のサイズリミット対応**: 画面を縮小（ズームアウト）した際、数量テキスト・折りたたみボタン・分岐線が固定サイズのまま相対的に肥大化してアイテムを覆い隠さないよう、ズーム倍率に応じた比例縮小と最小/最大サイズ制限（一定以上縮小時は非表示・1px線制限）を追加。
+
+---
+
 ### [15.59.0.212-jeiuu.4-beta32] - 2026-11-25 (Beta)
 #### 修正・改善 (Fixed & Improved)
 - **GregTech (GTCEu) / LDLib 等のレシピ画面でホバー中アイテムのツールチップがMod名のみになる上流バグを修正 (`IIngredientRenderer`)**:
@@ -370,6 +379,15 @@ To clearly trace the upstream JEI / JEIU base version, this mod adopts the follo
 `[Upstream JEI Version]-jeiuu.[JEIUU Revision]` (e.g. `15.59.0.212-jeiuu.2`, `15.59.0.212-jeiuu.4-beta9`)
 - **Upstream JEI Version** (`15.59.0.212`): Preserves the exact upstream JEI / JEIU release version as a baseline mark.
 - **JEIUU Revision** (`jeiuu.4-beta9`): Distinguishes and tracks fixes, optimizations, and release types (Alpha/Beta/Release) specific to this fork.
+
+---
+
+### [15.59.0.212-jeiuu.4-beta33] - 2026-11-25 (Beta)
+#### Improved
+- **Crafting Tree UI Visibility & Tab Management Improvements**:
+  - **Larger Item & Fluid Icons (`TreeLayout` & `CraftingTreeScreen`)**: Enlarged tree slot dimensions from `18×18` to `24×24` and base ingredient rendering from `16×16` to `20×20` (with expanded spacing `X_SPACING = 34`, `Y_SPACING = 28`) for improved clarity.
+  - **Tree Tab Bar**: Added a browser-style tab bar below the top toolbar listing active tree sessions (`sessionHistory`). Click any tab to switch between trees instantly, or click `x` (or middle-click) to close a tab.
+  - **Zoom-Out Size Limits for Quantities, Collapse Buttons, and Branch Lines**: Prevented amount overlays, collapse buttons, and branch lines from becoming disproportionately large when zooming out by scaling them proportionally with zoom and clamping to clean minimum/maximum bounds (hiding text/buttons when zoomed very far out and clamping branch lines to `1px`–`2px`).
 
 ---
 

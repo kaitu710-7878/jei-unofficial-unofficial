@@ -15,10 +15,10 @@ import java.util.TreeMap;
  * Parents are centered over children, with subtree collision separation.
  */
 public final class TreeLayout {
-	public static final int SLOT_SIZE = 18;
-	public static final int X_SPACING = 30;
-	public static final int Y_SPACING = 24;
-	public static final int ROOT_SPACING = 42;
+	public static final int SLOT_SIZE = 24;
+	public static final int X_SPACING = 34;
+	public static final int Y_SPACING = 28;
+	public static final int ROOT_SPACING = 46;
 
 	public static final class Point {
 		public int x;

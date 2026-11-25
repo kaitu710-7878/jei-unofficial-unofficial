@@ -65,6 +65,7 @@ public final class TreeDraw {
 
 	/**
 	 * Draws an orthogonal stepped connection line between parent and child slots.
+	 * Line thickness is clamped between 1px and 2px regardless of zoom.
 	 */
 	public static void drawConnectionLine(
 		GuiGraphics g,
@@ -72,18 +73,21 @@ public final class TreeDraw {
 		int parentBottomY,
 		int childCenterX,
 		int childTopY,
-		int lineColor
+		int lineColor,
+		float zoom
 	) {
 		int midY = parentBottomY + (childTopY - parentBottomY) / 2;
+		int halfNeg = zoom >= 0.75f ? 1 : 0;
+		int halfPos = 1; // Always at least 1px thick (total 1px when halfNeg=0, 2px when halfNeg=1)
 
 		// Vertical line down from parent
-		g.fill(parentCenterX - 1, parentBottomY, parentCenterX + 1, midY, lineColor);
+		g.fill(parentCenterX - halfNeg, parentBottomY, parentCenterX + halfPos, midY, lineColor);
 		// Horizontal cross line
 		int startX = Math.min(parentCenterX, childCenterX);
 		int endX = Math.max(parentCenterX, childCenterX);
-		g.fill(startX - 1, midY - 1, endX + 1, midY + 1, lineColor);
+		g.fill(startX - halfNeg, midY - halfNeg, endX + halfPos, midY + halfPos, lineColor);
 		// Vertical line down to child
-		g.fill(childCenterX - 1, midY, childCenterX + 1, childTopY, lineColor);
+		g.fill(childCenterX - halfNeg, midY, childCenterX + halfPos, childTopY, lineColor);
 	}
 
 	/**
@@ -94,10 +98,13 @@ public final class TreeDraw {
 		Font font,
 		int x,
 		int y,
+		int size,
 		boolean collapsed,
 		boolean isHovered
 	) {
-		int size = 9;
+		if (size < 4) {
+			return;
+		}
 		int bg = isHovered ? 0xFF555555 : 0xFF2A2A2A;
 		int border = isHovered ? 0xFFFFFFFF : 0xFF888888;
 		int text = isHovered ? 0xFFFFFFFF : 0xFFCCCCCC;
@@ -110,7 +117,14 @@ public final class TreeDraw {
 
 		String symbol = collapsed ? "+" : "-";
 		int textW = font.width(symbol);
-		g.drawString(font, symbol, x + (size - textW) / 2, y + 1, text, false);
+		float textScale = Math.min(1.0f, (float) size / 9.0f);
+		g.pose().pushPose();
+		g.pose().translate(x + (size - textW * textScale) / 2.0f, y + (size - 7.0f * textScale) / 2.0f, 0.0f);
+		if (textScale != 1.0f) {
+			g.pose().scale(textScale, textScale, 1.0f);
+		}
+		g.drawString(font, symbol, 0, 0, text, false);
+		g.pose().popPose();
 	}
 
 	/**

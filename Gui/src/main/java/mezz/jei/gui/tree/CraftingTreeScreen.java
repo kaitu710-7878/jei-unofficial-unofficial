@@ -65,6 +65,8 @@ import java.util.Set;
  */
 public final class CraftingTreeScreen extends Screen {
 	private static final int TOP_BAR_HEIGHT = 30;
+	private static final int TAB_BAR_HEIGHT = 20;
+	private static final int HEADER_HEIGHT = TOP_BAR_HEIGHT + TAB_BAR_HEIGHT;
 	private static final int STATS_BAR_HEIGHT = 32;
 
 	private final @Nullable Screen parentScreen;
@@ -381,7 +383,7 @@ public final class CraftingTreeScreen extends Screen {
 	}
 
 	private static final int MAX_SESSION_HISTORY = 16;
-	private static final Map<String, TreeSession> sessionHistory = new LinkedHashMap<>(16, 0.75f, true) {
+	private static final Map<String, TreeSession> sessionHistory = new LinkedHashMap<>(16, 0.75f, false) {
 		@Override
 		protected boolean removeEldestEntry(Map.Entry<String, TreeSession> eldest) {
 			return size() > MAX_SESSION_HISTORY;
@@ -688,8 +690,8 @@ public final class CraftingTreeScreen extends Screen {
 
 	@Override
 	protected void init() {
-		int viewportH = height - TOP_BAR_HEIGHT - (showStats ? STATS_BAR_HEIGHT : 0);
-		camera.setViewport(0, TOP_BAR_HEIGHT, width, viewportH);
+		int viewportH = height - HEADER_HEIGHT - (showStats ? STATS_BAR_HEIGHT : 0);
+		camera.setViewport(0, HEADER_HEIGHT, width, viewportH);
 
 		// Back Button
 		addRenderableWidget(Button.builder(Component.literal("<"), b -> onClose())
@@ -745,8 +747,8 @@ public final class CraftingTreeScreen extends Screen {
 				Component.literal("="),
 				b -> {
 					showStats = !showStats;
-					int newH = height - TOP_BAR_HEIGHT - (showStats ? STATS_BAR_HEIGHT : 0);
-					camera.setViewport(0, TOP_BAR_HEIGHT, width, newH);
+					int newH = height - HEADER_HEIGHT - (showStats ? STATS_BAR_HEIGHT : 0);
+					camera.setViewport(0, HEADER_HEIGHT, width, newH);
 					saveSession();
 				}
 			)
@@ -1197,9 +1199,10 @@ public final class CraftingTreeScreen extends Screen {
 		// 1. Draw Canvas (Tree nodes and connection lines)
 		renderCanvas(g, mouseX, mouseY);
 
-		// 2. Draw Top Bar Background
+		// 2. Draw Top Bar & Tab Bar
 		g.fill(0, 0, width, TOP_BAR_HEIGHT, 0xEE1E1E1E);
 		g.fill(0, TOP_BAR_HEIGHT - 1, width, TOP_BAR_HEIGHT, 0xFF444444);
+		renderTabBar(g, mouseX, mouseY);
 
 		// 3. Draw Bottom Stats Bar
 		if (showStats) {
@@ -1211,6 +1214,163 @@ public final class CraftingTreeScreen extends Screen {
 
 		// 5. Draw Tooltips
 		renderTooltips(g, mouseX, mouseY);
+	}
+
+	private @Nullable String getCurrentSessionKey() {
+		if (targetIngredient != null) {
+			return "item:" + BookmarkItemMetadataFactory.createPermutationKey(targetIngredient, ingredientManager).stableKey();
+		}
+		if (groupId >= 0) {
+			return "group:" + groupId;
+		}
+		return null;
+	}
+
+	private String getSessionDisplayName(TreeSession session) {
+		if (session.targetIngredient != null) {
+			List<Component> lines = getIngredientTooltip(session.targetIngredient);
+			if (!lines.isEmpty()) {
+				String s = lines.get(0).getString();
+				if (!s.isBlank()) {
+					return s;
+				}
+			}
+		}
+		if (session.targetIngredientKey != null) {
+			return session.targetIngredientKey.ingredientUid();
+		}
+		if (session.groupId >= 0) {
+			return bookmarks.getGroup(session.groupId)
+				.map(g -> g.title().isBlank() ? "Group #" + session.groupId : g.title())
+				.orElse("Group #" + session.groupId);
+		}
+		return "Tree";
+	}
+
+	private void renderTabBar(GuiGraphics g, int mouseX, int mouseY) {
+		g.fill(0, TOP_BAR_HEIGHT, width, HEADER_HEIGHT, 0xEE161616);
+		g.fill(0, HEADER_HEIGHT - 1, width, HEADER_HEIGHT, 0xFF3A3A3A);
+
+		List<Map.Entry<String, TreeSession>> tabs = new ArrayList<>(sessionHistory.entrySet());
+		if (tabs.isEmpty()) {
+			return;
+		}
+
+		String activeKey = getCurrentSessionKey();
+		int maxTabsWidth = Math.max(1, width - 8);
+		int tabW = Math.max(58, Math.min(115, (maxTabsWidth - (tabs.size() - 1) * 2) / tabs.size()));
+		int x = 4;
+		int y = TOP_BAR_HEIGHT + 2;
+		int h = TAB_BAR_HEIGHT - 2;
+
+		for (Map.Entry<String, TreeSession> entry : tabs) {
+			if (x + tabW > width - 4) {
+				break;
+			}
+			String tabKey = entry.getKey();
+			TreeSession tabSession = entry.getValue();
+			boolean isActive = tabKey.equals(activeKey);
+			boolean isHover = mouseX >= x && mouseX < x + tabW && mouseY >= y && mouseY < y + h;
+			boolean isCloseHover = isHover && mouseX >= x + tabW - 12;
+
+			int bg = isActive ? 0xFF343A46 : (isHover ? 0xFF282828 : 0xFF1E1E1E);
+			int border = isActive ? 0xFF5599FF : 0xFF383838;
+			g.fill(x, y, x + tabW, y + h, bg);
+			g.fill(x, y, x + tabW, y + 1, border);
+			g.fill(x, y, x + 1, y + h, border);
+			g.fill(x + tabW - 1, y, x + tabW, y + h, border);
+			if (isActive) {
+				g.fill(x + 1, y + h - 1, x + tabW - 1, y + h, 0xFF5599FF);
+			}
+
+			int textStartX = x + 4;
+			if (tabSession.targetIngredient != null) {
+				renderTypedIngredient(g, tabSession.targetIngredient, x + 3, y + 3, 12.0f / 16.0f);
+				textStartX = x + 17;
+			}
+
+			int closeX = x + tabW - 11;
+			int maxLabelW = Math.max(8, closeX - textStartX - 2);
+			String label = getSessionDisplayName(tabSession);
+			if (font.width(label) > maxLabelW) {
+				label = font.plainSubstrByWidth(label, Math.max(4, maxLabelW - font.width("..."))) + "...";
+			}
+			g.drawString(font, label, textStartX, y + 5, isActive ? 0xFFFFFFFF : 0xFFBBBBBB, false);
+			g.drawString(font, "x", closeX + 2, y + 4, isCloseHover ? 0xFFFF5555 : 0xFF888888, false);
+
+			x += tabW + 2;
+		}
+	}
+
+	private boolean handleTabClick(double mouseX, double mouseY, int button) {
+		List<Map.Entry<String, TreeSession>> tabs = new ArrayList<>(sessionHistory.entrySet());
+		if (tabs.isEmpty()) {
+			return false;
+		}
+		int maxTabsWidth = Math.max(1, width - 8);
+		int tabW = Math.max(58, Math.min(115, (maxTabsWidth - (tabs.size() - 1) * 2) / tabs.size()));
+		int x = 4;
+		int y = TOP_BAR_HEIGHT + 2;
+		int h = TAB_BAR_HEIGHT - 2;
+
+		String activeKey = getCurrentSessionKey();
+		for (int i = 0; i < tabs.size(); i++) {
+			if (x + tabW > width - 4) {
+				break;
+			}
+			Map.Entry<String, TreeSession> entry = tabs.get(i);
+			if (mouseX >= x && mouseX < x + tabW && mouseY >= y && mouseY < y + h) {
+				String tabKey = entry.getKey();
+				TreeSession tabSession = entry.getValue();
+				boolean isCloseClick = (button == 2) || (button == 0 && mouseX >= x + tabW - 12);
+				if (isCloseClick) {
+					sessionHistory.remove(tabKey);
+					if (tabKey.equals(activeKey)) {
+						List<TreeSession> remaining = new ArrayList<>(sessionHistory.values());
+						if (!remaining.isEmpty()) {
+							TreeSession next = remaining.get(Math.min(i, remaining.size() - 1));
+							activeSession = next;
+							next.saveToFile(ingredientManager, sessionHistory);
+							switchToSession(next);
+						} else {
+							activeSession = null;
+							Minecraft.getInstance().setScreen(parentScreen);
+						}
+					} else {
+						saveSession();
+					}
+					return true;
+				} else if (button == 0) {
+					if (!tabKey.equals(activeKey)) {
+						saveSession();
+						switchToSession(tabSession);
+					}
+					return true;
+				}
+			}
+			x += tabW + 2;
+		}
+		return false;
+	}
+
+	private void switchToSession(TreeSession session) {
+		if (session.targetIngredient != null) {
+			Minecraft.getInstance().setScreen(new CraftingTreeScreen(
+				parentScreen,
+				bookmarks,
+				session.targetIngredient,
+				session.targetAmount,
+				session.targetRecipeOverride,
+				ingredientManager
+			));
+		} else if (session.groupId >= 0) {
+			Minecraft.getInstance().setScreen(new CraftingTreeScreen(
+				parentScreen,
+				bookmarks,
+				session.groupId,
+				ingredientManager
+			));
+		}
 	}
 
 	private void renderCanvas(GuiGraphics g, int mouseX, int mouseY) {
@@ -1252,7 +1412,7 @@ public final class CraftingTreeScreen extends Screen {
 				int screenCcenterX = camera.toScreenX(cCenterX);
 				int screenCtopY = camera.toScreenY(cTopY);
 
-				TreeDraw.drawConnectionLine(g, screenPcenterX, screenPbottomY, screenCcenterX, screenCtopY, lineColor);
+				TreeDraw.drawConnectionLine(g, screenPcenterX, screenPbottomY, screenCcenterX, screenCtopY, lineColor, camera.getZoomLevel());
 			}
 		}
 
@@ -1291,34 +1451,38 @@ public final class CraftingTreeScreen extends Screen {
 		// Flush lines and slot backgrounds before rendering custom ingredient renderers (fluids, gases, chemicals)
 		g.flush();
 
-		// 3. Render Ingredient Icons
+		// 3. Render Ingredient Icons (enlarged 20x20 base icon inside 24x24 slot)
 		for (VisibleTreeNode node : visibleNodes) {
 			Optional<ITypedIngredient<?>> typedOpt = node.slot().getTypedIngredient();
 			if (typedOpt.isPresent()) {
-				float scale = (float) node.scaledSlotSize() / (float) TreeLayout.SLOT_SIZE;
-				float itemPad = Math.max(0.0f, (node.scaledSlotSize() - 16.0f * scale) / 2.0f);
+				float baseIconSize = 20.0f;
+				float iconPixelSize = baseIconSize * ((float) node.scaledSlotSize() / (float) TreeLayout.SLOT_SIZE);
+				float scale = iconPixelSize / 16.0f;
+				float itemPad = Math.max(0.0f, (node.scaledSlotSize() - iconPixelSize) / 2.0f);
 				renderTypedIngredient(g, typedOpt.get(), node.screenX() + itemPad, node.screenY() + itemPad, scale);
 			}
 		}
 
-		// 4. Render Amount Overlays & Collapse Buttons on top
+		// 4. Render Amount Overlays & Collapse Buttons on top (with zoom-out size limits)
+		float zoom = camera.getZoomLevel();
+		int collapseBtnSize = zoom < 0.35f ? 0 : Math.max(4, Math.min(9, Math.round(9.0f * zoom)));
 		for (VisibleTreeNode node : visibleNodes) {
 			TreeSlot slot = node.slot();
 			BigInteger amount = slot.hasRecipe() ? slot.getProducedAmount() : slot.getRequestedAmount();
-			drawFormattedAmountOverlay(g, amount, slot.getKey(), node.screenX(), node.screenY(), node.scaledSlotSize());
+			drawFormattedAmountOverlay(g, amount, slot.getKey(), node.screenX(), node.screenY(), node.scaledSlotSize(), false, zoom);
 
-			if (graph.hasChildren(slot)) {
-				int collapseX = node.screenX() + (node.scaledSlotSize() - 9) / 2;
+			if (collapseBtnSize >= 4 && graph.hasChildren(slot)) {
+				int collapseX = node.screenX() + (node.scaledSlotSize() - collapseBtnSize) / 2;
 				int collapseY = node.screenY() + node.scaledSlotSize();
 				boolean isCollapseHover = camera.isInViewport(mouseX, mouseY) &&
-					mouseX >= collapseX && mouseX < collapseX + 9 &&
-					mouseY >= collapseY && mouseY < collapseY + 9;
+					mouseX >= collapseX && mouseX < collapseX + collapseBtnSize &&
+					mouseY >= collapseY && mouseY < collapseY + collapseBtnSize;
 
 				if (isCollapseHover) {
 					hoveredCollapseBtn = slot;
 				}
 
-				TreeDraw.drawCollapseButton(g, font, collapseX, collapseY, slot.isCollapsed(), isCollapseHover);
+				TreeDraw.drawCollapseButton(g, font, collapseX, collapseY, collapseBtnSize, slot.isCollapsed(), isCollapseHover);
 			}
 		}
 
@@ -1411,6 +1575,23 @@ public final class CraftingTreeScreen extends Screen {
 		int slotSize,
 		boolean alwaysShowPositive
 	) {
+		drawFormattedAmountOverlay(g, amount, key, screenX, screenY, slotSize, alwaysShowPositive, 1.0f);
+	}
+
+	private void drawFormattedAmountOverlay(
+		GuiGraphics g,
+		BigInteger amount,
+		@Nullable BookmarkIngredientKey key,
+		int screenX,
+		int screenY,
+		int slotSize,
+		boolean alwaysShowPositive,
+		float zoom
+	) {
+		if (slotSize < 10) {
+			// Hide amount text when zoomed out far so it does not obscure the entire slot
+			return;
+		}
 		boolean isFluidOrGas = key != null && BookmarkAmountFormatter.usesFluidAmountUnits(key.ingredientTypeUid());
 		boolean shouldRender = (alwaysShowPositive || isFluidOrGas) ? amount.signum() > 0 : amount.compareTo(BigInteger.ONE) > 0;
 		if (!shouldRender) {
@@ -1420,9 +1601,9 @@ public final class CraftingTreeScreen extends Screen {
 			? BookmarkAmountFormatter.formatTypedAmount(amount, key.ingredientTypeUid())
 			: BookmarkAmountFormatter.formatItemAmount(amount);
 		int textWidth = font.width(text);
-		float scale = 1.0f;
+		float scale = Math.min(1.0f, Math.max(0.42f, zoom * 0.95f));
 		int availableWidth = slotSize - 2;
-		if (textWidth > availableWidth && availableWidth > 0) {
+		if (textWidth * scale > availableWidth && availableWidth > 0 && textWidth > 0) {
 			scale = (float) availableWidth / textWidth;
 		}
 		int textX = screenX + slotSize - Math.round(textWidth * scale) - 1;
@@ -1708,6 +1889,13 @@ public final class CraftingTreeScreen extends Screen {
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
 		if (searchBox != null && searchBox.mouseClicked(mouseX, mouseY, button)) {
 			return true;
+		}
+
+		// 0. Tab Bar Interactions
+		if (mouseY >= TOP_BAR_HEIGHT && mouseY < HEADER_HEIGHT) {
+			if (handleTabClick(mouseX, mouseY, button)) {
+				return true;
+			}
 		}
 
 		// 1. Collapse toggle button
